@@ -94,3 +94,5 @@ export const groupMatchesByDate = (matches) => {
     return acc;
   }, {});
 };
+export const getUpcomingMatches = (limit = 6) =>
+  MATCHES.filter(m => m.status === 'upcoming').slice(0, limit);
