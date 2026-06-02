@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
+  }
+}
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-slate-800/60 border border-slate-700/50 rounded-xl backdrop-blur-sm;
+  }
+  .card-hover {
+    @apply card hover:border-emerald-500/40 hover:bg-slate-800 transition-all duration-200 cursor-pointer;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-white font-semibold px-4 py-2 rounded-lg transition-colors duration-150 text-sm;
+  }
+  .btn-secondary {
+    @apply bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-slate-200 font-medium px-4 py-2 rounded-lg transition-colors duration-150 text-sm;
+  }
+  .btn-outline {
+    @apply border border-emerald-500/50 hover:border-emerald-400 text-emerald-400 hover:text-emerald-300 font-medium px-4 py-2 rounded-lg transition-all duration-150 text-sm;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply flex items-center gap-2 px-3 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-all duration-150 text-sm font-medium whitespace-nowrap;
+  }
+  .nav-link-active {
+    @apply flex items-center gap-2 px-3 py-2 rounded-lg text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 text-sm font-medium whitespace-nowrap;
+  }
+
+  /* Badges */
+  .badge-live {
+    @apply inline-flex items-center gap-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full uppercase tracking-wider;
+  }
+  .badge-upcoming {
+    @apply inline-flex items-center bg-slate-600 text-slate-200 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-finished {
+    @apply inline-flex items-center bg-slate-700 text-slate-400 text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-group {
+    @apply inline-flex items-center justify-center w-7 h-7 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30;
+  }
+
+  /* Group table */
+  .table-row-qualify {
+    @apply border-l-2 border-emerald-500;
+  }
+  .table-row-qualify-3rd {
+    @apply border-l-2 border-amber-400;
+  }
+  .table-row-out {
+    @apply border-l-2 border-transparent;
+  }
+
+  /* Section titles */
+  .section-title {
+    @apply text-xl font-bold text-white;
+  }
+  .section-subtitle {
+    @apply text-sm text-slate-400 mt-1;
+  }
+
+  /* Countdown */
+  .countdown-box {
+    @apply bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center min-w-[80px];
+  }
+
+  /* Bracket */
+  .bracket-match {
+    @apply bg-slate-800 border border-slate-700 rounded-lg overflow-hidden w-48 flex-shrink-0;
+  }
+  .bracket-team {
+    @apply flex items-center gap-2 px-3 py-2 text-sm border-b border-slate-700/50 last:border-0;
+  }
+  .bracket-team-winner {
+    @apply bg-emerald-500/10 text-emerald-400 font-semibold;
+  }
+
+  /* Prediction card */
+  .prediction-input {
+    @apply w-12 text-center bg-slate-700 border border-slate-600 rounded-lg py-1.5 text-white font-bold text-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-emerald-400 to-emerald-600 bg-clip-text text-transparent;
+  }
+  .glow-emerald {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+}
