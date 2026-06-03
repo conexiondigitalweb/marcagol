@@ -117,6 +117,4 @@ export const getTeamByCode = (code) => getAllTeams().find(t => t.code === code);
 
 export const getGroupByTeamCode = (code) => GROUPS.find(g => g.teams.some(t => t.code === code));
 
-export const ALL_TEAMS = Object.fromEntries(
-  GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
-);
+export const ALL_TEAMS = GROUPS.flatMap(g => g.teams.map(t => ({ ...t, group: g.id })));
