@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { GROUPS, ALL_TEAMS } from '../data/groups'
+import { ALL_TEAMS } from '../data/groups'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { ConfederationBadge, GroupBadge } from '../components/ui/Badge'

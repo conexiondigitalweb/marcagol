@@ -9,6 +9,10 @@ import { StatusBadge } from '../components/ui/Badge'
 
 const WORLD_CUP_START = '2026-06-11T18:00:00Z'
 
+const ALL_TEAMS_MAP = Object.fromEntries(
+  GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
+)
+
 function CountdownBox({ value, label }) {
   return (
     <div className="countdown-box">
@@ -22,8 +26,8 @@ function CountdownBox({ value, label }) {
 
 function MatchCard({ match, compact = false }) {
   const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
-  const home = GROUPS.flatMap(g => g.teams).find(t => t.code === match.homeTeam)
-  const away = GROUPS.flatMap(g => g.teams).find(t => t.code === match.awayTeam)
+  const home = ALL_TEAMS_MAP[match.homeTeam]
+  const away = ALL_TEAMS_MAP[match.awayTeam]
 
   return (
     <div className={`card p-4 ${compact ? '' : 'hover:border-emerald-500/30 transition-all'}`}>
@@ -49,9 +53,9 @@ function MatchCard({ match, compact = false }) {
 
         {/* Score / Time */}
         <div className="flex-shrink-0 text-center min-w-[60px]">
-          {match.homeScore !== null ? (
+          {match.homeScore != null ? (
             <div className={`text-xl font-black tabular-nums ${isLive ? 'text-emerald-400' : 'text-white'}`}>
-              {match.homeScore} - {match.awayScore}
+              {match.homeScore}–{match.awayScore}
             </div>
           ) : (
             <div className="text-slate-400 font-mono text-sm">{match.time?.slice(0,5)}</div>
