@@ -22,7 +22,7 @@ function MatchRow({ match }) {
       {/* Time & group */}
       <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
         <span className={`text-sm font-mono font-bold ${isLive ? 'text-red-400' : 'text-slate-300'}`}>
-          {match.time?.slice(0,5)} UTC
+          {match.time?.slice(0,5)} ET
         </span>
         <span className="text-xs text-slate-600">Grupo {match.group} · J{match.matchday}</span>
       </div>

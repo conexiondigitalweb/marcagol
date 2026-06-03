@@ -71,5 +71,7 @@ export const groupMatchesByDate = (matches) => {
     if (!grouped[m.date]) grouped[m.date] = []
     grouped[m.date].push(m)
   })
-  return Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b))
+  return Object.entries(grouped)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, ms]) => [date, [...ms].sort((a, b) => (a.time || '').localeCompare(b.time || ''))])
 }

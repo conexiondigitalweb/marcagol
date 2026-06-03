@@ -5,7 +5,7 @@ export const VENUES = [
     city: 'East Rutherford',
     country: 'USA',
     capacity: 82500,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Aerial_view_of_MetLife_Stadium.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,new+jersey',
   },
   {
     id: 'att',
@@ -13,7 +13,7 @@ export const VENUES = [
     city: 'Arlington / Dallas',
     country: 'USA',
     capacity: 80000,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/AT%26T_Stadium.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,dallas',
   },
   {
     id: 'sofi',
@@ -21,7 +21,7 @@ export const VENUES = [
     city: 'Inglewood / Los Ángeles',
     country: 'USA',
     capacity: 70240,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/SoFi_Stadium_aerial_view.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,los+angeles',
   },
   {
     id: 'levis',
@@ -29,7 +29,7 @@ export const VENUES = [
     city: 'Santa Clara / San Francisco',
     country: 'USA',
     capacity: 68500,
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Levi%27s_Stadium.jpg?width=640",
+    image: 'https://source.unsplash.com/600x400/?stadium,san+francisco',
   },
   {
     id: 'arrowhead',
@@ -37,7 +37,7 @@ export const VENUES = [
     city: 'Kansas City',
     country: 'USA',
     capacity: 76416,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Arrowhead_Stadium.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,kansas+city',
   },
   {
     id: 'gillette',
@@ -45,7 +45,7 @@ export const VENUES = [
     city: 'Foxborough / Boston',
     country: 'USA',
     capacity: 65878,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Gillette_Stadium_aerial.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,boston',
   },
   {
     id: 'lincoln',
@@ -53,7 +53,7 @@ export const VENUES = [
     city: 'Filadelfia',
     country: 'USA',
     capacity: 69796,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Lincoln_Financial_Field.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,philadelphia',
   },
   {
     id: 'mercedes',
@@ -61,7 +61,7 @@ export const VENUES = [
     city: 'Atlanta',
     country: 'USA',
     capacity: 71000,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Mercedes-Benz_Stadium.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,atlanta',
   },
   {
     id: 'hardrock',
@@ -69,7 +69,15 @@ export const VENUES = [
     city: 'Miami Gardens / Miami',
     country: 'USA',
     capacity: 65326,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Hard_Rock_Stadium.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,miami',
+  },
+  {
+    id: 'nrg',
+    name: 'NRG Stadium',
+    city: 'Houston',
+    country: 'USA',
+    capacity: 72220,
+    image: 'https://source.unsplash.com/600x400/?stadium,houston',
   },
   {
     id: 'azteca',
@@ -77,7 +85,7 @@ export const VENUES = [
     city: 'Ciudad de México',
     country: 'México',
     capacity: 87523,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Aztecaestadio.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,mexico+city',
   },
   {
     id: 'akron',
@@ -85,7 +93,7 @@ export const VENUES = [
     city: 'Zapopan / Guadalajara',
     country: 'México',
     capacity: 46455,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Estadio_Akron.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,guadalajara',
   },
   {
     id: 'bbva',
@@ -93,7 +101,7 @@ export const VENUES = [
     city: 'Guadalupe / Monterrey',
     country: 'México',
     capacity: 53500,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Estadio_BBVA_Bancomer.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,monterrey',
   },
   {
     id: 'bcplace',
@@ -101,7 +109,7 @@ export const VENUES = [
     city: 'Vancouver',
     country: 'Canadá',
     capacity: 54500,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/BC_Place.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,vancouver',
   },
   {
     id: 'bmo',
@@ -109,7 +117,7 @@ export const VENUES = [
     city: 'Toronto',
     country: 'Canadá',
     capacity: 45000,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/BMO_Field.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,toronto',
   },
   {
     id: 'edmonton',
@@ -117,7 +125,7 @@ export const VENUES = [
     city: 'Edmonton',
     country: 'Canadá',
     capacity: 56000,
-    image: 'https://commons.wikimedia.org/wiki/Special:FilePath/Commonwealth_Stadium_Edmonton.jpg?width=640',
+    image: 'https://source.unsplash.com/600x400/?stadium,edmonton',
   },
   {
     id: 'mercy',
@@ -125,14 +133,14 @@ export const VENUES = [
     city: 'Kansas City',
     country: 'USA',
     capacity: 18467,
-    image: "https://commons.wikimedia.org/wiki/Special:FilePath/Children%27s_Mercy_Park.jpg?width=640",
+    image: 'https://source.unsplash.com/600x400/?soccer,stadium',
   },
 ]
 
 export const VENUES_BY_NAME = Object.fromEntries(
   VENUES.flatMap(v => [
     [v.name, v],
-    // aliases that match strings used in matches.js
+    // aliases para nombres usados en matches.js
     ...(v.id === 'arrowhead' ? [['Kansas City Stadium', v]] : []),
     ...(v.id === 'azteca'    ? [['Estadio Ciudad de México', v]] : []),
   ])

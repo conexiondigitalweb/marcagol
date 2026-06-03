@@ -60,7 +60,7 @@ function MatchCard({ match, compact = false }) {
           ) : (
             <div className="text-slate-400 font-mono text-sm">{match.time?.slice(0,5)}</div>
           )}
-          <div className="text-xs text-slate-600 mt-0.5">UTC</div>
+          <div className="text-xs text-slate-600 mt-0.5">ET</div>
         </div>
 
         {/* Away */}
