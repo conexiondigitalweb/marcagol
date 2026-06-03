@@ -1,18 +1,25 @@
-import { flagUrl } from '../../utils/helpers'
-
-const SIZE_MAP = { xs: 20, sm: 28, md: 40, lg: 56, xl: 80 }
+const FLAGCDN_DIM = {
+  xs:  '20x15',
+  sm:  '28x21',
+  md:  '40x30',
+  lg:  '56x42',
+  xl:  '80x60',
+}
 
 export default function Flag({ iso2, size = 'md', className = '' }) {
-  const px  = SIZE_MAP[size] || 40
-  const src = flagUrl(iso2, px * 2)
+  if (!iso2) return null
+  const dim = FLAGCDN_DIM[size] || '40x30'
+  const [w, h] = dim.split('x').map(Number)
+  const src = `https://flagcdn.com/${dim}/${iso2.toLowerCase()}.png`
 
   return (
     <img
       src={src}
       alt={iso2}
-      width={px}
-      height={Math.round(px * 0.67)}
-      className={`object-cover rounded-sm flex-shrink-0 ${className}`}
+      width={w}
+      height={h}
+      className={`object-cover flex-shrink-0 ${className}`}
+      style={{ borderRadius: '3px', boxShadow: '0 1px 3px rgba(0,0,0,0.35)' }}
       loading="lazy"
       onError={e => { e.currentTarget.style.opacity = '0.3' }}
     />

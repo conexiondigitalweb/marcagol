@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/equipos',     label: 'Equipos',      icon: '👕' },
   { to: '/predicciones',label: 'Predicciones', icon: '🎯' },
   { to: '/calendario',  label: 'Calendario',   icon: '📅' },
+  { to: '/noticias',    label: 'Noticias',     icon: '📰' },
   { to: '/donde-ver',   label: 'Dónde Ver',    icon: '📺' },
 ]
 

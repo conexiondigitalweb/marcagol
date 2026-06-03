@@ -180,6 +180,41 @@ export default function TeamDetail() {
           </div>
         </div>
 
+        {/* Squad */}
+        {team.players && (() => {
+          const positions = ['Arquero', 'Defensor', 'Volante', 'Delantero']
+          const grouped = positions.reduce((acc, pos) => {
+            acc[pos] = team.players.filter(p => p.position === pos)
+            return acc
+          }, {})
+          const posIcons = { Arquero: '🧤', Defensor: '🛡️', Volante: '⚙️', Delantero: '⚽' }
+          return (
+            <div className="card p-5 md:col-span-2">
+              <h3 className="font-semibold text-white mb-4">
+                Convocatoria Oficial · Mundial 2026
+              </h3>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {positions.map(pos => (
+                  <div key={pos}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span>{posIcons[pos]}</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{pos}es</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {grouped[pos].map(player => (
+                        <div key={player.name} className="bg-slate-700/30 rounded-lg px-3 py-2">
+                          <p className="text-sm text-white font-medium leading-tight">{player.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{player.club}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Tournament Stats */}
         <div className="card p-5">
           <h3 className="font-semibold text-white mb-4">Estadísticas de Fase de Grupos</h3>

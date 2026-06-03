@@ -10,6 +10,7 @@ import TeamDetail from './pages/TeamDetail'
 import Predictions from './pages/Predictions'
 import Broadcast  from './pages/Broadcast'
 import Schedule   from './pages/Schedule'
+import News       from './pages/News'
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/equipos/:code" element={<TeamDetail />} />
           <Route path="/predicciones"  element={<Predictions />}/>
           <Route path="/calendario"    element={<Schedule />}   />
+          <Route path="/noticias"      element={<News />}       />
           <Route path="/donde-ver"     element={<Broadcast />}  />
         </Routes>
       </main>

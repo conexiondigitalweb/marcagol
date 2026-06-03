@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
+import { VENUES_BY_NAME } from '../data/venues'
 import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { StatusBadge } from '../components/ui/Badge'
@@ -61,6 +62,11 @@ function MatchRow({ match }) {
         <span className="text-xs text-slate-600 text-right truncate max-w-[180px]">
           📍 {match.venue}
         </span>
+        {VENUES_BY_NAME[match.venue] && (
+          <span className="text-xs text-slate-700 text-right">
+            🏟️ {VENUES_BY_NAME[match.venue].capacity.toLocaleString()} cap.
+          </span>
+        )}
       </div>
     </div>
   )
