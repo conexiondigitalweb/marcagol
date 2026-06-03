@@ -10,16 +10,51 @@ const FEEDS = [
 ]
 
 const STATIC_ARTICLES = [
-  { id: 'st-1',  source: 'FIFA', title: 'FIFA World Cup 2026™ — La guía completa: grupos, sedes y equipos', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/usa-canada-mexico2026', pubDate: '2026-05-15T12:00:00Z', image: null },
-  { id: 'st-2',  source: 'FIFA', title: 'Calendario oficial del Mundial 2026: fechas y horarios de los 104 partidos', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/usa-canada-mexico2026/matches', pubDate: '2026-05-10T10:00:00Z', image: null },
-  { id: 'st-3',  source: 'FIFA', title: 'Los 12 grupos del Mundial 2026: así quedó el sorteo', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/usa-canada-mexico2026/groups', pubDate: '2026-04-20T15:00:00Z', image: null },
-  { id: 'st-4',  source: 'FIFA', title: 'Los 16 estadios del Mundial 2026: capacidades y sedes', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/usa-canada-mexico2026/venues', pubDate: '2026-04-01T09:00:00Z', image: null },
-  { id: 'st-5',  source: 'Goal', title: 'Argentina, favorita al Mundial 2026: las claves de Scaloni', link: 'https://www.goal.com/es/mundial/2026', pubDate: '2026-05-20T08:00:00Z', image: null },
-  { id: 'st-6',  source: 'Goal', title: 'Colombia llega al Mundial 2026 con su mejor generación', link: 'https://www.goal.com/es/mundial/2026', pubDate: '2026-05-18T11:00:00Z', image: null },
-  { id: 'st-7',  source: 'Goal', title: 'Brasil y su camino al título en el Mundial 2026', link: 'https://www.goal.com/es/mundial/2026', pubDate: '2026-05-17T14:00:00Z', image: null },
-  { id: 'st-8',  source: 'FIFA', title: 'Vinicius Jr., Mbappé y los cracks que brillarán en 2026', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/usa-canada-mexico2026/players', pubDate: '2026-05-12T16:00:00Z', image: null },
-  { id: 'st-9',  source: 'Goal', title: 'México anfitrión: la presión de jugar en casa el Mundial 2026', link: 'https://www.goal.com/es/mundial/2026', pubDate: '2026-05-08T10:00:00Z', image: null },
-  { id: 'st-10', source: 'FIFA', title: '48 selecciones, 104 partidos: cómo funciona el nuevo formato del Mundial', link: 'https://www.fifa.com/en/tournaments/mens/worldcup/articles/fifa-world-cup-2026-format', pubDate: '2026-04-15T09:00:00Z', image: null },
+  {
+    id: 'st-1',
+    source: 'FIFA',
+    title: 'FIFA anuncia el calendario completo del Mundial 2026',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-01-15T00:00:00Z',
+    image: null,
+    description: 'La FIFA confirmó los 104 partidos del torneo en 16 estadios de Estados Unidos, México y Canadá.',
+  },
+  {
+    id: 'st-2',
+    source: 'Goal',
+    title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
+    link: 'https://www.goal.com/es',
+    pubDate: '2026-03-01T00:00:00Z',
+    image: null,
+    description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
+  },
+  {
+    id: 'st-3',
+    source: 'FIFA',
+    title: 'Colombia en el Mundial 2026: convocatoria y grupos',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles',
+    pubDate: '2026-04-01T00:00:00Z',
+    image: null,
+    description: 'La Tricolor enfrentará a Portugal, Uzbekistán y RD Congo en el Grupo K.',
+  },
+  {
+    id: 'st-4',
+    source: 'FIFA',
+    title: 'Los estadios del Mundial 2026',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/destination',
+    pubDate: '2026-02-01T00:00:00Z',
+    image: null,
+    description: '16 estadios en tres países albergarán los 104 partidos del torneo más grande de la historia.',
+  },
+  {
+    id: 'st-5',
+    source: 'Goal',
+    title: 'Equipos favoritos para ganar el Mundial 2026',
+    link: 'https://www.goal.com/es/mundial-2026',
+    pubDate: '2026-05-01T00:00:00Z',
+    image: null,
+    description: 'Francia, Brasil y Argentina encabezan las apuestas para llevarse el trofeo en julio de 2026.',
+  },
 ]
 
 function extractImage(item) {
@@ -107,6 +142,9 @@ function NewsCard({ item }) {
         <p className="text-sm font-semibold text-white leading-snug group-hover:text-emerald-300 transition-colors line-clamp-3">
           {item.title}
         </p>
+        {item.description && (
+          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{item.description}</p>
+        )}
         <p className="text-xs text-slate-500 mt-auto pt-1">Leer nota →</p>
       </div>
     </a>
