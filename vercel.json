@@ -3,5 +3,16 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "img-src 'self' data: https://flagcdn.com https://images.unsplash.com https://upload.wikimedia.org https://source.unsplash.com;"
+        }
+      ]
+    }
   ]
 }

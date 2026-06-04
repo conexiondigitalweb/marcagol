@@ -123,10 +123,15 @@ export default function Dashboard() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative rounded-2xl overflow-hidden border border-slate-700/50 p-8 md:p-12 text-center"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundImage: "url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80'), linear-gradient(135deg, #0B1120 0%, #0F2744 30%, #1a1a3e 60%, #0B1120 100%)",
+          backgroundSize: 'cover, cover',
+          backgroundPosition: 'center, center',
         }}>
+        {/* Dot pattern — visible sobre gradiente, imperceptible sobre foto */}
+        <div className="absolute inset-0" style={{
+          backgroundImage: 'radial-gradient(circle, #38BDF820 1px, transparent 1px)',
+          backgroundSize: '30px 30px',
+        }} />
         <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.75)' }} />
         <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-4">
