@@ -11,6 +11,7 @@ import Predictions from './pages/Predictions'
 import Broadcast  from './pages/Broadcast'
 import Schedule   from './pages/Schedule'
 import News       from './pages/News'
+import History    from './pages/History'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/calendario"    element={<Schedule />}   />
           <Route path="/noticias"      element={<News />}       />
           <Route path="/donde-ver"     element={<Broadcast />}  />
+          <Route path="/historia"      element={<History />}    />
         </Routes>
       </main>
       <Footer />
