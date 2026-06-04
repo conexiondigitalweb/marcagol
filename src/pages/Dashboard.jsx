@@ -29,8 +29,14 @@ function MatchCard({ match, compact = false }) {
   const home = ALL_TEAMS_MAP[match.homeTeam]
   const away = ALL_TEAMS_MAP[match.awayTeam]
 
+  const COUNTRY_FLAGS = { USA: '🇺🇸', CAN: '🇨🇦', MEX: '🇲🇽' }
+  const COUNTRY_NAMES = { USA: 'Estados Unidos', CAN: 'Canadá', MEX: 'México' }
+
   return (
-    <div className={`card p-4 ${compact ? '' : 'hover:border-sky-500/30 transition-all'}`}>
+    <div
+      className={`rounded-xl p-4 border transition-all ${compact ? '' : 'hover:border-sky-400'}`}
+      style={{ background: '#1E293B', borderColor: '#334155' }}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-slate-500 uppercase tracking-wider">
@@ -61,7 +67,7 @@ function MatchCard({ match, compact = false }) {
               {match.homeScore}–{match.awayScore}
             </div>
           ) : (
-            <div className="text-orange-400 font-mono font-bold text-sm">{match.time?.slice(0,5)}</div>
+            <div className="font-bold text-xl" style={{ color: '#F97316' }}>{match.time?.slice(0,5)}</div>
           )}
           <div className="text-xs text-slate-600 mt-0.5">ET</div>
         </div>
@@ -75,11 +81,16 @@ function MatchCard({ match, compact = false }) {
         </div>
       </div>
 
-      {/* Venue */}
+      {/* Venue + country */}
       {!compact && (
-        <p className="text-center text-xs text-slate-600 mt-3 truncate">
-          📍 {match.venue}, {match.city}
-        </p>
+        <div className="mt-3 text-center">
+          <p className="text-xs text-slate-600 truncate">📍 {match.venue}, {match.city}</p>
+          {match.country && (
+            <p className="text-xs text-slate-500 mt-0.5">
+              {COUNTRY_FLAGS[match.country]} {COUNTRY_NAMES[match.country]}
+            </p>
+          )}
+        </div>
       )}
     </div>
   )
@@ -112,11 +123,11 @@ export default function Dashboard() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative rounded-2xl overflow-hidden border border-slate-700/50 p-8 md:p-12 text-center"
         style={{
-          backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/MetLife_Stadium.jpg/1280px-MetLife_Stadium.jpg)',
+          backgroundImage: "url('https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1920&q=80')",
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}>
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.78)' }} />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.75)' }} />
         <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-3xl">🇺🇸</span>

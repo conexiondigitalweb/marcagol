@@ -67,9 +67,23 @@ export default function TeamDetail() {
   return (
     <div className="animate-slide-up max-w-4xl mx-auto">
       {/* Back */}
-      <Link to="/equipos" className="text-slate-400 hover:text-white text-sm transition-colors mb-6 inline-block">
+      <Link to="/equipos" className="text-slate-400 hover:text-white text-sm transition-colors mb-4 inline-block">
         ← Todos los equipos
       </Link>
+
+      {/* Flag banner */}
+      <div className="relative rounded-xl overflow-hidden mb-6" style={{ height: '120px' }}>
+        <img
+          src={`https://flagcdn.com/w320/${team.iso2.toLowerCase()}.png`}
+          alt={team.name}
+          className="w-full h-full"
+          style={{ objectFit: 'cover', filter: 'blur(10px)', transform: 'scale(1.15)' }}
+        />
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.65)' }} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">{team.name}</h1>
+        </div>
+      </div>
 
       {/* Hero card */}
       <div

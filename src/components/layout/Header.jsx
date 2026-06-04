@@ -25,12 +25,11 @@ export default function Header() {
         <div className="flex items-center justify-between h-14">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 flex-shrink-0" onClick={() => setMenuOpen(false)}>
-            {/* Punto naranja */}
-            <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
+          <Link to="/" className="flex items-center gap-1.5 flex-shrink-0" onClick={() => setMenuOpen(false)}>
+            <span style={{ color: '#F97316', fontSize: '20px', lineHeight: 1 }}>●</span>
             <div className="leading-tight">
-              <span className="font-extrabold text-white text-lg tracking-tight">marca</span>
-              <span className="font-extrabold text-sky-400 text-lg tracking-tight">gol</span>
+              <span className="font-extrabold text-lg tracking-tight" style={{ color: '#F8FAFC' }}>marca</span>
+              <span className="font-extrabold text-lg tracking-tight" style={{ color: '#38BDF8' }}>gol</span>
               <span className="text-slate-500 text-xs">.live</span>
             </div>
           </Link>

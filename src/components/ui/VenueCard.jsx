@@ -20,7 +20,7 @@ export default function VenueCard({ venue, compact = false }) {
   return (
     <div className="card overflow-hidden group hover:border-sky-500/30 transition-all">
       {/* Image with overlay */}
-      <div className="relative overflow-hidden" style={{ height: '180px' }}>
+      <div className="relative overflow-hidden" style={{ height: '160px' }}>
         {!imgError ? (
           <img
             src={venue.image}
@@ -40,11 +40,11 @@ export default function VenueCard({ venue, compact = false }) {
           </div>
         )}
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} />
         {/* Name on overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
-          <p className="text-white font-bold text-sm leading-tight drop-shadow-lg">{venue.name}</p>
-          <p className="text-slate-300 text-xs mt-0.5 drop-shadow">
+          <p className="font-bold text-sm leading-tight drop-shadow-lg" style={{ color: '#ffffff' }}>{venue.name}</p>
+          <p className="text-xs mt-0.5 drop-shadow" style={{ color: '#CBD5E1' }}>
             {COUNTRY_FLAG[venue.country]} {venue.city}
           </p>
         </div>
