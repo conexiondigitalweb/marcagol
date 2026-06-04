@@ -10,67 +10,109 @@ const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
-const VENUES = [...new Set(MATCHES.map(m => m.venue))].sort()
+function VenuePhoto({ venueName }) {
+  const [imgErr, setImgErr] = useState(false)
+  const venue = VENUES_BY_NAME?.[venueName]
+  if (!venue) return null
+
+  return (
+    <div className="mx-4 mb-3 rounded-xl overflow-hidden border border-slate-700/40 flex flex-col sm:flex-row gap-0">
+      {/* Image */}
+      <div className="relative sm:w-64 flex-shrink-0" style={{ height: '140px' }}>
+        {venue.image && !imgErr ? (
+          <img
+            src={venue.image}
+            alt={venue.name}
+            className="w-full h-full"
+            style={{ objectFit: 'cover' }}
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #0B1120, #1E3A5F)' }}
+          >
+            <span className="text-4xl">🏟️</span>
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+      </div>
+      {/* Info */}
+      <div className="flex-1 bg-slate-800/60 px-4 py-3 flex flex-col justify-center gap-1">
+        <p className="text-white font-bold text-sm">{venue.name}</p>
+        <p className="text-slate-400 text-xs">{venue.city} · {venue.country}</p>
+        <p className="text-sky-400 text-xs font-semibold mt-1">
+          🏟️ {venue.capacity.toLocaleString()} espectadores
+        </p>
+      </div>
+    </div>
+  )
+}
 
 function MatchRow({ match }) {
+  const [expanded, setExpanded] = useState(false)
   const home = ALL_TEAMS_MAP[match.homeTeam]
   const away = ALL_TEAMS_MAP[match.awayTeam]
   const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0">
-      {/* Time & group */}
-      <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
-        <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
-          {match.time?.slice(0,5)} ET
-        </span>
-        <span className="text-xs text-slate-600">
-          {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
-          {match.matchday ? ` · J${match.matchday}` : ''}
-        </span>
-      </div>
-
-      {/* Teams */}
-      <div className="flex-1 flex items-center gap-4 justify-center">
-        <div className="flex items-center gap-2 flex-1 justify-end">
-          <span className="font-semibold text-white text-sm text-right hidden md:block">
-            {home?.name || match.homeTeam}
+    <div>
+      <div
+        className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0 cursor-pointer select-none"
+        onClick={() => setExpanded(v => !v)}
+      >
+        {/* Time & group */}
+        <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
+          <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
+            {match.time?.slice(0,5)} ET
           </span>
-          <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
-          {home && <Flag iso2={home.iso2} size="xs" />}
+          <span className="text-xs text-slate-600">
+            {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
+            {match.matchday ? ` · J${match.matchday}` : ''}
+          </span>
         </div>
 
-        <div className="text-center min-w-[56px]">
-          {match.homeScore !== null ? (
-            <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
-              {match.homeScore}–{match.awayScore}
+        {/* Teams */}
+        <div className="flex-1 flex items-center gap-4 justify-center">
+          <div className="flex items-center gap-2 flex-1 justify-end">
+            <span className="font-semibold text-white text-sm text-right hidden md:block">
+              {home?.name || match.homeTeam}
             </span>
-          ) : (
-            <span className="text-slate-600 text-sm font-mono">vs</span>
-          )}
+            <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
+            {home && <Flag iso2={home.iso2} size="xs" />}
+          </div>
+
+          <div className="text-center min-w-[56px]">
+            {match.homeScore !== null ? (
+              <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
+                {match.homeScore}–{match.awayScore}
+              </span>
+            ) : (
+              <span className="text-slate-600 text-sm font-mono">vs</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-1">
+            {away && <Flag iso2={away.iso2} size="xs" />}
+            <span className="font-semibold text-white text-sm hidden md:block">
+              {away?.name || match.awayTeam}
+            </span>
+            <span className="text-xs text-slate-400 sm:hidden">{match.awayTeam}</span>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-1">
-          {away && <Flag iso2={away.iso2} size="xs" />}
-          <span className="font-semibold text-white text-sm hidden md:block">
-            {away?.name || match.awayTeam}
+        {/* Status & venue */}
+        <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
+          <StatusBadge status={match.status} />
+          <span className="text-xs text-slate-500 text-right truncate max-w-[180px]">
+            📍 {match.venue}
           </span>
-          <span className="text-xs text-slate-400 sm:hidden">{match.awayTeam}</span>
+          <span className={`text-xs transition-transform ${expanded ? 'rotate-180' : ''} text-slate-600`}>▾</span>
         </div>
       </div>
 
-      {/* Status & venue */}
-      <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
-        <StatusBadge status={match.status} />
-        <span className="text-xs text-slate-600 text-right truncate max-w-[180px]">
-          📍 {match.venue}
-        </span>
-        {VENUES_BY_NAME?.[match.venue] && (
-          <span className="text-xs text-slate-700 text-right">
-            🏟️ {VENUES_BY_NAME[match.venue].capacity.toLocaleString()} cap.
-          </span>
-        )}
-      </div>
+      {/* Venue photo panel */}
+      {expanded && <VenuePhoto venueName={match.venue} />}
     </div>
   )
 }
@@ -105,7 +147,7 @@ export default function Schedule() {
       <div className="mb-6">
         <h1 className="text-3xl font-black text-white">Calendario · Mundial 2026</h1>
         <p className="text-slate-400 mt-1">
-          Fase de grupos: 11 jun – 4 jul · {MATCHES.length} partidos en total
+          {MATCHES.length} partidos · Haz clic en cualquier partido para ver el estadio
         </p>
       </div>
 

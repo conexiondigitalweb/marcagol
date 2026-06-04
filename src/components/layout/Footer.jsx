@@ -8,7 +8,7 @@ export default function Footer() {
           <div className="flex items-center gap-2">
             <span className="text-xl">⚽</span>
             <span className="font-bold text-white">marcagol</span>
-            <span className="text-emerald-400 font-bold">.live</span>
+            <span className="text-sky-400 font-bold">.live</span>
             <span className="text-slate-500 text-sm ml-1">— Mundial 2026</span>
           </div>
 
@@ -23,7 +23,7 @@ export default function Footer() {
 
           <p className="text-xs text-slate-600 text-center">
             Datos vía{' '}
-            <a href="https://api-football.com" target="_blank" rel="noreferrer" className="text-emerald-600 hover:text-emerald-400 transition-colors">
+            <a href="https://api-football.com" target="_blank" rel="noreferrer" className="text-sky-600 hover:text-sky-400 transition-colors">
               api-football.com
             </a>
             {' '}· © 2026 marcagol.live

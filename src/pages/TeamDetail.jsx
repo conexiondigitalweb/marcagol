@@ -62,7 +62,7 @@ export default function TeamDetail() {
   const teamMatches = groupMatches.filter(m => m.homeTeam === team.code || m.awayTeam === team.code)
   const sortedGroup = sortTeams(group.teams)
   const players = KEY_PLAYERS[team.code] || ['Datos próximamente']
-  const accentColor = TEAM_COLORS[team.code] || '#10b981'
+  const accentColor = TEAM_COLORS[team.code] || '#38BDF8'
 
   return (
     <div className="animate-slide-up max-w-4xl mx-auto">
@@ -117,11 +117,11 @@ export default function TeamDetail() {
               to={`/equipos/${t.code}`}
               key={t.code}
               className={`flex items-center gap-3 px-5 py-3 hover:bg-slate-700/30 transition-colors border-b border-slate-700/20 last:border-0
-                ${t.code === team.code ? 'bg-emerald-500/5 border-l-2 border-l-emerald-500' : ''}`}
+                ${t.code === team.code ? 'bg-sky-500/5 border-l-2 border-l-sky-400' : ''}`}
             >
               <span className="text-slate-500 text-sm font-bold w-4">{i + 1}</span>
               <Flag iso2={t.iso2} size="xs" />
-              <span className={`flex-1 text-sm font-medium ${t.code === team.code ? 'text-emerald-400' : 'text-slate-300'}`}>
+              <span className={`flex-1 text-sm font-medium ${t.code === team.code ? 'text-sky-400' : 'text-slate-300'}`}>
                 {t.name}
               </span>
               <div className="grid grid-cols-4 gap-3 text-xs text-center text-slate-500 tabular-nums">

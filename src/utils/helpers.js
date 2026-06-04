@@ -28,7 +28,7 @@ export const getConfederationColor = (confederation) => {
     UEFA:     'bg-blue-500/20 text-blue-400 border border-blue-500/30',
     CONMEBOL: 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30',
     CONCACAF: 'bg-red-500/20 text-red-400 border border-red-500/30',
-    CAF:      'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30',
+    CAF:      'bg-teal-500/20 text-teal-400 border border-teal-500/30',
     AFC:      'bg-purple-500/20 text-purple-400 border border-purple-500/30',
     OFC:      'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30',
   }

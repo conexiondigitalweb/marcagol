@@ -70,7 +70,7 @@ export default function Broadcast() {
             placeholder="Buscar país o canal..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -80,7 +80,7 @@ export default function Broadcast() {
               onClick={() => setRegion(r)}
               className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${
                 region === r
-                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  ? 'bg-sky-500 text-white border-sky-500'
                   : 'border-slate-700 text-slate-400 hover:border-slate-500'
               }`}
             >

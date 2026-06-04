@@ -273,11 +273,11 @@ export const BROADCAST_BY_COUNTRY = [
 ]
 
 export const CHANNEL_TYPE_COLOR = {
-  'TV Abierta': 'bg-emerald-500/20 text-emerald-400',
-  'TV Abierta (español)': 'bg-emerald-500/20 text-emerald-400',
-  'TV Abierta (francés)': 'bg-emerald-500/20 text-emerald-400',
+  'TV Abierta': 'bg-sky-500/20 text-sky-400',
+  'TV Abierta (español)': 'bg-sky-500/20 text-sky-400',
+  'TV Abierta (francés)': 'bg-sky-500/20 text-sky-400',
   'TV Paga': 'bg-amber-500/20 text-amber-400',
   'Streaming': 'bg-blue-500/20 text-blue-400',
-  'Streaming gratis': 'bg-emerald-500/20 text-emerald-400',
+  'Streaming gratis': 'bg-sky-500/20 text-sky-400',
   'TV Paga (francés)': 'bg-amber-500/20 text-amber-400',
 }

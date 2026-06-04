@@ -52,7 +52,7 @@ function BracketMatch({ match, highlight = false }) {
         highlight
           ? 'border-amber-400/60 shadow-lg shadow-amber-500/10'
           : hovered
-          ? 'border-emerald-500/40 shadow-md shadow-emerald-500/10'
+          ? 'border-sky-500/40 shadow-md shadow-sky-500/10'
           : 'border-slate-700'
       } bg-slate-800`}
     >
@@ -64,7 +64,7 @@ function BracketMatch({ match, highlight = false }) {
         <div
           key={idx}
           className={`flex items-center gap-2 px-3 py-2.5 text-sm border-t border-slate-700/50
-            ${match.winner === team ? 'bg-emerald-500/10 text-emerald-300 font-semibold' : 'text-slate-300'}`}
+            ${match.winner === team ? 'bg-sky-500/10 text-sky-300 font-semibold' : 'text-slate-300'}`}
         >
           <span className="w-3 h-3 rounded-sm bg-slate-600 flex-shrink-0" />
           <span className="truncate">{team}</span>
@@ -85,7 +85,7 @@ function RoundColumn({ title, matches, itemHeight, highlight = false }) {
       <div className={`text-xs font-bold uppercase tracking-widest mb-4 px-3 py-1.5 rounded-full border ${
         highlight
           ? 'text-amber-400 border-amber-500/30 bg-amber-500/10'
-          : 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10'
+          : 'text-sky-400 border-sky-500/20 bg-sky-500/10'
       }`}>
         {title}
       </div>
@@ -138,7 +138,7 @@ export default function Bracket() {
       {/* Format info */}
       <div className="card p-4 mb-6 flex flex-wrap gap-4 text-sm">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span className="w-2 h-2 rounded-full bg-sky-400"></span>
           <span className="text-slate-400">48 equipos → Fase de Grupos (12 grupos × 6 partidos)</span>
         </div>
         <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export default function Bracket() {
 
           {/* Octavos R32 top half */}
           <div className="flex flex-col" style={{ gap: 0 }}>
-            <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-4 text-center">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-4 text-center">
               Octavos de Final
             </div>
             {BRACKET_DATA.r32.slice(0, 8).map((match, i) => (
@@ -246,7 +246,7 @@ export default function Bracket() {
 
           {/* Octavos bottom */}
           <div className="flex flex-col">
-            <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-4 text-center">
+            <div className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-4 text-center">
               Octavos de Final
             </div>
             {BRACKET_DATA.r32.slice(8).map(match => (

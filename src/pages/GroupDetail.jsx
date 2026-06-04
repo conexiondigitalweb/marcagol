@@ -8,7 +8,7 @@ import { StatusBadge, ConfederationBadge } from '../components/ui/Badge'
 
 function TeamRow({ team, rank }) {
   const borderColor =
-    rank === 1 ? 'border-l-emerald-500' :
+    rank === 1 ? 'border-l-sky-400' :
     rank === 2 ? 'border-l-blue-500' :
     rank === 3 ? 'border-l-amber-400' :
     'border-l-transparent'
@@ -18,7 +18,7 @@ function TeamRow({ team, rank }) {
       <span className="text-slate-500 text-sm font-bold w-4 text-right">{rank}</span>
       <Flag iso2={team.iso2} size="sm" />
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-white group-hover:text-emerald-400 transition-colors">{team.name}</div>
+        <div className="font-semibold text-white group-hover:text-sky-400 transition-colors">{team.name}</div>
         <ConfederationBadge confederation={team.confederation} />
       </div>
       <div className="grid grid-cols-7 gap-2 text-sm text-center text-slate-400 tabular-nums min-w-[280px]">
@@ -58,7 +58,7 @@ function MatchRow({ match }) {
 
         <div className="text-center min-w-[52px]">
           {match.homeScore !== null ? (
-            <span className={`font-black text-lg ${isLive ? 'text-emerald-400' : 'text-white'}`}>
+            <span className={`font-black text-lg ${isLive ? 'text-sky-400' : 'text-white'}`}>
               {match.homeScore}–{match.awayScore}
             </span>
           ) : (
@@ -134,7 +134,7 @@ export default function GroupDetail() {
 
         <div className="px-5 py-3 flex gap-6 border-t border-slate-700/30 bg-slate-800/30">
           {[
-            { color: 'bg-emerald-500', label: '1° y 2° – Clasifican a Octavos' },
+            { color: 'bg-sky-400', label: '1° y 2° – Clasifican a Octavos' },
             { color: 'bg-amber-400',   label: '3° – Posible clasificación' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">

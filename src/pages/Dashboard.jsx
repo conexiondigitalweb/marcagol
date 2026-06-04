@@ -111,8 +111,12 @@ export default function Dashboard() {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="relative rounded-2xl overflow-hidden border border-slate-700/50 p-8 md:p-12 text-center"
-        style={{ background: 'linear-gradient(135deg, #0B1120 0%, #1E293B 50%, #0F172A 100%)' }}>
-        <div className="absolute inset-0 opacity-5 pointer-events-none select-none flex items-center justify-center text-[20rem] leading-none">⚽</div>
+        style={{
+          backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/MetLife_Stadium.jpg/1280px-MetLife_Stadium.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}>
+        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.78)' }} />
         <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-3xl">🇺🇸</span>

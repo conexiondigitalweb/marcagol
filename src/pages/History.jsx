@@ -24,7 +24,7 @@ const CHAMPIONS = [
 ];
 
 const PALMARES = [
-  { country: 'Brasil',        titles: 5, color: '#10B981' },
+  { country: 'Brasil',        titles: 5, color: '#22D3EE' },
   { country: 'Alemania',      titles: 4, color: '#3B82F6' },
   { country: 'Italia',        titles: 4, color: '#6366F1' },
   { country: 'Argentina',     titles: 3, color: '#38BDF8' },
@@ -150,7 +150,7 @@ export default function History() {
                   <td className="px-4 py-3 text-center">
                     <span className={`font-bold tabular-nums ${
                       c.score === 'Penales' ? 'text-orange-400' :
-                      c.score === 'Maracanazo' ? 'text-yellow-400' : 'text-emerald-400'
+                      c.score === 'Maracanazo' ? 'text-yellow-400' : 'text-sky-400'
                     }`}>
                       {c.score}
                     </span>
