@@ -16,7 +16,7 @@ const ALL_TEAMS_MAP = Object.fromEntries(
 function CountdownBox({ value, label }) {
   return (
     <div className="countdown-box">
-      <div className="text-3xl md:text-4xl font-black text-white tabular-nums">
+      <div className="text-3xl md:text-4xl font-black text-sky-400 tabular-nums">
         {String(value).padStart(2, '0')}
       </div>
       <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">{label}</div>
@@ -30,10 +30,13 @@ function MatchCard({ match, compact = false }) {
   const away = ALL_TEAMS_MAP[match.awayTeam]
 
   return (
-    <div className={`card p-4 ${compact ? '' : 'hover:border-emerald-500/30 transition-all'}`}>
+    <div className={`card p-4 ${compact ? '' : 'hover:border-sky-500/30 transition-all'}`}>
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-slate-500">Grupo {match.group} · J{match.matchday}</span>
+        <span className="text-xs text-slate-500 uppercase tracking-wider">
+          {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
+          {match.matchday ? ` · J${match.matchday}` : ''}
+        </span>
         {isLive ? (
           <LiveIndicator minute={match.minute} />
         ) : (
@@ -54,11 +57,11 @@ function MatchCard({ match, compact = false }) {
         {/* Score / Time */}
         <div className="flex-shrink-0 text-center min-w-[60px]">
           {match.homeScore != null ? (
-            <div className={`text-xl font-black tabular-nums ${isLive ? 'text-emerald-400' : 'text-white'}`}>
+            <div className={`text-xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
               {match.homeScore}–{match.awayScore}
             </div>
           ) : (
-            <div className="text-slate-400 font-mono text-sm">{match.time?.slice(0,5)}</div>
+            <div className="text-orange-400 font-mono font-bold text-sm">{match.time?.slice(0,5)}</div>
           )}
           <div className="text-xs text-slate-600 mt-0.5">ET</div>
         </div>
@@ -88,7 +91,7 @@ function StatCard({ icon, value, label, sub }) {
       <div className="text-3xl mb-2">{icon}</div>
       <div className="text-3xl font-black text-white">{value}</div>
       <div className="text-sm font-semibold text-slate-300 mt-1">{label}</div>
-      {sub && <div className="text-xs text-slate-600 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
     </div>
   )
 }
@@ -107,8 +110,9 @@ export default function Dashboard() {
     <div className="space-y-10 animate-slide-up">
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 border border-slate-700 p-8 md:p-12 text-center">
-        <div className="absolute inset-0 opacity-10 pointer-events-none select-none flex items-center justify-center text-[20rem] leading-none">⚽</div>
+      <section className="relative rounded-2xl overflow-hidden border border-slate-700/50 p-8 md:p-12 text-center"
+        style={{ background: 'linear-gradient(135deg, #0B1120 0%, #1E293B 50%, #0F172A 100%)' }}>
+        <div className="absolute inset-0 opacity-5 pointer-events-none select-none flex items-center justify-center text-[20rem] leading-none">⚽</div>
         <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-3xl">🇺🇸</span>
@@ -118,13 +122,13 @@ export default function Dashboard() {
           <h1 className="text-4xl md:text-6xl font-black text-white mb-2 tracking-tight">
             Copa del Mundo
           </h1>
-          <p className="text-emerald-400 text-xl md:text-2xl font-bold mb-1">FIFA 2026</p>
+          <p className="text-sky-400 text-xl md:text-2xl font-bold mb-1">FIFA 2026</p>
           <p className="text-slate-400 text-sm mb-8">11 jun – 27 jul · USA, Canadá, México</p>
 
           {/* Countdown */}
           {countdown ? (
             <>
-              <p className="text-slate-400 text-sm uppercase tracking-widest mb-4 font-medium">Faltan</p>
+              <p className="text-slate-400 text-xs uppercase tracking-widest mb-4 font-medium">Faltan</p>
               <div className="flex items-center justify-center gap-3 flex-wrap">
                 <CountdownBox value={countdown.days}    label="Días"    />
                 <span className="text-2xl text-slate-600 font-black pb-4">:</span>
@@ -136,9 +140,9 @@ export default function Dashboard() {
               </div>
             </>
           ) : (
-            <div className="inline-flex items-center gap-3 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl px-8 py-4">
+            <div className="inline-flex items-center gap-3 bg-sky-500/20 border border-sky-500/40 rounded-2xl px-8 py-4">
               <LiveIndicator size="lg" />
-              <span className="text-emerald-300 text-xl font-bold">¡El Mundial ha comenzado!</span>
+              <span className="text-sky-300 text-xl font-bold">¡El Mundial ha comenzado!</span>
             </div>
           )}
         </div>
@@ -183,7 +187,7 @@ export default function Dashboard() {
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {upcoming.map(m => (
               <div key={m.id} className="space-y-1">
-                <p className="text-xs text-slate-500 px-1">
+                <p className="text-xs text-slate-500 px-1 uppercase tracking-wider">
                   {capitalizeFirst(formatDayOfWeek(m.date))}
                 </p>
                 <MatchCard match={m} />
@@ -198,12 +202,12 @@ export default function Dashboard() {
         <h2 className="section-title mb-5">Explorar el Mundial</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { to: '/grupos',       icon: '🏆', title: 'Grupos',       sub: '12 grupos · 48 equipos'   },
+            { to: '/grupos',       icon: '📊', title: 'Grupos',       sub: '12 grupos · 48 equipos'   },
             { to: '/llaves',       icon: '🔗', title: 'Llaves',       sub: 'Árbol eliminatorio'        },
             { to: '/equipos',      icon: '👕', title: 'Equipos',      sub: 'Perfiles y estadísticas'   },
             { to: '/predicciones', icon: '🎯', title: 'Predicciones', sub: 'Predice los resultados'    },
             { to: '/calendario',   icon: '📅', title: 'Calendario',   sub: 'Todos los partidos'        },
-            { to: '/donde-ver',    icon: '📺', title: 'Dónde Ver',    sub: 'TV y streaming por país'   },
+            { to: '/historia',     icon: '🏆', title: 'Historia',     sub: 'Campeones desde 1930'      },
           ].map(card => (
             <Link key={card.to} to={card.to} className="card-hover p-5 group">
               <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-200">{card.icon}</div>
@@ -225,7 +229,7 @@ export default function Dashboard() {
             <Link key={group.id} to={`/grupos/${group.id}`} className="card-hover p-4">
               <div className="flex items-center gap-2 mb-3">
                 <span className="badge-group">{group.id}</span>
-                <span className="font-semibold text-white">{group.name}</span>
+                <span className="font-semibold text-white text-sm">Grupo {group.id}</span>
               </div>
               <div className="space-y-1.5">
                 {group.teams.map(team => (

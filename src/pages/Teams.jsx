@@ -12,7 +12,7 @@ function TeamCard({ team }) {
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
       <Flag iso2={team.iso2} size="md" className="flex-shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-white group-hover:text-emerald-400 transition-colors truncate">
+        <div className="font-semibold text-white group-hover:text-sky-400 transition-colors truncate">
           {team.name}
         </div>
         <div className="flex items-center gap-2 mt-1">
@@ -21,7 +21,7 @@ function TeamCard({ team }) {
       </div>
       <div className="text-right flex-shrink-0">
         <GroupBadge group={team.group} />
-        <div className="text-xs text-slate-600 mt-1">#{team.fifaRanking} FIFA</div>
+        <div className="text-xs text-orange-400 mt-1 font-semibold">#{team.fifaRanking} FIFA</div>
       </div>
     </Link>
   )
@@ -87,7 +87,7 @@ export default function Teams() {
             placeholder="Buscar selección..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
           />
         </div>
 
@@ -95,12 +95,12 @@ export default function Teams() {
           {[
             { value: 'ranking', label: '🏅 Ranking' },
             { value: 'name',    label: '🔤 Nombre'  },
-            { value: 'group',   label: '🏆 Grupo'   },
+            { value: 'group',   label: '📊 Grupo'   },
           ].map(opt => (
             <button
               key={opt.value}
               onClick={() => setSortBy(opt.value)}
-              className={`btn-secondary text-xs px-3 ${sortBy === opt.value ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : ''}`}
+              className={`btn-secondary text-xs px-3 ${sortBy === opt.value ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : ''}`}
             >
               {opt.label}
             </button>
@@ -116,7 +116,7 @@ export default function Teams() {
             onClick={() => setFilter(conf)}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
               filter === conf
-                ? 'bg-emerald-500 text-white border-emerald-500'
+                ? 'bg-sky-500 text-white border-sky-500'
                 : 'border-slate-700 text-slate-400 hover:border-slate-500'
             }`}
           >
@@ -126,7 +126,7 @@ export default function Teams() {
       </div>
 
       {/* Results count */}
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">
         Mostrando <span className="text-white font-semibold">{teams.length}</span> de 48 equipos
       </p>
 

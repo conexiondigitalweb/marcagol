@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
-// corsproxy.io devuelve el XML directo (sin wrapper JSON)
 const PROXY = 'https://corsproxy.io/?'
 
 const FEEDS = [
@@ -75,7 +74,6 @@ function extractImage(item) {
 }
 
 async function fetchFeed({ id, label, url }) {
-  // corsproxy.io devuelve el XML directamente (no JSON)
   const proxied = `${PROXY}${encodeURIComponent(url)}`
   const res = await fetch(proxied, { signal: AbortSignal.timeout(12000) })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -110,7 +108,7 @@ function NewsCard({ item }) {
       href={item.link}
       target="_blank"
       rel="noopener noreferrer"
-      className="card group flex flex-col hover:border-emerald-500/40 transition-all"
+      className="card group flex flex-col hover:border-sky-500/40 transition-all"
     >
       {/* Image */}
       {item.image && !imgErr ? (
@@ -132,14 +130,14 @@ function NewsCard({ item }) {
       {/* Content */}
       <div className="p-4 flex flex-col gap-2 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+          <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">
             {item.source}
           </span>
           {item.pubDate && (
             <span className="text-xs text-slate-600">{formatNewsDate(item.pubDate)}</span>
           )}
         </div>
-        <p className="text-sm font-semibold text-white leading-snug group-hover:text-emerald-300 transition-colors line-clamp-3">
+        <p className="text-sm font-semibold text-white leading-snug group-hover:text-sky-300 transition-colors line-clamp-3">
           {item.title}
         </p>
         {item.description && (
@@ -169,7 +167,6 @@ export default function News() {
       else errs.push(FEEDS[i].label)
     })
 
-    // Si todos los feeds fallaron, usar artículos estáticos curados
     const final = all.length > 0 ? all : STATIC_ARTICLES
     final.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
     setArticles(final)
@@ -197,7 +194,7 @@ export default function News() {
             onClick={() => setFilter(f)}
             className={`px-4 py-1.5 rounded-full text-sm font-medium border transition-all ${
               filter === f
-                ? 'bg-emerald-500 text-white border-emerald-500'
+                ? 'bg-sky-500 text-white border-sky-500'
                 : 'border-slate-700 text-slate-400 hover:border-slate-500'
             }`}
           >
@@ -220,7 +217,7 @@ export default function News() {
         </div>
       )}
       {errors.length === FEEDS.length && (
-        <div className="card p-3 mb-4 border-blue-500/30 bg-blue-500/5 text-xs text-blue-400">
+        <div className="card p-3 mb-4 border-sky-500/30 bg-sky-500/5 text-xs text-sky-400">
           📰 Mostrando artículos curados sobre el Mundial 2026. Los feeds en vivo están temporalmente no disponibles.
         </div>
       )}
@@ -235,7 +232,7 @@ export default function News() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-slate-500 mb-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">
             <span className="text-white font-semibold">{filtered.length}</span> artículos
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

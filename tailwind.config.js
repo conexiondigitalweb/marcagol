@@ -14,6 +14,12 @@ export default {
           600: '#059669',
           700: '#047857',
         },
+        midnight: '#0F172A',
+        navy:     '#1E293B',
+        'sky-acc':    '#38BDF8',
+        action:   '#F97316',
+        'slate-text': '#94A3B8',
+        'border-dark': '#334155',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

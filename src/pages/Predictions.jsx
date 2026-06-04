@@ -37,14 +37,17 @@ function PredictionRow({ match }) {
   }
 
   return (
-    <div className={`p-4 border border-slate-700/50 rounded-xl transition-all ${
-      pred ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-slate-800/40'
+    <div className={`p-4 border rounded-xl transition-all ${
+      pred ? 'bg-sky-500/5 border-sky-500/20' : 'bg-slate-800/40 border-slate-700/50'
     }`}>
       {/* Date & group */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs text-slate-500">Grupo {match.group} · J{match.matchday} · {formatDateShort(match.date)}</span>
+        <span className="text-xs text-slate-500 uppercase tracking-wider">
+          {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
+          {match.matchday ? ` · J${match.matchday}` : ''} · {formatDateShort(match.date)}
+        </span>
         <div className="flex items-center gap-2">
-          {pred && <span className="text-xs text-emerald-400 font-semibold">✓ Guardado</span>}
+          {pred && <span className="text-xs text-sky-400 font-semibold">✓ Guardado</span>}
           {saved && <span className="text-xs text-amber-400 animate-pulse">💾 Salvado</span>}
           <StatusBadge status={match.status} />
         </div>
@@ -129,7 +132,7 @@ function PredictionRow({ match }) {
             const pts = Math.sign(pred.home - pred.away) === Math.sign(match.homeScore - match.awayScore)
               ? (pred.home === match.homeScore && pred.away === match.awayScore ? 3 : 1) : 0
             return (
-              <span className={`ml-3 font-bold ${pts === 3 ? 'text-amber-400' : pts === 1 ? 'text-emerald-400' : 'text-red-400'}`}>
+              <span className={`ml-3 font-bold ${pts === 3 ? 'text-amber-400' : pts === 1 ? 'text-sky-400' : 'text-red-400'}`}>
                 +{pts} pts
               </span>
             )
@@ -163,15 +166,15 @@ export default function Predictions() {
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="card p-5 text-center">
           <div className="text-3xl font-black text-amber-400 tabular-nums">{totalPoints}</div>
-          <div className="text-sm text-slate-400 mt-1">Puntos totales</div>
+          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Puntos totales</div>
         </div>
         <div className="card p-5 text-center">
-          <div className="text-3xl font-black text-emerald-400 tabular-nums">{predictedCount}</div>
-          <div className="text-sm text-slate-400 mt-1">Predicciones</div>
+          <div className="text-3xl font-black text-sky-400 tabular-nums">{predictedCount}</div>
+          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Predicciones</div>
         </div>
         <div className="card p-5 text-center">
-          <div className="text-3xl font-black text-blue-400 tabular-nums">{correctResults}</div>
-          <div className="text-sm text-slate-400 mt-1">Resultados correctos</div>
+          <div className="text-3xl font-black text-orange-400 tabular-nums">{correctResults}</div>
+          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Resultados correctos</div>
         </div>
       </div>
 
@@ -180,9 +183,9 @@ export default function Predictions() {
         <h3 className="font-semibold text-white mb-3">Sistema de puntos</h3>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { pts: 3, label: 'Marcador exacto', color: 'text-amber-400', icon: '🎯' },
-            { pts: 1, label: 'Resultado correcto (G/E/D)', color: 'text-emerald-400', icon: '✓' },
-            { pts: 0, label: 'Resultado incorrecto', color: 'text-red-400', icon: '✕' },
+            { pts: 3, label: 'Marcador exacto',        color: 'text-amber-400', icon: '🎯' },
+            { pts: 1, label: 'Resultado correcto',     color: 'text-sky-400',   icon: '✓'  },
+            { pts: 0, label: 'Resultado incorrecto',   color: 'text-red-400',   icon: '✕'  },
           ].map(item => (
             <div key={item.pts} className="bg-slate-700/30 rounded-lg p-3 text-center">
               <span className="text-2xl">{item.icon}</span>
@@ -200,7 +203,7 @@ export default function Predictions() {
           <button
             onClick={() => setSelectedGroup('Todos')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              selectedGroup === 'Todos' ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-700 text-slate-400'
+              selectedGroup === 'Todos' ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400'
             }`}
           >
             Todos los grupos
@@ -210,7 +213,7 @@ export default function Predictions() {
               key={g}
               onClick={() => setSelectedGroup(g)}
               className={`w-8 h-8 rounded-lg text-xs font-bold border transition-all ${
-                selectedGroup === g ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-700 text-slate-400 hover:border-slate-500'
+                selectedGroup === g ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400 hover:border-slate-500'
               }`}
             >
               {g}
@@ -225,7 +228,7 @@ export default function Predictions() {
               key={md}
               onClick={() => setSelectedMD(md)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                selectedMD === md ? 'bg-blue-500 text-white border-blue-500' : 'border-slate-700 text-slate-400'
+                selectedMD === md ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400'
               }`}
             >
               {md === 'Todos' ? 'Todas las jornadas' : `Jornada ${md}`}
@@ -236,7 +239,7 @@ export default function Predictions() {
 
       {/* Matches list */}
       <div className="space-y-3">
-        <p className="text-sm text-slate-500">{filtered.length} partidos</p>
+        <p className="text-xs text-slate-500 uppercase tracking-wider">{filtered.length} partidos</p>
         {filtered.map(match => (
           <PredictionRow key={match.id} match={match} />
         ))}

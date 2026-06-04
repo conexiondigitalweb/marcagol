@@ -21,10 +21,13 @@ function MatchRow({ match }) {
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0">
       {/* Time & group */}
       <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
-        <span className={`text-sm font-mono font-bold ${isLive ? 'text-red-400' : 'text-slate-300'}`}>
+        <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
           {match.time?.slice(0,5)} ET
         </span>
-        <span className="text-xs text-slate-600">Grupo {match.group} · J{match.matchday}</span>
+        <span className="text-xs text-slate-600">
+          {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
+          {match.matchday ? ` · J${match.matchday}` : ''}
+        </span>
       </div>
 
       {/* Teams */}
@@ -39,7 +42,7 @@ function MatchRow({ match }) {
 
         <div className="text-center min-w-[56px]">
           {match.homeScore !== null ? (
-            <span className={`font-black text-lg tabular-nums ${isLive ? 'text-emerald-400' : 'text-white'}`}>
+            <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
               {match.homeScore}–{match.awayScore}
             </span>
           ) : (
@@ -62,7 +65,7 @@ function MatchRow({ match }) {
         <span className="text-xs text-slate-600 text-right truncate max-w-[180px]">
           📍 {match.venue}
         </span>
-        {VENUES_BY_NAME[match.venue] && (
+        {VENUES_BY_NAME?.[match.venue] && (
           <span className="text-xs text-slate-700 text-right">
             🏟️ {VENUES_BY_NAME[match.venue].capacity.toLocaleString()} cap.
           </span>
@@ -115,8 +118,8 @@ export default function Schedule() {
           { label: 'Sedes Canadá',   value: MATCHES.filter(m => m.country === 'CAN').length },
         ].map(s => (
           <div key={s.label} className="card p-4 text-center">
-            <div className="text-2xl font-black text-white">{s.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
+            <div className="text-2xl font-black text-sky-400">{s.value}</div>
+            <div className="text-xs text-slate-500 uppercase tracking-wider mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
@@ -131,7 +134,7 @@ export default function Schedule() {
             placeholder="Buscar equipo o estadio..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg pl-9 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-sm"
+            className="w-full bg-slate-700 border border-slate-600 rounded-lg pl-9 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 text-sm"
           />
         </div>
 
@@ -139,10 +142,10 @@ export default function Schedule() {
         <div className="flex flex-wrap gap-3">
           {/* Group */}
           <div className="flex flex-wrap gap-1">
-            <span className="text-xs text-slate-500 self-center mr-1">Grupo:</span>
+            <span className="text-xs text-slate-500 self-center mr-1 uppercase tracking-wider">Grupo:</span>
             <button
               onClick={() => setGroupFilter('Todos')}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${groupFilter === 'Todos' ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-700 text-slate-400'}`}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${groupFilter === 'Todos' ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400'}`}
             >
               Todos
             </button>
@@ -150,7 +153,7 @@ export default function Schedule() {
               <button
                 key={g}
                 onClick={() => setGroupFilter(g)}
-                className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${groupFilter === g ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
+                className={`w-7 h-7 rounded-md text-xs font-bold border transition-all ${groupFilter === g ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}
               >
                 {g}
               </button>
@@ -159,12 +162,12 @@ export default function Schedule() {
 
           {/* Matchday */}
           <div className="flex gap-1">
-            <span className="text-xs text-slate-500 self-center mr-1">Jornada:</span>
+            <span className="text-xs text-slate-500 self-center mr-1 uppercase tracking-wider">Jornada:</span>
             {['Todos','1','2','3'].map(md => (
               <button
                 key={md}
                 onClick={() => setMdFilter(md)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${mdFilter === md ? 'bg-blue-500 text-white border-blue-500' : 'border-slate-700 text-slate-400'}`}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${mdFilter === md ? 'bg-sky-500 text-white border-sky-500' : 'border-slate-700 text-slate-400'}`}
               >
                 {md === 'Todos' ? 'Todas' : `J${md}`}
               </button>
@@ -173,12 +176,12 @@ export default function Schedule() {
 
           {/* Host country */}
           <div className="flex gap-1">
-            <span className="text-xs text-slate-500 self-center mr-1">País sede:</span>
+            <span className="text-xs text-slate-500 self-center mr-1 uppercase tracking-wider">País:</span>
             {['Todos','USA','MEX','CAN'].map(c => (
               <button
                 key={c}
                 onClick={() => setCountryFilter(c)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${countryFilter === c ? 'bg-purple-500 text-white border-purple-500' : 'border-slate-700 text-slate-400'}`}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${countryFilter === c ? 'bg-orange-500 text-white border-orange-500' : 'border-slate-700 text-slate-400'}`}
               >
                 {c === 'Todos' ? 'Todos' : c === 'USA' ? '🇺🇸' : c === 'MEX' ? '🇲🇽' : '🇨🇦'} {c !== 'Todos' && c}
               </button>
@@ -188,7 +191,7 @@ export default function Schedule() {
       </div>
 
       {/* Results */}
-      <p className="text-sm text-slate-500 mb-4">
+      <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">
         <span className="text-white font-semibold">{filtered.length}</span> partidos encontrados
       </p>
 
@@ -205,7 +208,8 @@ export default function Schedule() {
         <div className="space-y-6">
           {byDate.map(([date, matches]) => (
             <div key={date} className="card overflow-hidden">
-              <div className="px-5 py-3 border-b border-slate-700/50 bg-slate-800/50 flex items-center justify-between">
+              <div className="px-5 py-3 border-b border-slate-700/50 flex items-center justify-between"
+                style={{ backgroundColor: '#162032' }}>
                 <h3 className="font-semibold text-white">
                   {capitalizeFirst(formatDayOfWeek(date))}
                 </h3>

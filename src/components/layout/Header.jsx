@@ -5,7 +5,7 @@ import LiveIndicator from '../ui/LiveIndicator'
 
 const NAV_ITEMS = [
   { to: '/',            label: 'Inicio',       icon: '🏠' },
-  { to: '/grupos',      label: 'Grupos',       icon: '🏆' },
+  { to: '/grupos',      label: 'Grupos',       icon: '📊' },
   { to: '/llaves',      label: 'Llaves',       icon: '🔗' },
   { to: '/equipos',     label: 'Equipos',      icon: '👕' },
   { to: '/predicciones',label: 'Predicciones', icon: '🎯' },
@@ -20,16 +20,17 @@ export default function Header() {
   const { hasLive, liveMatches } = useApp()
 
   return (
-    <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800">
+    <header className="sticky top-0 z-50 backdrop-blur border-b border-slate-800" style={{ backgroundColor: 'rgba(11,17,32,0.97)' }}>
       <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex items-center justify-between h-14">
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 flex-shrink-0" onClick={() => setMenuOpen(false)}>
-            <span className="text-2xl">⚽</span>
+            {/* Punto naranja */}
+            <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
             <div className="leading-tight">
               <span className="font-extrabold text-white text-lg tracking-tight">marca</span>
-              <span className="font-extrabold text-emerald-400 text-lg tracking-tight">gol</span>
+              <span className="font-extrabold text-sky-400 text-lg tracking-tight">gol</span>
               <span className="text-slate-500 text-xs">.live</span>
             </div>
           </Link>
@@ -52,16 +53,16 @@ export default function Header() {
           {/* Right side */}
           <div className="flex items-center gap-3">
             {hasLive && (
-              <Link to="/" className="hidden sm:flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-3 py-1">
+              <Link to="/" className="hidden sm:flex items-center gap-2 bg-sky-500/10 border border-sky-500/30 rounded-full px-3 py-1">
                 <LiveIndicator />
-                <span className="text-red-400 text-xs font-semibold">{liveMatches.length}</span>
+                <span className="text-sky-400 text-xs font-semibold">{liveMatches.length}</span>
               </Link>
             )}
 
             {/* Mundial badge */}
-            <div className="hidden md:flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1">
-              <span className="text-xs text-emerald-400 font-semibold">Mundial 2026</span>
-              <span className="text-xs">🇺🇸🇨🇦🇲🇽</span>
+            <div className="hidden md:flex items-center gap-1.5 bg-orange-500 rounded-full px-3 py-1">
+              <span className="text-xs text-white font-bold">Mundial 2026</span>
+              <span className="text-xs">🏆</span>
             </div>
 
             {/* Hamburger */}

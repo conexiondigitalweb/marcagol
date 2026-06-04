@@ -9,38 +9,42 @@ function GroupTable({ group }) {
   return (
     <Link to={`/grupos/${group.id}`} className="card-hover block">
       {/* Group header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700/50">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-700/50"
+        style={{ backgroundColor: '#162032' }}>
         <span className="badge-group">{group.id}</span>
-        <h3 className="font-bold text-white">{group.name}</h3>
+        <h3 className="font-bold text-white">Grupo {group.id}</h3>
       </div>
 
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-slate-600 uppercase tracking-wider">
-              <th className="text-left px-4 py-2 font-medium w-6">#</th>
-              <th className="text-left px-4 py-2 font-medium">Selección</th>
-              <th className="py-2 font-medium text-center">PJ</th>
-              <th className="py-2 font-medium text-center">G</th>
-              <th className="py-2 font-medium text-center">E</th>
-              <th className="py-2 font-medium text-center">P</th>
-              <th className="py-2 font-medium text-center">DG</th>
-              <th className="py-2 pr-4 font-medium text-center">Pts</th>
+            <tr className="text-slate-500 uppercase tracking-wider text-[10px]"
+              style={{ backgroundColor: '#162032' }}>
+              <th className="text-left px-4 py-2 font-semibold w-6">#</th>
+              <th className="text-left px-4 py-2 font-semibold">Selección</th>
+              <th className="py-2 font-semibold text-center">PJ</th>
+              <th className="py-2 font-semibold text-center">G</th>
+              <th className="py-2 font-semibold text-center">E</th>
+              <th className="py-2 font-semibold text-center">P</th>
+              <th className="py-2 font-semibold text-center">DG</th>
+              <th className="py-2 pr-4 font-semibold text-center">Pts</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((team, idx) => {
               const qualified = idx < 2
               const borderColor =
-                idx === 0 ? 'border-l-emerald-500' :
-                idx === 1 ? 'border-l-blue-500' :
+                idx === 0 ? 'border-l-sky-400' :
+                idx === 1 ? 'border-l-sky-600' :
                 idx === 2 ? 'border-l-amber-400 opacity-60' :
                 'border-l-transparent opacity-50'
+              const rowBg = idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/20'
 
               return (
-                <tr key={team.code} className={`border-l-2 ${borderColor} hover:bg-slate-700/30 transition-colors`}>
-                  <td className="pl-3 pr-2 py-2.5 text-slate-500 font-medium">{idx + 1}</td>
+                <tr key={team.code}
+                  className={`border-l-2 ${borderColor} ${rowBg} hover:bg-slate-700/30 transition-colors`}>
+                  <td className="pl-3 pr-2 py-2.5 font-bold text-sky-400">{idx + 1}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <Flag iso2={team.iso2} size="xs" />
@@ -56,7 +60,7 @@ function GroupTable({ group }) {
                   <td className="py-2.5 text-center text-slate-400">
                     {team.gd > 0 ? `+${team.gd}` : team.gd}
                   </td>
-                  <td className="py-2.5 pr-4 text-center font-bold text-white">{team.points}</td>
+                  <td className="py-2.5 pr-4 text-center font-black text-sky-400">{team.points}</td>
                 </tr>
               )
             })}
@@ -67,12 +71,12 @@ function GroupTable({ group }) {
       {/* Legend */}
       <div className="px-4 py-2 flex items-center gap-4 border-t border-slate-700/30">
         <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span className="text-xs text-slate-600">Clasifican</span>
+          <span className="w-2 h-2 rounded-full bg-sky-400"></span>
+          <span className="text-xs text-slate-500">Clasifican</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-          <span className="text-xs text-slate-600">Posible 3°</span>
+          <span className="text-xs text-slate-500">Posible 3°</span>
         </div>
       </div>
     </Link>

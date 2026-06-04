@@ -10,7 +10,7 @@ export function ConfederationBadge({ confederation }) {
 
 export function GroupBadge({ group }) {
   return (
-    <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/30">
+    <span className="inline-flex items-center justify-center w-7 h-7 bg-sky-500/15 text-sky-400 text-xs font-bold rounded-lg border border-sky-500/30">
       {group}
     </span>
   )
