@@ -1,58 +1,22 @@
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_TEAMS } from '../data/groups'
 import { getConfederationColor } from '../utils/helpers'
 import { ConfederationBadge, GroupBadge } from '../components/ui/Badge'
-import { TEAM_IDS } from '../data/teamIds'
 
 const CONFEDERATIONS = ['Todos', 'UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC', 'OFC']
-
-// Three-level fallback: escudo → bandera → inicial
-function TeamCrest({ team }) {
-  const [level, setLevel] = useState(0)
-
-  if (level === 0 && TEAM_IDS[team.code]) {
-    return (
-      <img
-        src={`https://media.api-sports.io/football/teams/${TEAM_IDS[team.code]}.png`}
-        width={48} height={48}
-        alt={team.name}
-        className="flex-shrink-0 object-contain"
-        style={{ borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.12)', background: '#1E293B', padding: '3px' }}
-        onError={() => setLevel(1)}
-        loading="lazy"
-      />
-    )
-  }
-
-  if (level <= 1 && team.iso2) {
-    return (
-      <img
-        src={`https://flagcdn.com/48x35/${team.iso2.toLowerCase()}.png`}
-        width={48} height={35}
-        alt={team.name}
-        className="flex-shrink-0 object-cover rounded"
-        style={{ border: '1px solid rgba(255,255,255,0.12)' }}
-        onError={() => setLevel(2)}
-        loading="lazy"
-      />
-    )
-  }
-
-  return (
-    <div
-      className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
-      style={{ width: 48, height: 48, background: '#334155', fontSize: '18px' }}
-    >
-      {team.code?.[0] ?? '?'}
-    </div>
-  )
-}
 
 function TeamCard({ team }) {
   return (
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
-      <TeamCrest team={team} />
+      <img
+        src={`https://flagcdn.com/48x36/${team.iso2}.png`}
+        alt={team.name}
+        width="48"
+        height="36"
+        style={{ borderRadius: '4px', objectFit: 'cover' }}
+        onError={(e) => { e.target.style.display = 'none' }}
+      />
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-white group-hover:text-sky-400 transition-colors truncate">
           {team.name}

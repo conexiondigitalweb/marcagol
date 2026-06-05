@@ -80,20 +80,20 @@ export default function TeamDetail() {
             alt="Colombia - La Tricolor"
             style={{
               width: '100%',
-              height: '180px',
+              height: '200px',
               objectFit: 'cover',
-              objectPosition: 'center',
+              objectPosition: 'top',
               display: 'block',
             }}
           />
         ) : (
           <>
             <img
-              src={`https://flagcdn.com/w1280/${team.iso2.toLowerCase()}.png`}
+              src={`https://flagcdn.com/w160/${team.iso2.toLowerCase()}.png`}
               alt={team.name}
               style={{
                 width: '100%',
-                height: '180px',
+                height: '200px',
                 objectFit: 'cover',
                 objectPosition: 'center',
                 display: 'block',

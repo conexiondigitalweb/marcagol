@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
-  <rect x="0" y="0" width="800" height="150" fill="#FCD116"/>
-  <rect x="0" y="150" width="800" height="75" fill="#003893"/>
-  <rect x="0" y="225" width="800" height="75" fill="#CE1126"/>
-  <text x="400" y="175" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black, Impact, sans-serif" font-size="80" font-weight="900" fill="white">LA TRICOLOR</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 240" width="800" height="240">
+  <rect x="0" y="0" width="800" height="120" fill="#FCD116"/>
+  <rect x="0" y="120" width="800" height="60" fill="#003893"/>
+  <rect x="0" y="180" width="800" height="60" fill="#CE1126"/>
+  <text x="400" y="155" text-anchor="middle" dominant-baseline="middle" font-family="Arial Black, Impact, sans-serif" font-size="72" font-weight="900" fill="white">LA TRICOLOR</text>
 </svg>
