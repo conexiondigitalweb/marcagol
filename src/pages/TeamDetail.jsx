@@ -73,23 +73,33 @@ export default function TeamDetail() {
       </Link>
 
       {/* Flag / special banner */}
-      <div className="relative rounded-xl overflow-hidden mb-6" style={{ height: '120px' }}>
+      <div className="relative rounded-xl overflow-hidden mb-6">
         {team.code === 'COL' ? (
           <img
             src="/images/colombia-banner.svg"
-            alt="Colombia"
-            className="w-full h-full"
-            style={{ objectFit: 'cover' }}
+            alt="Colombia - La Tricolor"
+            style={{
+              width: '100%',
+              height: '180px',
+              objectFit: 'cover',
+              objectPosition: 'center',
+              display: 'block',
+            }}
           />
         ) : (
           <>
             <img
-              src={`https://flagcdn.com/w320/${team.iso2.toLowerCase()}.png`}
+              src={`https://flagcdn.com/w1280/${team.iso2.toLowerCase()}.png`}
               alt={team.name}
-              className="w-full h-full"
-              style={{ objectFit: 'cover', filter: 'blur(10px)', transform: 'scale(1.15)' }}
+              style={{
+                width: '100%',
+                height: '180px',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                display: 'block',
+                filter: 'brightness(0.6)',
+              }}
             />
-            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.65)' }} />
             <div className="absolute inset-0 flex items-center justify-center">
               <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">{team.name}</h1>
             </div>
