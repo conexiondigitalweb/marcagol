@@ -8,62 +8,67 @@ const FEEDS = [
   { id: 'goal', label: 'Goal', url: 'https://www.goal.com/feeds/es/news' },
 ]
 
-const STATIC_ARTICLES = [
+const STATIC_NEWS = [
   {
-    id: 'st-1',
-    source: 'FIFA',
-    title: 'FIFA anuncia el calendario completo del Mundial 2026',
-    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
-    pubDate: '2026-01-15T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-cal/400/200',
-    description: 'La FIFA confirmó los 104 partidos del torneo en 16 estadios de Estados Unidos, México y Canadá.',
-  },
-  {
-    id: 'st-2',
-    source: 'Goal',
-    title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
-    link: 'https://www.goal.com/es',
-    pubDate: '2026-03-01T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-groups/400/200',
-    description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
-  },
-  {
-    id: 'st-3',
-    source: 'FIFA',
-    title: 'Colombia en el Mundial 2026: convocatoria y grupos',
-    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles',
-    pubDate: '2026-04-01T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-col/400/200',
-    description: 'La Tricolor enfrentará a Portugal, Uzbekistán y RD Congo en el Grupo K.',
-  },
-  {
-    id: 'st-4',
-    source: 'FIFA',
-    title: 'Los estadios del Mundial 2026',
-    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/destination',
-    pubDate: '2026-02-01T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-stad/400/200',
-    description: '16 estadios en tres países albergarán los 104 partidos del torneo más grande de la historia.',
-  },
-  {
-    id: 'st-5',
-    source: 'Goal',
     title: 'Equipos favoritos para ganar el Mundial 2026',
-    link: 'https://www.goal.com/es/mundial-2026',
-    pubDate: '2026-05-01T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-fav/400/200',
+    source: 'Goal',
+    date: '2026-04-30',
+    url: 'https://www.goal.com/es/mundial-2026',
     description: 'Francia, Brasil y Argentina encabezan las apuestas para llevarse el trofeo en julio de 2026.',
+    image: 'https://picsum.photos/seed/wc2026a/400/200',
   },
   {
-    id: 'st-6',
-    source: 'FIFA',
     title: 'El sorteo del Mundial 2026: así quedaron los 12 grupos',
-    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
-    pubDate: '2026-04-28T00:00:00Z',
-    image: 'https://picsum.photos/seed/wc2026-sort/400/200',
+    source: 'FIFA',
+    date: '2026-04-27',
+    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
     description: 'El sorteo realizado en Miami definió los 12 grupos de 4 equipos para la fase inicial del torneo.',
+    image: 'https://picsum.photos/seed/wc2026b/400/200',
+  },
+  {
+    title: 'Colombia en el Mundial 2026: convocatoria y grupos',
+    source: 'FIFA',
+    date: '2026-03-31',
+    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles',
+    description: 'La Tricolor enfrentará a Portugal, Uzbekistán y RD Congo en el Grupo K.',
+    image: 'https://picsum.photos/seed/colombia2026/400/200',
+  },
+  {
+    title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
+    source: 'Goal',
+    date: '2026-02-28',
+    url: 'https://www.goal.com/es/mundial-2026',
+    description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
+    image: 'https://picsum.photos/seed/wc2026d/400/200',
+  },
+  {
+    title: 'Los estadios del Mundial 2026',
+    source: 'FIFA',
+    date: '2026-01-31',
+    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/destination',
+    description: '16 estadios en tres países albergarán los 104 partidos del torneo más grande de la historia.',
+    image: 'https://picsum.photos/seed/stadiums2026/400/200',
+  },
+  {
+    title: 'FIFA anuncia el calendario completo del Mundial 2026',
+    source: 'FIFA',
+    date: '2026-01-14',
+    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    description: 'La FIFA confirmó los 104 partidos del torneo en 16 estadios de Estados Unidos, México y Canadá.',
+    image: 'https://picsum.photos/seed/fifacal2026/400/200',
   },
 ]
+
+// Map STATIC_NEWS to the shape NewsCard and the load function expect
+const STATIC_ARTICLES = STATIC_NEWS.map((n, i) => ({
+  id:          `static-${i}`,
+  source:      n.source,
+  title:       n.title,
+  link:        n.url,
+  pubDate:     n.date,
+  image:       n.image,
+  description: n.description,
+}))
 
 function extractImage(item) {
   const enclosure = item.querySelector('enclosure[type^="image"]')
@@ -121,7 +126,10 @@ function NewsCard({ item }) {
     >
       {/* Image */}
       {item.image && !imgErr ? (
-        <div className="h-44 overflow-hidden rounded-t-xl bg-slate-800 flex-shrink-0">
+        <div
+          className="overflow-hidden bg-slate-800 flex-shrink-0"
+          style={{ height: '180px', borderRadius: '10px 10px 0 0' }}
+        >
           <img
             src={item.image}
             alt=""
@@ -131,7 +139,10 @@ function NewsCard({ item }) {
           />
         </div>
       ) : (
-        <div className="h-20 rounded-t-xl bg-slate-800 flex items-center justify-center text-3xl text-slate-700 flex-shrink-0">
+        <div
+          className="bg-slate-800 flex items-center justify-center text-3xl text-slate-700 flex-shrink-0"
+          style={{ height: '80px', borderRadius: '10px 10px 0 0' }}
+        >
           📰
         </div>
       )}
