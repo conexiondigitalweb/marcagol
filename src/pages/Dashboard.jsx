@@ -4,8 +4,8 @@ import { GROUPS } from '../data/groups'
 import { getUpcomingMatches, getLiveMatches as getStaticLiveMatches } from '../data/matches'
 import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
-import TeamCrestImg from '../components/ui/TeamCrestImg'
 import LiveIndicator from '../components/ui/LiveIndicator'
+import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 
@@ -99,14 +99,17 @@ function MatchCard({ match, compact = false }) {
           <span className="text-sm font-semibold text-white text-right">
             {home?.name || match.homeTeam}
           </span>
-          {home ? (
-            <TeamCrestImg
-              code={home.code}
-              name={home.name}
-              size={28}
-              fallback={<Flag iso2={home.iso2} size="sm" />}
+          {home && (
+            <img
+              src={`https://media.api-sports.io/football/teams/${TEAM_IDS[home.code]}.png`}
+              width={28}
+              height={28}
+              alt={home.name}
+              className="object-contain flex-shrink-0"
+              onError={(e) => { e.target.onerror = null; e.target.src = `https://flagcdn.com/28x21/${home.iso2.toLowerCase()}.png` }}
+              loading="lazy"
             />
-          ) : null}
+          )}
         </div>
 
         {/* Score / Time */}
@@ -123,14 +126,17 @@ function MatchCard({ match, compact = false }) {
 
         {/* Away */}
         <div className="flex-1 flex items-center gap-2">
-          {away ? (
-            <TeamCrestImg
-              code={away.code}
-              name={away.name}
-              size={28}
-              fallback={<Flag iso2={away.iso2} size="sm" />}
+          {away && (
+            <img
+              src={`https://media.api-sports.io/football/teams/${TEAM_IDS[away.code]}.png`}
+              width={28}
+              height={28}
+              alt={away.name}
+              className="object-contain flex-shrink-0"
+              onError={(e) => { e.target.onerror = null; e.target.src = `https://flagcdn.com/28x21/${away.iso2.toLowerCase()}.png` }}
+              loading="lazy"
             />
-          ) : null}
+          )}
           <span className="text-sm font-semibold text-white">
             {away?.name || match.awayTeam}
           </span>

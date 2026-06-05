@@ -4,8 +4,8 @@ import { sortTeams } from '../utils/helpers'
 import { getMatchesByGroup } from '../data/matches'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
-import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
+import { TEAM_IDS } from '../data/teamIds'
 
 const TEAM_COLORS = {
   USA:'#002868', ENG:'#CF091F', TUN:'#E70013', ECU:'#FFD100',
@@ -108,12 +108,15 @@ export default function TeamDetail() {
         />
         <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <Flag iso2={team.iso2} size="xl" className="rounded-lg shadow-xl" />
-          <TeamCrestImg
-            code={team.code}
-            name={team.name}
-            size={80}
-            className="rounded-lg shadow-xl"
+          <img
+            src={`https://media.api-sports.io/football/teams/${TEAM_IDS[team.code]}.png`}
+            width={80}
+            height={80}
+            alt={team.name}
+            className="rounded-lg shadow-xl object-contain flex-shrink-0"
             style={{ background: '#1E293B', padding: '6px' }}
+            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none' }}
+            loading="lazy"
           />
           <div className="text-center sm:text-left">
             <ConfederationBadge confederation={team.confederation} />

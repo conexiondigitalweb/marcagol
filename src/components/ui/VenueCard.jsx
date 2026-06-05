@@ -1,10 +1,6 @@
-import { useState } from 'react'
-
 const COUNTRY_FLAG = { USA: '🇺🇸', México: '🇲🇽', Canadá: '🇨🇦' }
 
 export default function VenueCard({ venue, compact = false }) {
-  const [imgError, setImgError] = useState(false)
-
   if (compact) {
     return (
       <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -21,23 +17,14 @@ export default function VenueCard({ venue, compact = false }) {
     <div className="card overflow-hidden group hover:border-sky-500/30 transition-all">
       {/* Image with overlay */}
       <div className="relative overflow-hidden" style={{ height: '160px' }}>
-        {!imgError ? (
-          <img
-            src={venue.image}
-            alt={venue.name}
-            className="w-full h-full group-hover:scale-105 transition-transform duration-500"
-            style={{ objectFit: 'cover' }}
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <img
-            src="/images/stadium-generic.svg"
-            alt={venue.name}
-            className="w-full h-full"
-            style={{ objectFit: 'cover' }}
-          />
-        )}
+        <img
+          src={venue.image}
+          alt={venue.name}
+          className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+          style={{ objectFit: 'cover' }}
+          loading="lazy"
+          onError={(e) => { e.target.onerror = null; e.target.src = '/images/stadium-generic.svg' }}
+        />
         {/* Gradient overlay */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} />
         {/* Name on overlay */}

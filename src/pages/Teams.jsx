@@ -2,22 +2,23 @@ import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_TEAMS } from '../data/groups'
 import { getConfederationColor } from '../utils/helpers'
-import Flag from '../components/ui/Flag'
-import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { ConfederationBadge, GroupBadge } from '../components/ui/Badge'
+import { TEAM_IDS } from '../data/teamIds'
 
 const CONFEDERATIONS = ['Todos', 'UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC', 'OFC']
 
 function TeamCard({ team }) {
   return (
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
-      <TeamCrestImg
-        code={team.code}
-        name={team.name}
-        size={48}
-        className="flex-shrink-0"
+      <img
+        src={`https://media.api-sports.io/football/teams/${TEAM_IDS[team.code]}.png`}
+        width={48}
+        height={48}
+        alt={team.name}
+        className="flex-shrink-0 object-contain"
         style={{ borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.12)', background: '#1E293B', padding: '3px' }}
-        fallback={<Flag iso2={team.iso2} size="md" className="flex-shrink-0" />}
+        onError={(e) => { e.target.onerror = null; e.target.src = `https://flagcdn.com/32x24/${team.iso2.toLowerCase()}.png` }}
+        loading="lazy"
       />
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-white group-hover:text-sky-400 transition-colors truncate">
