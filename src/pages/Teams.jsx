@@ -10,13 +10,24 @@ function TeamCard({ team }) {
   return (
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
       <img
-        src={`https://flagcdn.com/48x36/${team.iso2}.png`}
+        src={`https://flagcdn.com/w80/${team.iso2}.png`}
         alt={team.name}
-        width="48"
-        height="36"
-        style={{ borderRadius: '4px', objectFit: 'cover' }}
-        onError={(e) => { e.target.style.display = 'none' }}
+        style={{ width: '48px', height: '36px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
+        onError={(e) => {
+          e.target.style.display = 'none'
+          e.target.nextSibling.style.display = 'flex'
+        }}
       />
+      <div style={{
+        display: 'none',
+        width: '48px', height: '36px',
+        background: '#1E293B', borderRadius: '4px',
+        alignItems: 'center', justifyContent: 'center',
+        color: '#38BDF8', fontWeight: 'bold', fontSize: '16px',
+        flexShrink: 0,
+      }}>
+        {team.name[0]}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-white group-hover:text-sky-400 transition-colors truncate">
           {team.name}
