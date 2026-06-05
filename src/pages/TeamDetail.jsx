@@ -111,8 +111,9 @@ export default function TeamDetail() {
           <TeamCrestImg
             code={team.code}
             name={team.name}
-            size={64}
+            size={80}
             className="rounded-lg shadow-xl"
+            style={{ background: '#1E293B', padding: '6px' }}
           />
           <div className="text-center sm:text-left">
             <ConfederationBadge confederation={team.confederation} />

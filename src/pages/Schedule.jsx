@@ -4,6 +4,7 @@ import { GROUPS } from '../data/groups'
 import { VENUES_BY_NAME } from '../data/venues'
 import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
+import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
 
 const ALL_TEAMS_MAP = Object.fromEntries(
@@ -79,7 +80,14 @@ function MatchRow({ match }) {
               {home?.name || match.homeTeam}
             </span>
             <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
-            {home && <Flag iso2={home.iso2} size="xs" />}
+            {home && (
+              <TeamCrestImg
+                code={home.code}
+                name={home.name}
+                size={24}
+                fallback={<Flag iso2={home.iso2} size="xs" />}
+              />
+            )}
           </div>
 
           <div className="text-center min-w-[56px]">
@@ -93,7 +101,14 @@ function MatchRow({ match }) {
           </div>
 
           <div className="flex items-center gap-2 flex-1">
-            {away && <Flag iso2={away.iso2} size="xs" />}
+            {away && (
+              <TeamCrestImg
+                code={away.code}
+                name={away.name}
+                size={24}
+                fallback={<Flag iso2={away.iso2} size="xs" />}
+              />
+            )}
             <span className="font-semibold text-white text-sm hidden md:block">
               {away?.name || match.awayTeam}
             </span>

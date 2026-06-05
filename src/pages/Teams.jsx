@@ -14,8 +14,9 @@ function TeamCard({ team }) {
       <TeamCrestImg
         code={team.code}
         name={team.name}
-        size={40}
-        className="flex-shrink-0 rounded"
+        size={48}
+        className="flex-shrink-0"
+        style={{ borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.12)', background: '#1E293B', padding: '3px' }}
         fallback={<Flag iso2={team.iso2} size="md" className="flex-shrink-0" />}
       />
       <div className="flex-1 min-w-0">
