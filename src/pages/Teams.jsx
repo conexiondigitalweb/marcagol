@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ALL_TEAMS } from '../data/groups'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
+import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { ConfederationBadge, GroupBadge } from '../components/ui/Badge'
 
 const CONFEDERATIONS = ['Todos', 'UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC', 'OFC']
@@ -10,7 +11,13 @@ const CONFEDERATIONS = ['Todos', 'UEFA', 'CONMEBOL', 'CONCACAF', 'CAF', 'AFC', '
 function TeamCard({ team }) {
   return (
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
-      <Flag iso2={team.iso2} size="md" className="flex-shrink-0" />
+      <TeamCrestImg
+        code={team.code}
+        name={team.name}
+        size={40}
+        className="flex-shrink-0 rounded"
+        fallback={<Flag iso2={team.iso2} size="md" className="flex-shrink-0" />}
+      />
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-white group-hover:text-sky-400 transition-colors truncate">
           {team.name}

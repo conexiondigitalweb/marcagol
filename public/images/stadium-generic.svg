@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#060D1A"/>
+      <stop offset="60%" stop-color="#0B1F3A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="pitch" x1="0" y1="200" x2="0" y2="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1B5E20"/>
+      <stop offset="50%" stop-color="#145214"/>
+      <stop offset="100%" stop-color="#0D3D0D"/>
+    </linearGradient>
+    <linearGradient id="standL" x1="160" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="standR" x1="640" y1="0" x2="800" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="standTop" x1="0" y1="0" x2="0" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <radialGradient id="lightL" cx="98" cy="10" r="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FEF08A" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FEF08A" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lightR" cx="702" cy="10" r="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FEF08A" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#FEF08A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Sky -->
+  <rect width="800" height="400" fill="url(#sky)"/>
+
+  <!-- Floodlight glow -->
+  <ellipse cx="98" cy="10" rx="80" ry="50" fill="url(#lightL)"/>
+  <ellipse cx="702" cy="10" rx="80" ry="50" fill="url(#lightR)"/>
+
+  <!-- Top stand -->
+  <path d="M80,0 L720,0 L680,170 L400,195 L120,170 Z" fill="url(#standTop)" stroke="#334155" stroke-width="1"/>
+
+  <!-- Crowd rows in top stand -->
+  <g stroke="#334155" stroke-width="0.8" opacity="0.6">
+    <path d="M90,20 L710,20"/>
+    <path d="M100,40 L700,40"/>
+    <path d="M110,60 L690,60"/>
+    <path d="M118,80 L682,80"/>
+    <path d="M124,100 L676,100"/>
+    <path d="M128,120 L672,120"/>
+    <path d="M130,140 L670,140"/>
+    <path d="M132,160 L668,160"/>
+  </g>
+
+  <!-- Left stand -->
+  <path d="M0,50 L160,190 L160,400 L0,400 Z" fill="url(#standL)" stroke="#334155" stroke-width="1"/>
+  <!-- Left crowd rows -->
+  <g stroke="#334155" stroke-width="0.8" opacity="0.6">
+    <line x1="0" y1="90" x2="140" y2="200"/>
+    <line x1="0" y1="130" x2="120" y2="215"/>
+    <line x1="0" y1="170" x2="100" y2="230"/>
+    <line x1="0" y1="220" x2="80" y2="255"/>
+    <line x1="0" y1="275" x2="60" y2="285"/>
+    <line x1="0" y1="330" x2="40" y2="340"/>
+  </g>
+
+  <!-- Right stand -->
+  <path d="M800,50 L640,190 L640,400 L800,400 Z" fill="url(#standR)" stroke="#334155" stroke-width="1"/>
+  <!-- Right crowd rows -->
+  <g stroke="#334155" stroke-width="0.8" opacity="0.6">
+    <line x1="800" y1="90" x2="660" y2="200"/>
+    <line x1="800" y1="130" x2="680" y2="215"/>
+    <line x1="800" y1="170" x2="700" y2="230"/>
+    <line x1="800" y1="220" x2="720" y2="255"/>
+    <line x1="800" y1="275" x2="740" y2="285"/>
+    <line x1="800" y1="330" x2="760" y2="340"/>
+  </g>
+
+  <!-- Pitch (perspective trapezoid) -->
+  <path d="M160,195 L640,195 L700,380 L100,380 Z" fill="url(#pitch)"/>
+
+  <!-- Pitch stripes (alternating) -->
+  <g opacity="0.15">
+    <path d="M160,195 L640,195 L648,222 L152,222 Z" fill="#000000"/>
+    <path d="M148,249 L652,249 L660,276 L140,276 Z" fill="#000000"/>
+    <path d="M136,303 L664,303 L672,330 L128,330 Z" fill="#000000"/>
+  </g>
+
+  <!-- Field lines -->
+  <g stroke="white" stroke-width="1.8" fill="none" opacity="0.6">
+    <!-- Boundary -->
+    <path d="M165,198 L635,198 L693,374 L107,374 Z"/>
+    <!-- Center line -->
+    <line x1="400" y1="198" x2="400" y2="374"/>
+    <!-- Center circle -->
+    <ellipse cx="400" cy="286" rx="55" ry="43"/>
+    <!-- Center dot -->
+    <circle cx="400" cy="286" r="4" fill="white" stroke="none"/>
+    <!-- Penalty area left -->
+    <path d="M165,220 L165,340 L240,346 L240,220"/>
+    <!-- Goal area left -->
+    <path d="M165,248 L165,320 L200,322 L200,248"/>
+    <!-- Penalty area right -->
+    <path d="M635,220 L635,340 L560,346 L560,220"/>
+    <!-- Goal area right -->
+    <path d="M635,248 L635,320 L600,322 L600,248"/>
+    <!-- Penalty spots -->
+    <circle cx="210" cy="286" r="3" fill="white" stroke="none"/>
+    <circle cx="590" cy="286" r="3" fill="white" stroke="none"/>
+    <!-- Corner arcs -->
+    <path d="M165,199 Q175,199 175,210"/>
+    <path d="M635,199 Q625,199 625,210"/>
+    <path d="M108,374 Q115,370 120,362"/>
+    <path d="M692,374 Q685,370 680,362"/>
+  </g>
+
+  <!-- Floodlight poles -->
+  <g fill="#64748B">
+    <!-- Left pole -->
+    <rect x="93" y="12" width="5" height="50" rx="1"/>
+    <rect x="76" y="10" width="40" height="6" rx="2"/>
+    <!-- Right pole -->
+    <rect x="702" y="12" width="5" height="50" rx="1"/>
+    <rect x="684" y="10" width="40" height="6" rx="2"/>
+  </g>
+  <!-- Pole lights -->
+  <g fill="#FEF08A">
+    <rect x="78" y="10" width="38" height="5" rx="2"/>
+    <rect x="686" y="10" width="38" height="5" rx="2"/>
+  </g>
+
+  <!-- Caption -->
+  <text x="400" y="396"
+        font-family="Arial, sans-serif" font-size="12"
+        text-anchor="middle"
+        fill="#475569">⚽ FIFA World Cup 2026 · Venue</text>
+</svg>

@@ -4,6 +4,7 @@ import { sortTeams } from '../utils/helpers'
 import { getMatchesByGroup } from '../data/matches'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
+import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
 
 const TEAM_COLORS = {
@@ -71,18 +72,29 @@ export default function TeamDetail() {
         ← Todos los equipos
       </Link>
 
-      {/* Flag banner */}
+      {/* Flag / special banner */}
       <div className="relative rounded-xl overflow-hidden mb-6" style={{ height: '120px' }}>
-        <img
-          src={`https://flagcdn.com/w320/${team.iso2.toLowerCase()}.png`}
-          alt={team.name}
-          className="w-full h-full"
-          style={{ objectFit: 'cover', filter: 'blur(10px)', transform: 'scale(1.15)' }}
-        />
-        <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.65)' }} />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">{team.name}</h1>
-        </div>
+        {team.code === 'COL' ? (
+          <img
+            src="/images/colombia-banner.svg"
+            alt="Colombia"
+            className="w-full h-full"
+            style={{ objectFit: 'cover' }}
+          />
+        ) : (
+          <>
+            <img
+              src={`https://flagcdn.com/w320/${team.iso2.toLowerCase()}.png`}
+              alt={team.name}
+              className="w-full h-full"
+              style={{ objectFit: 'cover', filter: 'blur(10px)', transform: 'scale(1.15)' }}
+            />
+            <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.65)' }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">{team.name}</h1>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Hero card */}
@@ -96,6 +108,12 @@ export default function TeamDetail() {
         />
         <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <Flag iso2={team.iso2} size="xl" className="rounded-lg shadow-xl" />
+          <TeamCrestImg
+            code={team.code}
+            name={team.name}
+            size={64}
+            className="rounded-lg shadow-xl"
+          />
           <div className="text-center sm:text-left">
             <ConfederationBadge confederation={team.confederation} />
             <h1 className="text-4xl font-black text-white mt-2 mb-1">{team.name}</h1>

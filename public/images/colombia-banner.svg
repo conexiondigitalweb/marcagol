@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
+  <defs>
+    <linearGradient id="yellowGrad" x1="0" y1="0" x2="0" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FCD116"/>
+      <stop offset="100%" stop-color="#F4B400"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0" y1="150" x2="0" y2="225" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#003893"/>
+      <stop offset="100%" stop-color="#002870"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0" y1="225" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#CE1126"/>
+      <stop offset="100%" stop-color="#A50D1E"/>
+    </linearGradient>
+    <linearGradient id="overlay" x1="0" y1="0" x2="0" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.18"/>
+      <stop offset="40%" stop-color="#000000" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+    <!-- Diagonal sheen -->
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.08"/>
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Flag stripes: Yellow (50%), Blue (25%), Red (25%) -->
+  <rect width="800" height="150" fill="url(#yellowGrad)"/>
+  <rect y="150" width="800" height="75" fill="url(#blueGrad)"/>
+  <rect y="225" width="800" height="75" fill="url(#redGrad)"/>
+
+  <!-- Overlays for depth -->
+  <rect width="800" height="300" fill="url(#overlay)"/>
+  <rect width="800" height="300" fill="url(#sheen)"/>
+
+  <!-- Left decorative vertical line -->
+  <rect x="60" y="20" width="2" height="260" fill="#FFFFFF" opacity="0.15" rx="1"/>
+  <!-- Right decorative vertical line -->
+  <rect x="738" y="20" width="2" height="260" fill="#FFFFFF" opacity="0.15" rx="1"/>
+
+  <!-- Stars (5, representing Colombia's World Cup appearances) -->
+  <g fill="#FFFFFF" font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="340" y="55" font-size="22" opacity="0.9">★</text>
+    <text x="370" y="55" font-size="22" opacity="0.9">★</text>
+    <text x="400" y="55" font-size="26" opacity="1">★</text>
+    <text x="430" y="55" font-size="22" opacity="0.9">★</text>
+    <text x="460" y="55" font-size="22" opacity="0.9">★</text>
+  </g>
+
+  <!-- Horizontal accent line above title -->
+  <rect x="160" y="68" width="480" height="1.5" fill="#FFFFFF" opacity="0.3" rx="1"/>
+
+  <!-- Main title: LA TRICOLOR -->
+  <text x="400" y="160"
+        font-family="'Arial Black', 'Impact', Arial, sans-serif"
+        font-size="70" font-weight="900"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        letter-spacing="4"
+        style="text-shadow: 0 2px 12px rgba(0,0,0,0.5)">LA TRICOLOR</text>
+
+  <!-- Horizontal accent line below title -->
+  <rect x="160" y="172" width="480" height="1.5" fill="#FFFFFF" opacity="0.3" rx="1"/>
+
+  <!-- Subtitle -->
+  <text x="400" y="222"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="17" font-weight="700"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        opacity="0.88"
+        letter-spacing="5">COLOMBIA</text>
+
+  <text x="400" y="258"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="13" font-weight="400"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        opacity="0.65"
+        letter-spacing="3">FIFA WORLD CUP 2026</text>
+
+  <!-- Small decorative dots -->
+  <g fill="#FFFFFF" opacity="0.25">
+    <circle cx="100" cy="150" r="3"/>
+    <circle cx="700" cy="150" r="3"/>
+    <circle cx="100" cy="225" r="3"/>
+    <circle cx="700" cy="225" r="3"/>
+  </g>
+</svg>

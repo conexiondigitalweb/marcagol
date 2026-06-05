@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
-import { getUpcomingMatches, getLiveMatches } from '../data/matches'
+import { getUpcomingMatches, getLiveMatches as getStaticLiveMatches } from '../data/matches'
 import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
+import TeamCrestImg from '../components/ui/TeamCrestImg'
 import LiveIndicator from '../components/ui/LiveIndicator'
 import { StatusBadge } from '../components/ui/Badge'
+import { startLivePolling } from '../services/liveData'
 
 const WORLD_CUP_START = '2026-06-11T18:00:00Z'
 
@@ -24,6 +26,48 @@ function CountdownBox({ value, label }) {
   )
 }
 
+// Card for API live matches (uses logo URLs from API directly)
+function ApiMatchCard({ match }) {
+  return (
+    <div
+      className="rounded-xl p-4 border transition-all hover:border-sky-400"
+      style={{ background: '#1E293B', borderColor: '#334155' }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-slate-500 uppercase tracking-wider">En vivo</span>
+        <LiveIndicator minute={match.minute} />
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex items-center gap-2 justify-end">
+          <span className="text-sm font-semibold text-white text-right">{match.homeTeam}</span>
+          {match.homeLogo && (
+            <img src={match.homeLogo} alt={match.homeTeam} width={28} height={28}
+                 className="object-contain" loading="lazy" />
+          )}
+        </div>
+        <div className="flex-shrink-0 text-center min-w-[60px]">
+          <div className="text-xl font-black tabular-nums text-sky-400">
+            {match.homeScore ?? '–'}–{match.awayScore ?? '–'}
+          </div>
+          <div className="text-xs text-slate-600 mt-0.5">{match.minute ?? ''}′</div>
+        </div>
+        <div className="flex-1 flex items-center gap-2">
+          {match.awayLogo && (
+            <img src={match.awayLogo} alt={match.awayTeam} width={28} height={28}
+                 className="object-contain" loading="lazy" />
+          )}
+          <span className="text-sm font-semibold text-white">{match.awayTeam}</span>
+        </div>
+      </div>
+      {(match.venue || match.city) && (
+        <p className="mt-3 text-center text-xs text-slate-600 truncate">
+          📍 {[match.venue, match.city].filter(Boolean).join(', ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
 function MatchCard({ match, compact = false }) {
   const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
   const home = ALL_TEAMS_MAP[match.homeTeam]
@@ -37,7 +81,6 @@ function MatchCard({ match, compact = false }) {
       className={`rounded-xl p-4 border transition-all ${compact ? '' : 'hover:border-sky-400'}`}
       style={{ background: '#1E293B', borderColor: '#334155' }}
     >
-      {/* Header row */}
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs text-slate-500 uppercase tracking-wider">
           {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
@@ -50,14 +93,20 @@ function MatchCard({ match, compact = false }) {
         )}
       </div>
 
-      {/* Teams & Score */}
       <div className="flex items-center gap-3">
         {/* Home */}
         <div className="flex-1 flex items-center gap-2 justify-end">
           <span className="text-sm font-semibold text-white text-right">
             {home?.name || match.homeTeam}
           </span>
-          {home && <Flag iso2={home.iso2} size="sm" />}
+          {home ? (
+            <TeamCrestImg
+              code={home.code}
+              name={home.name}
+              size={28}
+              fallback={<Flag iso2={home.iso2} size="sm" />}
+            />
+          ) : null}
         </div>
 
         {/* Score / Time */}
@@ -74,14 +123,20 @@ function MatchCard({ match, compact = false }) {
 
         {/* Away */}
         <div className="flex-1 flex items-center gap-2">
-          {away && <Flag iso2={away.iso2} size="sm" />}
+          {away ? (
+            <TeamCrestImg
+              code={away.code}
+              name={away.name}
+              size={28}
+              fallback={<Flag iso2={away.iso2} size="sm" />}
+            />
+          ) : null}
           <span className="text-sm font-semibold text-white">
             {away?.name || match.awayTeam}
           </span>
         </div>
       </div>
 
-      {/* Venue + country */}
       {!compact && (
         <div className="mt-3 text-center">
           <p className="text-xs text-slate-600 truncate">📍 {match.venue}, {match.city}</p>
@@ -108,55 +163,66 @@ function StatCard({ icon, value, label, sub }) {
 }
 
 export default function Dashboard() {
-  const [countdown, setCountdown] = useState(getCountdown(WORLD_CUP_START))
-  const live      = getLiveMatches()
-  const upcoming  = getUpcomingMatches(6)
+  const [countdown, setCountdown]         = useState(getCountdown(WORLD_CUP_START))
+  const [apiLiveMatches, setApiLiveMatches] = useState([])
+  const staticLive = getStaticLiveMatches()
 
+  // Countdown ticker
   useEffect(() => {
     const id = setInterval(() => setCountdown(getCountdown(WORLD_CUP_START)), 1000)
     return () => clearInterval(id)
   }, [])
 
+  // Live match polling — starts immediately once World Cup begins
+  useEffect(() => {
+    const wcStarted = Date.now() >= new Date(WORLD_CUP_START).getTime()
+    if (!wcStarted) return
+    return startLivePolling(matches => setApiLiveMatches(matches))
+  }, [])
+
+  const upcoming   = getUpcomingMatches(6)
+  const liveMatches = apiLiveMatches.length > 0 ? null : staticLive  // prefer API
+  const hasApiLive  = apiLiveMatches.length > 0
+
   return (
     <div className="space-y-10 animate-slide-up">
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="rounded-2xl border border-slate-700/50 p-8 md:p-12 text-center"
+      <section
+        className="rounded-2xl border border-slate-700/50 p-8 md:p-12 text-center"
         style={{
-          background: 'linear-gradient(135deg, #0B1120 0%, #0D2137 25%, #0F2744 50%, #1a1a3e 75%, #0B1120 100%)',
+          backgroundImage: 'url(/images/wc2026-hero.svg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           position: 'relative',
           overflow: 'hidden',
-        }}>
-        {/* Círculo decorativo grande */}
-        <div style={{
-          position: 'absolute',
-          width: '600px',
-          height: '600px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, #38BDF815 0%, transparent 70%)',
-          top: '-200px',
-          right: '-100px',
-          pointerEvents: 'none',
-        }} />
-        {/* Patrón de puntos */}
+        }}
+      >
+        {/* Dark overlay so React text stays readable */}
         <div style={{
           position: 'absolute',
           inset: 0,
-          backgroundImage: 'radial-gradient(circle, #38BDF825 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
+          background: 'rgba(11,17,32,0.62)',
           pointerEvents: 'none',
-          opacity: 0.4,
         }} />
-        {/* Línea naranja decorativa */}
+        {/* Extra sky-blue radial glow */}
         <div style={{
           position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          width: '600px', height: '600px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, #38BDF815 0%, transparent 70%)',
+          top: '-200px', right: '-100px',
+          pointerEvents: 'none',
+        }} />
+        {/* Bottom orange accent line */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0, left: 0, right: 0,
           height: '2px',
           background: 'linear-gradient(90deg, transparent, #F97316, transparent)',
           pointerEvents: 'none',
         }} />
+
         <div className="relative">
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-3xl">🇺🇸</span>
@@ -169,7 +235,6 @@ export default function Dashboard() {
           <p className="text-sky-400 text-xl md:text-2xl font-bold mb-1">FIFA 2026</p>
           <p className="text-slate-400 text-sm mb-8">11 jun – 27 jul · USA, Canadá, México</p>
 
-          {/* Countdown */}
           {countdown ? (
             <>
               <p className="text-slate-400 text-xs uppercase tracking-widest mb-4 font-medium">Faltan</p>
@@ -202,15 +267,29 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Live Matches ─────────────────────────────────────────────── */}
-      {live.length > 0 && (
+      {/* ── API Live Matches (real-time, top priority) ─────────────── */}
+      {hasApiLive && (
+        <section>
+          <div className="flex items-center gap-3 mb-4">
+            <LiveIndicator size="lg" />
+            <h2 className="section-title">Partidos en Vivo</h2>
+            <span className="text-xs text-sky-400 ml-auto">Actualización en tiempo real</span>
+          </div>
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {apiLiveMatches.map(m => <ApiMatchCard key={m.id} match={m} />)}
+          </div>
+        </section>
+      )}
+
+      {/* ── Static Live Matches (fallback when API has none) ─────────── */}
+      {!hasApiLive && staticLive.length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-4">
             <LiveIndicator size="lg" />
             <h2 className="section-title">Partidos en Vivo</h2>
           </div>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {live.map(m => <MatchCard key={m.id} match={m} />)}
+            {staticLive.map(m => <MatchCard key={m.id} match={m} />)}
           </div>
         </section>
       )}

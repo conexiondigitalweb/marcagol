@@ -31,13 +31,12 @@ export default function VenueCard({ venue, compact = false }) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <div
-            className="w-full h-full flex flex-col items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #0B1120 0%, #1E3A5F 100%)' }}
-          >
-            <span className="text-4xl">🏟️</span>
-            <p className="text-slate-400 text-sm font-semibold text-center px-3">{venue.name}</p>
-          </div>
+          <img
+            src="/images/stadium-generic.svg"
+            alt={venue.name}
+            className="w-full h-full"
+            style={{ objectFit: 'cover' }}
+          />
         )}
         {/* Gradient overlay */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} />

@@ -15,7 +15,7 @@ const STATIC_ARTICLES = [
     title: 'FIFA anuncia el calendario completo del Mundial 2026',
     link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
     pubDate: '2026-01-15T00:00:00Z',
-    image: null,
+    image: 'https://picsum.photos/seed/wc2026-cal/400/200',
     description: 'La FIFA confirmó los 104 partidos del torneo en 16 estadios de Estados Unidos, México y Canadá.',
   },
   {
@@ -24,7 +24,7 @@ const STATIC_ARTICLES = [
     title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
     link: 'https://www.goal.com/es',
     pubDate: '2026-03-01T00:00:00Z',
-    image: null,
+    image: 'https://picsum.photos/seed/wc2026-groups/400/200',
     description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
   },
   {
@@ -33,7 +33,7 @@ const STATIC_ARTICLES = [
     title: 'Colombia en el Mundial 2026: convocatoria y grupos',
     link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles',
     pubDate: '2026-04-01T00:00:00Z',
-    image: null,
+    image: 'https://picsum.photos/seed/wc2026-col/400/200',
     description: 'La Tricolor enfrentará a Portugal, Uzbekistán y RD Congo en el Grupo K.',
   },
   {
@@ -42,7 +42,7 @@ const STATIC_ARTICLES = [
     title: 'Los estadios del Mundial 2026',
     link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/destination',
     pubDate: '2026-02-01T00:00:00Z',
-    image: null,
+    image: 'https://picsum.photos/seed/wc2026-stad/400/200',
     description: '16 estadios en tres países albergarán los 104 partidos del torneo más grande de la historia.',
   },
   {
@@ -51,8 +51,17 @@ const STATIC_ARTICLES = [
     title: 'Equipos favoritos para ganar el Mundial 2026',
     link: 'https://www.goal.com/es/mundial-2026',
     pubDate: '2026-05-01T00:00:00Z',
-    image: null,
+    image: 'https://picsum.photos/seed/wc2026-fav/400/200',
     description: 'Francia, Brasil y Argentina encabezan las apuestas para llevarse el trofeo en julio de 2026.',
+  },
+  {
+    id: 'st-6',
+    source: 'FIFA',
+    title: 'El sorteo del Mundial 2026: así quedaron los 12 grupos',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-04-28T00:00:00Z',
+    image: 'https://picsum.photos/seed/wc2026-sort/400/200',
+    description: 'El sorteo realizado en Miami definió los 12 grupos de 4 equipos para la fase inicial del torneo.',
   },
 ]
 
