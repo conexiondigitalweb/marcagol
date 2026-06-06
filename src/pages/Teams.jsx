@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ALL_TEAMS } from '../data/groups'
 import { getConfederationColor } from '../utils/helpers'
@@ -10,7 +10,7 @@ function TeamCard({ team }) {
   return (
     <Link to={`/equipos/${team.code}`} className="card-hover p-4 flex items-center gap-3 group">
       <img
-        src={`https://flagcdn.com/w80/${team.iso2}.png`}
+        src={`https://flagcdn.com/w80/${team.iso2?.toLowerCase()}.png`}
         alt={team.name}
         style={{ width: '48px', height: '36px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }}
         onError={(e) => {
