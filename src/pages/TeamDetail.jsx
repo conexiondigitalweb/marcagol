@@ -72,39 +72,35 @@ export default function TeamDetail() {
         ← Todos los equipos
       </Link>
 
-      {/* Flag / special banner */}
-      <div className="relative rounded-xl overflow-hidden mb-6">
-        {team.code === 'COL' ? (
+      {/* Banner con color del equipo */}
+      <div
+        className="relative rounded-xl overflow-hidden mb-6 flex items-center justify-center"
+        style={{
+          height: '200px',
+          background: `linear-gradient(135deg, ${accentColor}CC 0%, ${accentColor}66 100%)`,
+          backgroundColor: '#0F172A',
+        }}
+      >
+        <img
+          src={`https://flagcdn.com/w320/${team.iso2.toLowerCase()}.png`}
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: 'absolute', inset: 0,
+            width: '100%', height: '100%',
+            objectFit: 'cover', opacity: 0.15,
+          }}
+        />
+        <div className="relative z-10 flex flex-col items-center gap-3">
           <img
-            src="/images/colombia-banner.svg"
-            alt="Colombia - La Tricolor"
-            style={{
-              width: '100%',
-              height: '200px',
-              objectFit: 'cover',
-              objectPosition: 'top',
-              display: 'block',
-            }}
+            src={`https://flagcdn.com/w80/${team.iso2.toLowerCase()}.png`}
+            alt={team.name}
+            style={{ height: '52px', borderRadius: '4px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
           />
-        ) : (
-          <>
-            <img
-              src={`https://flagcdn.com/w160/${team.iso2.toLowerCase()}.png`}
-              alt={team.name}
-              style={{
-                width: '100%',
-                height: '200px',
-                objectFit: 'cover',
-                objectPosition: 'center',
-                display: 'block',
-                filter: 'brightness(0.6)',
-              }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">{team.name}</h1>
-            </div>
-          </>
-        )}
+          <h1 className="text-4xl font-black text-white tracking-tight drop-shadow-xl">
+            {team.name}
+          </h1>
+        </div>
       </div>
 
       {/* Hero card */}
