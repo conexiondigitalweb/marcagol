@@ -2,8 +2,8 @@
 // Usa la API de Anthropic directamente desde el frontend
 
 import { useState, useCallback } from 'react'
-import { getHistory } from '../data/history'
-import { GROUPS } from '../data/groups'
+import { getHistory } from '../../data/history'
+import { GROUPS } from '../../data/groups'
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
