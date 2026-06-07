@@ -1,109 +1,77 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">
   <defs>
-    <linearGradient id="bgGrad" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0B1120"/>
-      <stop offset="50%" stop-color="#0F2744"/>
+    <radialGradient id="bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0F2442"/>
       <stop offset="100%" stop-color="#0B1120"/>
-    </linearGradient>
-    <radialGradient id="centerGlow" cx="600" cy="200" r="400" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.09"/>
+    </radialGradient>
+    <radialGradient id="glow1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.15"/>
       <stop offset="100%" stop-color="#38BDF8" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="orangeGlow" cx="600" cy="350" r="200" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#F97316" stop-opacity="0.07"/>
+    <radialGradient id="glow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F97316" stop-opacity="0.10"/>
       <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
-  <!-- Background -->
-  <rect width="1200" height="400" fill="url(#bgGrad)"/>
-  <rect width="1200" height="400" fill="url(#centerGlow)"/>
-  <rect width="1200" height="400" fill="url(#orangeGlow)"/>
+  <!-- Fondo -->
+  <rect width="1200" height="400" fill="url(#bg)"/>
 
-  <!-- Hexagons (flat-top, R=30) -->
-  <!-- R=30: points at (30,0),(15,25.98),(-15,25.98),(-30,0),(-15,-25.98),(15,-25.98) -->
-  <!-- Centered at (cx,cy): add cx,cy to each point -->
-  <g fill="none" stroke="#38BDF8" stroke-width="0.8" opacity="0.18">
-    <!-- Left cluster -->
-    <polygon points="60,30 45,55.98 15,55.98 0,30 15,4.02 45,4.02"/>
-    <polygon points="150,30 135,55.98 105,55.98 90,30 105,4.02 135,4.02"/>
-    <polygon points="105,81.96 90,107.94 60,107.94 45,81.96 60,55.98 90,55.98"/>
-    <polygon points="60,133.92 45,159.9 15,159.9 0,133.92 15,107.94 45,107.94"/>
-    <polygon points="150,133.92 135,159.9 105,159.9 90,133.92 105,107.94 135,107.94"/>
-    <polygon points="105,185.88 90,211.86 60,211.86 45,185.88 60,159.9 90,159.9"/>
-    <polygon points="60,237.84 45,263.82 15,263.82 0,237.84 15,211.86 45,211.86"/>
-    <polygon points="150,237.84 135,263.82 105,263.82 90,237.84 105,211.86 135,211.86"/>
-    <polygon points="105,289.8 90,315.78 60,315.78 45,289.8 60,263.82 90,263.82"/>
-    <polygon points="60,341.76 45,367.74 15,367.74 0,341.76 15,315.78 45,315.78"/>
-    <polygon points="150,341.76 135,367.74 105,367.74 90,341.76 105,315.78 135,315.78"/>
-    <!-- Right cluster -->
-    <polygon points="1140,30 1125,55.98 1095,55.98 1080,30 1095,4.02 1125,4.02"/>
-    <polygon points="1050,30 1035,55.98 1005,55.98 990,30 1005,4.02 1035,4.02"/>
-    <polygon points="1095,81.96 1080,107.94 1050,107.94 1035,81.96 1050,55.98 1080,55.98"/>
-    <polygon points="1140,133.92 1125,159.9 1095,159.9 1080,133.92 1095,107.94 1125,107.94"/>
-    <polygon points="1050,133.92 1035,159.9 1005,159.9 990,133.92 1005,107.94 1035,107.94"/>
-    <polygon points="1095,185.88 1080,211.86 1050,211.86 1035,185.88 1050,159.9 1080,159.9"/>
-    <polygon points="1140,237.84 1125,263.82 1095,263.82 1080,237.84 1095,211.86 1125,211.86"/>
-    <polygon points="1050,237.84 1035,263.82 1005,263.82 990,237.84 1005,211.86 1035,211.86"/>
-    <polygon points="1095,289.8 1080,315.78 1050,315.78 1035,289.8 1050,263.82 1080,263.82"/>
-    <polygon points="1140,341.76 1125,367.74 1095,367.74 1080,341.76 1095,315.78 1125,315.78"/>
-    <polygon points="1050,341.76 1035,367.74 1005,367.74 990,341.76 1005,315.78 1035,315.78"/>
-    <!-- Partial center hex frames -->
-    <polygon points="400,15 385,40.98 355,40.98 340,15 355,-10.98 385,-10.98" opacity="0.5"/>
-    <polygon points="800,15 785,40.98 755,40.98 740,15 755,-10.98 785,-10.98" opacity="0.5"/>
-    <polygon points="400,380 385,405.98 355,405.98 340,380 355,354.02 385,354.02" opacity="0.5"/>
-    <polygon points="800,380 785,405.98 755,405.98 740,380 755,354.02 785,354.02" opacity="0.5"/>
+  <!-- Glows decorativos -->
+  <ellipse cx="200" cy="200" rx="300" ry="200" fill="url(#glow1)"/>
+  <ellipse cx="1000" cy="200" rx="300" ry="200" fill="url(#glow2)"/>
+
+  <!-- Líneas de campo de fútbol decorativas -->
+  <g opacity="0.04" stroke="#38BDF8" stroke-width="1.5" fill="none">
+    <circle cx="600" cy="200" r="120"/>
+    <circle cx="600" cy="200" r="8" fill="#38BDF8" stroke="none"/>
+    <line x1="600" y1="0" x2="600" y2="400"/>
+    <rect x="0" y="100" width="80" height="200"/>
+    <rect x="1120" y="100" width="80" height="200"/>
+    <rect x="0" y="150" width="30" height="100"/>
+    <rect x="1170" y="150" width="30" height="100"/>
   </g>
 
-  <!-- Trophy silhouette (centered, golden, very faint) -->
-  <g transform="translate(600, 185)" fill="#FFD700" opacity="0.06">
-    <path d="M-55,-95 L-60,-30 Q-80,-18 -85,5 L-60,5 Q-50,-12 -30,-18 L-30,38 L-65,48 L-65,62 L65,62 L65,48 L30,38 L30,-18 Q50,-12 60,5 L85,5 Q80,-18 60,-30 L55,-95 Z"/>
-    <path d="M-60,-30 Q-95,-20 -100,15 Q-95,45 -60,50 Q-80,40 -82,15 Q-84,-10 -55,-28 Z"/>
-    <path d="M60,-30 Q95,-20 100,15 Q95,45 60,50 Q80,40 82,15 Q84,-10 55,-28 Z"/>
+  <!-- Texto principal en español -->
+  <text x="600" y="140" text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-weight="900" font-size="88"
+    fill="#F8FAFC" opacity="0.07"
+    letter-spacing="8">
+    COPA DEL MUNDO
+  </text>
+
+  <text x="600" y="260" text-anchor="middle"
+    font-family="system-ui, -apple-system, sans-serif"
+    font-weight="900" font-size="130"
+    fill="#38BDF8" opacity="0.06"
+    letter-spacing="4">
+    2026
+  </text>
+
+  <!-- Estrellas decorativas -->
+  <g fill="#F97316" opacity="0.3">
+    <circle cx="120" cy="80"  r="2"/>
+    <circle cx="340" cy="50"  r="1.5"/>
+    <circle cx="880" cy="60"  r="2"/>
+    <circle cx="1050" cy="90" r="1.5"/>
+    <circle cx="200" cy="320" r="1.5"/>
+    <circle cx="950" cy="340" r="2"/>
+    <circle cx="450" cy="380" r="1"/>
+    <circle cx="760" cy="30"  r="1"/>
   </g>
 
-  <!-- Decorative stars -->
-  <g font-family="Arial, sans-serif" text-anchor="middle">
-    <text x="320" y="58" font-size="14" fill="#F97316" opacity="0.6">★</text>
-    <text x="420" y="38" font-size="10" fill="#F97316" opacity="0.4">★</text>
-    <text x="880" y="38" font-size="10" fill="#F97316" opacity="0.4">★</text>
-    <text x="780" y="55" font-size="14" fill="#F97316" opacity="0.6">★</text>
-    <text x="350" y="355" font-size="12" fill="#F97316" opacity="0.5">★</text>
-    <text x="850" y="355" font-size="12" fill="#F97316" opacity="0.5">★</text>
-    <text x="600" y="28" font-size="10" fill="#38BDF8" opacity="0.4">★</text>
-  </g>
+  <!-- Línea naranja inferior -->
+  <defs>
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#F97316" stop-opacity="0"/>
+      <stop offset="30%"  stop-color="#F97316" stop-opacity="0.8"/>
+      <stop offset="70%"  stop-color="#F97316" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#F97316" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="397" width="1200" height="2" fill="url(#lineGrad)"/>
 
-  <!-- Decorative horizontal lines -->
-  <line x1="260" y1="128" x2="440" y2="128" stroke="#38BDF8" stroke-width="1" opacity="0.25"/>
-  <line x1="760" y1="128" x2="940" y2="128" stroke="#38BDF8" stroke-width="1" opacity="0.25"/>
-  <line x1="220" y1="132" x2="248" y2="132" stroke="#F97316" stroke-width="1.5" opacity="0.4"/>
-  <line x1="952" y1="132" x2="980" y2="132" stroke="#F97316" stroke-width="1.5" opacity="0.4"/>
-
-  <!-- Main title -->
-  <text x="600" y="164"
-        font-family="'Arial Black', 'Impact', Arial, sans-serif"
-        font-size="62" font-weight="900"
-        text-anchor="middle"
-        fill="#38BDF8"
-        letter-spacing="5">FIFA WORLD CUP</text>
-
-  <!-- Year -->
-  <text x="600" y="258"
-        font-family="'Arial Black', 'Impact', Arial, sans-serif"
-        font-size="90" font-weight="900"
-        text-anchor="middle"
-        fill="#FFFFFF"
-        opacity="0.96">2026</text>
-
-  <!-- Subtitle -->
-  <text x="600" y="310"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="20" font-weight="700"
-        text-anchor="middle"
-        fill="#F97316"
-        letter-spacing="10">USA · CANADA · MEXICO</text>
-
-  <!-- Bottom accent line -->
-  <rect x="240" y="330" width="720" height="1.5" fill="#F97316" opacity="0.3" rx="1"/>
-  <rect x="440" y="335" width="320" height="1" fill="#38BDF8" opacity="0.2" rx="1"/>
+  <!-- Línea celeste superior sutil -->
+  <rect x="0" y="0" width="1200" height="1.5" fill="url(#lineGrad)" opacity="0.4"/>
 </svg>

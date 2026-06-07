@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
 import { VENUES_BY_NAME } from '../data/venues'
@@ -6,27 +7,6 @@ import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/h
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
-// Convierte hora ET (UTC-4 verano) a hora local del usuario
-function toLocalTime(date, timeET) {
-  if (!timeET) return { time: '--:--', tz: '' }
-  try {
-    const [h, m] = timeET.split(':').map(Number)
-    // Construir fecha/hora en ET (America/New_York)
-    // Usamos el string con offset fijo -04:00 (EDT, horario de verano)
-    const etStr = `${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00-04:00`
-    const d = new Date(etStr)
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    const local = d.toLocaleTimeString('es-CO', {
-      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
-    })
-    const tzAbbr = d.toLocaleTimeString('en', { timeZoneName: 'short', timeZone: tz })
-      .split(' ').pop()
-    return { time: local, tz: tzAbbr }
-  } catch {
-    return { time: timeET, tz: 'ET' }
-  }
-}
-
 
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -86,7 +66,7 @@ function MatchRow({ match }) {
         {/* Time & group */}
         <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
           <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
-            {(() => { const {time, tz} = toLocalTime(match.date, match.time); return `${time} ${tz}` })()}
+            {match.time?.slice(0,5)} ET
           </span>
           <span className="text-xs text-slate-600">
             {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
@@ -148,7 +128,20 @@ function MatchRow({ match }) {
       </div>
 
       {/* Venue photo panel */}
-      {expanded && <VenuePhoto venueName={match.venue} />}
+      {expanded && (
+        <>
+          <VenuePhoto venueName={match.venue} />
+          <div className="px-5 pb-3">
+            <Link
+              to={`/partido/${match.id}`}
+              className="text-xs text-sky-400 hover:text-sky-300 transition-colors font-semibold"
+              onClick={e => e.stopPropagation()}
+            >
+              Ver detalles del partido →
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   )
 }

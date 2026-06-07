@@ -9,18 +9,6 @@ import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 
-// Convierte hora ET (UTC-4) a local del usuario
-function toLocal(date, timeET) {
-  if (!timeET) return { time: '--:--', tz: '' }
-  try {
-    const d = new Date(`${date}T${timeET.slice(0,5)}:00-04:00`)
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-    const time = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
-    const tzAbbr = d.toLocaleTimeString('en', { timeZoneName: 'short', timeZone: tz }).split(' ').pop()
-    return { time, tz: tzAbbr }
-  } catch { return { time: timeET, tz: 'ET' } }
-}
-
 const WORLD_CUP_START = '2026-06-11T18:00:00Z'
 
 const ALL_TEAMS_MAP = Object.fromEntries(
@@ -130,14 +118,10 @@ function MatchCard({ match, compact = false }) {
             <div className={`text-xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
               {match.homeScore}–{match.awayScore}
             </div>
-          ) : (() => {
-            const { time, tz } = toLocal(match.date, match.time)
-            return <div className="font-bold text-xl" style={{ color: '#F97316' }}>{time}</div>
-          })()}
-          {match.homeScore == null && (() => {
-            const { tz } = toLocal(match.date, match.time)
-            return <div className="text-xs text-slate-600 mt-0.5">{tz}</div>
-          })()}
+          ) : (
+            <div className="font-bold text-xl" style={{ color: '#F97316' }}>{match.time?.slice(0,5)}</div>
+          )}
+          <div className="text-xs text-slate-600 mt-0.5">ET</div>
         </div>
 
         {/* Away */}
@@ -298,7 +282,11 @@ export default function Dashboard() {
             <span className="text-xs text-sky-400 ml-auto">Actualización en tiempo real</span>
           </div>
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {apiLiveMatches.map(m => <ApiMatchCard key={m.id} match={m} />)}
+            {apiLiveMatches.map(m => (
+              <Link key={m.id} to={`/partido/${m.id}`} className="block">
+                <ApiMatchCard match={m} />
+              </Link>
+            ))}
           </div>
         </section>
       )}
@@ -331,12 +319,12 @@ export default function Dashboard() {
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
             {upcoming.map(m => (
-              <div key={m.id} className="space-y-1">
+              <Link key={m.id} to={`/partido/${m.id}`} className="space-y-1 block group">
                 <p className="text-xs text-slate-500 px-1 uppercase tracking-wider">
                   {capitalizeFirst(formatDayOfWeek(m.date))}
                 </p>
                 <MatchCard match={m} />
-              </div>
+              </Link>
             ))}
           </div>
         )}
