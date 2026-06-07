@@ -4,16 +4,20 @@ import { useApp } from '../../context/AppContext'
 import LiveIndicator from '../ui/LiveIndicator'
 
 const NAV_ITEMS = [
-  { to: '/',            label: 'Inicio',       icon: '🏠' },
-  { to: '/grupos',      label: 'Grupos',       icon: '📊' },
-  { to: '/llaves',      label: 'Llaves',       icon: '🔗' },
-  { to: '/equipos',     label: 'Equipos',      icon: '👕' },
-  { to: '/predicciones',label: 'Predicciones', icon: '🎯' },
-  { to: '/calendario',  label: 'Calendario',   icon: '📅' },
-  { to: '/noticias',    label: 'Noticias',     icon: '📰' },
-  { to: '/donde-ver',   label: 'Dónde Ver',    icon: '📺' },
-  { to: '/historia',    label: 'Historia',     icon: '🏆' },
-  { to: '/goleadores',  label: 'Goleadores',   icon: '⚽' },
+  { to: '/',             label: 'Inicio',       icon: '🏠' },
+  { to: '/grupos',       label: 'Grupos',       icon: '📊' },
+  { to: '/equipos',      label: 'Equipos',      icon: '👕' },
+  { to: '/goleadores',   label: 'Goleadores',   icon: '⚽' },
+  { to: '/predicciones', label: 'Predicciones', icon: '🎯' },
+  { to: '/calendario',   label: 'Calendario',   icon: '📅' },
+  { to: '/noticias',     label: 'Noticias',     icon: '📰' },
+]
+
+// Items solo en menú móvil y footer
+const NAV_EXTRA = [
+  { to: '/llaves',    label: 'Llaves',    icon: '🔗' },
+  { to: '/donde-ver', label: 'Dónde Ver', icon: '📺' },
+  { to: '/historia',  label: 'Historia',  icon: '🏆' },
 ]
 
 export default function Header() {
@@ -36,7 +40,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-1 overflow-x-auto">
+          <nav className="hidden lg:flex items-center gap-1">
             {NAV_ITEMS.map(item => (
               <NavLink
                 key={item.to}
@@ -58,14 +62,10 @@ export default function Header() {
                 <span className="text-sky-400 text-xs font-semibold">{liveMatches.length}</span>
               </Link>
             )}
-
-            {/* Mundial badge */}
             <div className="hidden md:flex items-center gap-1.5 bg-orange-500 rounded-full px-3 py-1">
               <span className="text-xs text-white font-bold">Mundial 2026</span>
               <span className="text-xs">🏆</span>
             </div>
-
-            {/* Hamburger */}
             <button
               onClick={() => setMenuOpen(v => !v)}
               className="lg:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-slate-800 transition-colors"
@@ -78,10 +78,10 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Mobile Nav */}
+        {/* Mobile Nav — incluye todos los items */}
         {menuOpen && (
           <nav className="lg:hidden border-t border-slate-800 py-3 grid grid-cols-2 gap-1 animate-fade-in">
-            {NAV_ITEMS.map(item => (
+            {[...NAV_ITEMS, ...NAV_EXTRA].map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
