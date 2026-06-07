@@ -7,6 +7,7 @@ import Flag from '../components/ui/Flag'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
 import { TEAM_IDS } from '../data/teamIds'
 import { getSquad, getCoach } from '../data/squads'
+import { getHistory } from '../data/history'
 
 const TEAM_COLORS = {
   USA:'#002868', ENG:'#CF091F', TUN:'#E70013', ECU:'#FFD100',
@@ -44,6 +45,7 @@ export default function TeamDetail() {
   const teamMatches = groupMatches.filter(m => m.homeTeam === team.code || m.awayTeam === team.code)
   const sortedGroup = sortTeams(group.teams)
   const squad = getSquad(team.code)
+  const hist  = getHistory(team.code)
   const coach = getCoach(team.code)
   const accentColor = TEAM_COLORS[team.code] || '#38BDF8'
   const posIcons = { Portero: '🧤', Defensor: '🛡️', Mediocampista: '⚙️', Delantero: '⚽' }
@@ -255,6 +257,42 @@ export default function TeamDetail() {
             <p className="text-xs text-slate-600 mt-3">
               Fuente: FIFA Squad Lists oficial · {squad.avgAge} años promedio
             </p>
+          </div>
+        )}
+
+        {/* Historial mundialista */}
+        {hist && (
+          <div className="card p-5 md:col-span-2">
+            <h3 className="font-semibold text-white mb-4">Historial Mundialista</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                { label: 'Participaciones', value: hist.participations || '—', icon: '🏟️' },
+                { label: 'Partidos',        value: hist.matches,                icon: '⚽' },
+                { label: 'Victorias',       value: hist.won,                    icon: '✅' },
+                { label: 'Goles a favor',   value: hist.gf,                     icon: '🎯' },
+              ].map(s => (
+                <div key={s.label} className="bg-slate-700/30 rounded-xl p-3 text-center">
+                  <div className="text-xl mb-1">{s.icon}</div>
+                  <div className="text-2xl font-black text-white">{s.value}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {hist.titles > 0 && <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-bold border border-yellow-500/30">🏆 {hist.titles} título{hist.titles > 1 ? 's' : ''}</span>}
+              {hist.runnerUp > 0 && <span className="px-3 py-1 rounded-full bg-slate-500/20 text-slate-300 text-xs font-bold border border-slate-500/30">🥈 {hist.runnerUp} subcampeonato{hist.runnerUp > 1 ? 's' : ''}</span>}
+              {hist.semis > 0 && <span className="px-3 py-1 rounded-full bg-orange-500/20 text-orange-400 text-xs font-bold border border-orange-500/30">🔥 {hist.semis} semifinal{hist.semis > 1 ? 'es' : ''}</span>}
+              {hist.quarters > 0 && <span className="px-3 py-1 rounded-full bg-sky-500/20 text-sky-400 text-xs font-bold border border-sky-500/30">⚡ {hist.quarters} cuartos</span>}
+            </div>
+            <div className="bg-slate-700/30 rounded-xl p-3">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Mejor participación histórica</p>
+              <p className="text-sm font-semibold text-white">{hist.best}</p>
+            </div>
+            {hist.participations === 0 && (
+              <div className="mt-3 bg-sky-500/10 border border-sky-500/20 rounded-xl p-3 text-center">
+                <p className="text-sky-400 text-sm font-semibold">🌟 Debutante en Copa del Mundo 2026</p>
+              </div>
+            )}
           </div>
         )}
 
