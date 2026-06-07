@@ -1,6 +1,8 @@
 // MatchDetail.jsx — Página de detalle de un partido con minuto a minuto
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { MATCHES } from '../data/matches'
+import MatchAI from '../components/ui/MatchAI'
 import { useMatchDetail } from '../hooks/useLiveData'
 import { getEventIcon, toLocalTime } from '../data/liveData'
 import Flag from '../components/ui/Flag'
@@ -54,6 +56,11 @@ export default function MatchDetail() {
   const { id } = useParams()
   const { events, stats, lineups, loading, error } = useMatchDetail(id)
   const [tab, setTab] = useState('events')
+  const matchData = MATCHES?.find(m => m.id === Number(id))
+  const homeCode  = matchData?.homeTeam || ''
+  const awayCode  = matchData?.awayTeam || ''
+  const matchDate = matchData?.date || ''
+  const group     = matchData?.group || ''
 
   const homeStats = stats?.[0]?.statistics || []
   const awayStats = stats?.[1]?.statistics || []
@@ -72,6 +79,7 @@ export default function MatchDetail() {
           { id: 'events',   label: '⚽ Minuto a minuto' },
           { id: 'stats',    label: '📊 Estadísticas' },
           { id: 'lineups',  label: '👥 Alineaciones' },
+          { id: 'ai',       label: '🤖 Análisis IA' },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all flex-shrink-0 ${
@@ -182,6 +190,15 @@ export default function MatchDetail() {
                 </div>
               ))}
             </div>
+          )}
+          {/* Análisis IA */}
+          {tab === 'ai' && (
+            <MatchAI
+              homeCode={homeCode}
+              awayCode={awayCode}
+              matchDate={matchDate}
+              group={group}
+            />
           )}
         </>
       )}
