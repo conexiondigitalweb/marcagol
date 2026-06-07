@@ -205,7 +205,7 @@ export default function News() {
       {/* Status */}
       {!usingLive && !loading && (
         <div className="card p-3 mb-4 border-sky-500/30 bg-sky-500/5 text-xs text-sky-400">
-          📰 Mostrando artículos curados. Las noticias en vivo se activarán el 11 de junio.
+          📰 Mostrando artículos curados. Actualizando con las últimas noticias del Mundial.
         </div>
       )}
 
