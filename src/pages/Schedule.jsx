@@ -6,21 +6,19 @@ import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/h
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
-
 // Convierte hora ET (UTC-4 verano) a hora local del usuario
 function toLocalTime(date, timeET) {
   if (!timeET) return { time: '--:--', tz: '' }
   try {
-    // ET en verano = UTC-4. Si la hora es 00:00, pertenece al día siguiente
     const [h, m] = timeET.split(':').map(Number)
-    const utcH = h + 4
-    const d = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`)
-    d.setUTCHours(d.getUTCHours() + 4) // ET → UTC
+    // Construir fecha/hora en ET (America/New_York)
+    // Usamos el string con offset fijo -04:00 (EDT, horario de verano)
+    const etStr = `${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00-04:00`
+    const d = new Date(etStr)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     const local = d.toLocaleTimeString('es-CO', {
       hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
     })
-    // Abreviatura de zona horaria
     const tzAbbr = d.toLocaleTimeString('en', { timeZoneName: 'short', timeZone: tz })
       .split(' ').pop()
     return { time: local, tz: tzAbbr }

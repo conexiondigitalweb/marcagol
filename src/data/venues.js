@@ -5,7 +5,7 @@ export const VENUES = [
     city: 'East Rutherford / Nueva York',
     country: 'USA',
     capacity: 82500,
-    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/MetLife_Stadium_as_seen_from_Giants_Stadium_site.jpg/800px-MetLife_Stadium_as_seen_from_Giants_Stadium_site.jpg',
   },
   {
     id: 'att',
@@ -13,7 +13,7 @@ export const VENUES = [
     city: 'Arlington / Dallas',
     country: 'USA',
     capacity: 80000,
-    image: 'https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/AT%26T_Stadium_2014.jpg/800px-AT%26T_Stadium_2014.jpg',
   },
   {
     id: 'sofi',
@@ -21,7 +21,7 @@ export const VENUES = [
     city: 'Inglewood / Los Ángeles',
     country: 'USA',
     capacity: 70240,
-    image: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/SoFi_Stadium_-_panoramio_%281%29.jpg/800px-SoFi_Stadium_-_panoramio_%281%29.jpg',
   },
   {
     id: 'levis',
@@ -29,7 +29,7 @@ export const VENUES = [
     city: 'Santa Clara / San Francisco',
     country: 'USA',
     capacity: 68500,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Levi%27s_Stadium_-_Santa_Clara%2C_CA_-_USA_%2815146105589%29.jpg/800px-Levi%27s_Stadium_-_Santa_Clara%2C_CA_-_USA_%2815146105589%29.jpg',
   },
   {
     id: 'arrowhead',
@@ -37,7 +37,7 @@ export const VENUES = [
     city: 'Kansas City',
     country: 'USA',
     capacity: 76416,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Arrowhead_Stadium_2015.jpg/800px-Arrowhead_Stadium_2015.jpg',
   },
   {
     id: 'gillette',
@@ -45,7 +45,7 @@ export const VENUES = [
     city: 'Foxborough / Boston',
     country: 'USA',
     capacity: 65878,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Gillette_Stadium_-_2012.jpg/800px-Gillette_Stadium_-_2012.jpg',
   },
   {
     id: 'lincoln',
@@ -53,7 +53,7 @@ export const VENUES = [
     city: 'Filadelfia',
     country: 'USA',
     capacity: 69796,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Lincoln_Financial_Field_2018.jpg/800px-Lincoln_Financial_Field_2018.jpg',
   },
   {
     id: 'mercedes',
@@ -61,7 +61,7 @@ export const VENUES = [
     city: 'Atlanta',
     country: 'USA',
     capacity: 71000,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Mercedes-Benz_Stadium.jpg/800px-Mercedes-Benz_Stadium.jpg',
   },
   {
     id: 'hardrock',
@@ -69,7 +69,7 @@ export const VENUES = [
     city: 'Miami Gardens / Miami',
     country: 'USA',
     capacity: 65326,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Hard_Rock_Stadium_2019.jpg/800px-Hard_Rock_Stadium_2019.jpg',
   },
   {
     id: 'nrg',
@@ -77,7 +77,7 @@ export const VENUES = [
     city: 'Houston',
     country: 'USA',
     capacity: 72220,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/thirty/NRG_Stadium_2016.jpg/800px-NRG_Stadium_2016.jpg',
   },
   {
     id: 'lumen',
@@ -85,7 +85,7 @@ export const VENUES = [
     city: 'Seattle',
     country: 'USA',
     capacity: 69000,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Lumen_Field_2021.jpg/800px-Lumen_Field_2021.jpg',
   },
   {
     id: 'azteca',
@@ -93,7 +93,7 @@ export const VENUES = [
     city: 'Ciudad de México',
     country: 'México',
     capacity: 87523,
-    image: 'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Azteca_Stadium.jpg/800px-Azteca_Stadium.jpg',
   },
   {
     id: 'akron',
@@ -101,7 +101,7 @@ export const VENUES = [
     city: 'Zapopan / Guadalajara',
     country: 'México',
     capacity: 46455,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Estadio_Akron_2020.jpg/800px-Estadio_Akron_2020.jpg',
   },
   {
     id: 'bbva',
@@ -109,7 +109,7 @@ export const VENUES = [
     city: 'Guadalupe / Monterrey',
     country: 'México',
     capacity: 53500,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Estadio_BBVA_Bancomer.jpg/800px-Estadio_BBVA_Bancomer.jpg',
   },
   {
     id: 'bcplace',
@@ -117,7 +117,7 @@ export const VENUES = [
     city: 'Vancouver',
     country: 'Canadá',
     capacity: 54500,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/BC_Place_stadium.jpg/800px-BC_Place_stadium.jpg',
   },
   {
     id: 'bmo',
@@ -125,7 +125,7 @@ export const VENUES = [
     city: 'Toronto',
     country: 'Canadá',
     capacity: 45000,
-    image: 'https://images.unsplash.com/photo-1553778263-73a83bab9b0c?w=800&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6c/BMO_Field_2016.jpg/800px-BMO_Field_2016.jpg',
   },
 ]
 
