@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/noticias',    label: 'Noticias',     icon: '📰' },
   { to: '/donde-ver',   label: 'Dónde Ver',    icon: '📺' },
   { to: '/historia',    label: 'Historia',     icon: '🏆' },
+  { to: '/goleadores',  label: 'Goleadores',   icon: '⚽' },
 ]
 
 export default function Header() {
