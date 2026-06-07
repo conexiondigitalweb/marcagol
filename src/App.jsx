@@ -12,6 +12,8 @@ import Broadcast  from './pages/Broadcast'
 import Schedule   from './pages/Schedule'
 import News       from './pages/News'
 import History    from './pages/History'
+import Scorers    from './pages/Scorers'
+import MatchDetail from './pages/MatchDetail'
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/noticias"      element={<News />}       />
           <Route path="/donde-ver"     element={<Broadcast />}  />
           <Route path="/historia"      element={<History />}    />
+          <Route path="/goleadores"    element={<Scorers />}    />
+          <Route path="/partido/:id"   element={<MatchDetail />}/>
         </Routes>
       </main>
       <Footer />
