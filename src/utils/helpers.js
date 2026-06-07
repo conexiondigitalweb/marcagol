@@ -35,13 +35,18 @@ export const getConfederationColor = (confederation) => {
   return colors[confederation] || 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
 }
 
-export const sortTeams = (teams) =>
-  [...teams].sort((a, b) => {
+export const sortTeams = (teams) => {
+  // Si ningún equipo ha jugado, mantener el orden del sorteo oficial
+  const anyPlayed = teams.some(t => t.played > 0)
+  if (!anyPlayed) return [...teams]
+  // Con partidos jugados, ordenar por puntos, DG, GF
+  return [...teams].sort((a, b) => {
     if (b.points !== a.points) return b.points - a.points
     if (b.gd !== a.gd) return b.gd - a.gd
     if (b.gf !== a.gf) return b.gf - a.gf
     return a.name.localeCompare(b.name)
   })
+}
 
 export const getCountdown = (targetDateStr) => {
   const diff = new Date(targetDateStr) - new Date()
