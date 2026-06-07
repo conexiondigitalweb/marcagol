@@ -6,6 +6,7 @@ import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
 import { TEAM_IDS } from '../data/teamIds'
+import { getSquad, getCoach } from '../data/squads'
 
 const TEAM_COLORS = {
   USA:'#002868', ENG:'#CF091F', TUN:'#E70013', ECU:'#FFD100',
@@ -22,27 +23,7 @@ const TEAM_COLORS = {
   SCO:'#003F83', WAL:'#C8102E', UAE:'#00732F', QAT:'#8D1B3D',
 }
 
-const KEY_PLAYERS = {
-  USA: ['Tyler Adams', 'Christian Pulisic', 'Gio Reyna'],
-  ENG: ['Jude Bellingham', 'Harry Kane', 'Bukayo Saka'],
-  ARG: ['Lionel Messi', 'Julián Álvarez', 'Enzo Fernández'],
-  FRA: ['Kylian Mbappé', 'Antoine Griezmann', 'Aurélien Tchouaméni'],
-  BRA: ['Vinicius Jr.', 'Rodrygo', 'Endrick'],
-  ESP: ['Pedri', 'Yamal', 'Morata'],
-  POR: ['Cristiano Ronaldo', 'Bruno Fernandes', 'Rafael Leão'],
-  GER: ['Florian Wirtz', 'Jamal Musiala', 'Toni Kroos'],
-  NED: ['Virgil van Dijk', 'Cody Gakpo', 'Tijjani Reijnders'],
-  ITA: ['Sandro Tonali', 'Federico Chiesa', 'Gianluigi Donnarumma'],
-  BEL: ['Romelu Lukaku', 'Kevin De Bruyne', 'Yannick Carrasco'],
-  MEX: ['Guillermo Ochoa', 'Hirving Lozano', 'Santiago Giménez'],
-  CAN: ['Alphonso Davies', 'Jonathan David', 'Tajon Buchanan'],
-  COL: ['James Rodríguez', 'Luis Díaz', 'Rafael Santos Borré'],
-  URU: ['Luis Suárez', 'Darwin Núñez', 'Federico Valverde'],
-  MAR: ['Achraf Hakimi', 'Hakim Ziyech', 'Youssef En-Nesyri'],
-  SEN: ['Sadio Mané', 'Édouard Mendy', 'Kalidou Koulibaly'],
-  JPN: ['Takehiro Tomiyasu', 'Kaoru Mitoma', 'Ritsu Doan'],
-  CRO: ['Luka Modrić', 'Ivan Perišić', 'Mateo Kovačić'],
-}
+// KEY_PLAYERS eliminado — ahora usamos squads.js con datos oficiales FIFA
 
 export default function TeamDetail() {
   const { code } = useParams()
@@ -62,8 +43,15 @@ export default function TeamDetail() {
   const groupMatches = getMatchesByGroup(team.group)
   const teamMatches = groupMatches.filter(m => m.homeTeam === team.code || m.awayTeam === team.code)
   const sortedGroup = sortTeams(group.teams)
-  const players = KEY_PLAYERS[team.code] || ['Datos próximamente']
+  const squad = getSquad(team.code)
+  const coach = getCoach(team.code)
   const accentColor = TEAM_COLORS[team.code] || '#38BDF8'
+  const posIcons = { Portero: '🧤', Defensor: '🛡️', Mediocampista: '⚙️', Delantero: '⚽' }
+  const positions = ['Portero', 'Defensor', 'Mediocampista', 'Delantero']
+  const playersByPos = positions.reduce((acc, pos) => {
+    acc[pos] = squad?.players?.filter(p => p.position === pos) || []
+    return acc
+  }, {})
 
   return (
     <div className="animate-slide-up max-w-4xl mx-auto">
@@ -135,10 +123,10 @@ export default function TeamDetail() {
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Ranking FIFA', value: `#${team.fifaRanking}`, icon: '🏅' },
-          { label: 'Grupo',        value: `Grupo ${team.group}`, icon: '🏆' },
-          { label: 'Confederación',value: team.confederation,    icon: '🌍' },
-          { label: 'Puntos',       value: `${team.points} pts`,  icon: '📊' },
+          { label: 'Ranking FIFA',  value: `#${team.fifaRanking}`, icon: '🏅' },
+          { label: 'Grupo',         value: `Grupo ${team.group}`,  icon: '🏆' },
+          { label: 'Confederación', value: team.confederation,     icon: '🌍' },
+          { label: 'Edad promedio', value: squad?.avgAge ? `${squad.avgAge} años` : '—', icon: '📊' },
         ].map(stat => (
           <div key={stat.label} className="card p-4 text-center">
             <div className="text-2xl mb-1">{stat.icon}</div>
@@ -207,55 +195,68 @@ export default function TeamDetail() {
           })}
         </div>
 
-        {/* Key Players */}
-        <div className="card p-5">
-          <h3 className="font-semibold text-white mb-4">Jugadores Destacados</h3>
-          <div className="space-y-2">
-            {players.map((player, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-700/30">
-                <span className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-sm">
-                  {i + 1}
-                </span>
-                <span className="text-slate-200 font-medium">{player}</span>
+        {/* Técnico */}
+        {coach && (
+          <div className="card p-5">
+            <h3 className="font-semibold text-white mb-4">Cuerpo Técnico</h3>
+            <div className="flex items-center gap-4 p-3 rounded-xl bg-slate-700/30">
+              <div className="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center text-2xl flex-shrink-0">
+                👔
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Squad */}
-        {team.players && (() => {
-          const positions = ['Arquero', 'Defensor', 'Volante', 'Delantero']
-          const grouped = positions.reduce((acc, pos) => {
-            acc[pos] = team.players.filter(p => p.position === pos)
-            return acc
-          }, {})
-          const posIcons = { Arquero: '🧤', Defensor: '🛡️', Volante: '⚙️', Delantero: '⚽' }
-          return (
-            <div className="card p-5 md:col-span-2">
-              <h3 className="font-semibold text-white mb-4">
-                Convocatoria Oficial · Mundial 2026
-              </h3>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {positions.map(pos => (
-                  <div key={pos}>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <span>{posIcons[pos]}</span>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{pos}es</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {grouped[pos].map(player => (
-                        <div key={player.name} className="bg-slate-700/30 rounded-lg px-3 py-2">
-                          <p className="text-sm text-white font-medium leading-tight">{player.name}</p>
-                          <p className="text-xs text-slate-500 truncate">{player.club}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <p className="font-bold text-white">{coach}</p>
+                <p className="text-xs text-slate-500 mt-0.5">Director Técnico</p>
               </div>
             </div>
-          )
-        })()}
+          </div>
+        )}
+
+        {/* Convocatoria oficial */}
+        {squad && (
+          <div className="card p-5 md:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-white">
+                Convocatoria Oficial · Mundial 2026
+              </h3>
+              <span className="text-xs text-slate-500">{squad.players?.length} jugadores</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {positions.map(pos => (
+                <div key={pos}>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span>{posIcons[pos]}</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                      {pos}s ({playersByPos[pos].length})
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {playersByPos[pos].map(player => (
+                      <div key={player.number} className="bg-slate-700/30 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-sky-400 w-5 text-center flex-shrink-0">
+                            {player.number}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm text-white font-medium leading-tight truncate">
+                              {player.shirtName}
+                            </p>
+                            <p className="text-xs text-slate-500 truncate">{player.club}</p>
+                          </div>
+                          <span className="text-xs text-slate-600 flex-shrink-0 ml-auto">
+                            {player.age}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-600 mt-3">
+              Fuente: FIFA Squad Lists oficial · {squad.avgAge} años promedio
+            </p>
+          </div>
+        )}
 
         {/* Tournament Stats */}
         <div className="card p-5">
