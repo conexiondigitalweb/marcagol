@@ -7,6 +7,29 @@ import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
 
+// Convierte hora ET (UTC-4 verano) a hora local del usuario
+function toLocalTime(date, timeET) {
+  if (!timeET) return { time: '--:--', tz: '' }
+  try {
+    // ET en verano = UTC-4. Si la hora es 00:00, pertenece al día siguiente
+    const [h, m] = timeET.split(':').map(Number)
+    const utcH = h + 4
+    const d = new Date(`${date}T${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`)
+    d.setUTCHours(d.getUTCHours() + 4) // ET → UTC
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const local = d.toLocaleTimeString('es-CO', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz
+    })
+    // Abreviatura de zona horaria
+    const tzAbbr = d.toLocaleTimeString('en', { timeZoneName: 'short', timeZone: tz })
+      .split(' ').pop()
+    return { time: local, tz: tzAbbr }
+  } catch {
+    return { time: timeET, tz: 'ET' }
+  }
+}
+
+
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
@@ -65,7 +88,7 @@ function MatchRow({ match }) {
         {/* Time & group */}
         <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
           <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
-            {match.time?.slice(0,5)} ET
+            {(() => { const {time, tz} = toLocalTime(match.date, match.time); return `${time} ${tz}` })()}
           </span>
           <span className="text-xs text-slate-600">
             {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
