@@ -1,116 +1,72 @@
 import { useState, useEffect, useCallback } from 'react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
-const PROXY = 'https://corsproxy.io/?'
+const GNEWS_KEY = 'dad91be8058a385432883cdbf417196d'
+const GNEWS_URL = `https://gnews.io/api/v4/search?q=Mundial+2026+FIFA&lang=es&max=20&apikey=${GNEWS_KEY}`
 
-const FEEDS = [
-  { id: 'fifa', label: 'FIFA', url: 'https://www.fifa.com/rss/news/all.xml' },
-  { id: 'goal', label: 'Goal', url: 'https://www.goal.com/feeds/es/news' },
-]
-
-const STATIC_NEWS = [
+const STATIC_ARTICLES = [
   {
-    title: 'Equipos favoritos para ganar el Mundial 2026',
-    source: 'Goal',
-    date: '2026-04-30',
-    url: 'https://www.goal.com/es/mundial-2026',
-    description: 'Francia, Brasil y Argentina encabezan las apuestas para llevarse el trofeo en julio de 2026.',
-    image: 'https://picsum.photos/seed/wc2026a/400/200',
-  },
-  {
-    title: 'El sorteo del Mundial 2026: así quedaron los 12 grupos',
+    id: 'static-0',
     source: 'FIFA',
-    date: '2026-04-27',
-    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
-    description: 'El sorteo realizado en Miami definió los 12 grupos de 4 equipos para la fase inicial del torneo.',
-    image: 'https://picsum.photos/seed/wc2026b/400/200',
-  },
-  {
     title: 'Colombia en el Mundial 2026: convocatoria y grupos',
-    source: 'FIFA',
-    date: '2026-03-31',
-    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-03-31',
+    image: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=400&q=80',
     description: 'La Tricolor enfrentará a Portugal, Uzbekistán y RD Congo en el Grupo K.',
-    image: 'https://picsum.photos/seed/colombia2026/400/200',
   },
   {
-    title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
-    source: 'Goal',
-    date: '2026-02-28',
-    url: 'https://www.goal.com/es/mundial-2026',
-    description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
-    image: 'https://picsum.photos/seed/wc2026d/400/200',
-  },
-  {
-    title: 'Los estadios del Mundial 2026',
+    id: 'static-1',
     source: 'FIFA',
-    date: '2026-01-31',
-    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/destination',
+    title: 'El sorteo del Mundial 2026: así quedaron los 12 grupos',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-04-27',
+    image: 'https://images.unsplash.com/photo-1459865264687-595d652de67e?w=400&q=80',
+    description: 'El sorteo realizado en Miami definió los 12 grupos de 4 equipos para la fase inicial del torneo.',
+  },
+  {
+    id: 'static-2',
+    source: 'FIFA',
+    title: 'Los 16 estadios del Mundial 2026',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-01-31',
+    image: 'https://images.unsplash.com/photo-1540747913346-19378e0ea56c?w=400&q=80',
     description: '16 estadios en tres países albergarán los 104 partidos del torneo más grande de la historia.',
-    image: 'https://picsum.photos/seed/stadiums2026/400/200',
   },
   {
-    title: 'FIFA anuncia el calendario completo del Mundial 2026',
+    id: 'static-3',
     source: 'FIFA',
-    date: '2026-01-14',
-    url: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    title: 'Equipos favoritos para ganar el Mundial 2026',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-04-30',
+    image: 'https://images.unsplash.com/photo-1522778526097-ce0a22ceb253?w=400&q=80',
+    description: 'Francia, Brasil y Argentina encabezan las apuestas para llevarse el trofeo en julio de 2026.',
+  },
+  {
+    id: 'static-4',
+    source: 'FIFA',
+    title: 'FIFA anuncia el calendario completo del Mundial 2026',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-01-14',
+    image: 'https://images.unsplash.com/photo-1486286701208-1d58e9338013?w=400&q=80',
     description: 'La FIFA confirmó los 104 partidos del torneo en 16 estadios de Estados Unidos, México y Canadá.',
-    image: 'https://picsum.photos/seed/fifacal2026/400/200',
+  },
+  {
+    id: 'static-5',
+    source: 'FIFA',
+    title: 'Todo sobre el Mundial 2026: grupos, fechas y sedes',
+    link: 'https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026',
+    pubDate: '2026-02-28',
+    image: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400&q=80',
+    description: 'Guía completa del Mundial 2026 con los 48 equipos clasificados y el formato del torneo.',
   },
 ]
-
-// Map STATIC_NEWS to the shape NewsCard and the load function expect
-const STATIC_ARTICLES = STATIC_NEWS.map((n, i) => ({
-  id:          `static-${i}`,
-  source:      n.source,
-  title:       n.title,
-  link:        n.url,
-  pubDate:     n.date,
-  image:       n.image,
-  description: n.description,
-}))
-
-function extractImage(item) {
-  const enclosure = item.querySelector('enclosure[type^="image"]')
-  if (enclosure) return enclosure.getAttribute('url')
-
-  const mediaNS = ['media\\:thumbnail', 'media\\:content', 'thumbnail', 'content']
-  for (const sel of mediaNS) {
-    try {
-      const el = item.querySelector(sel)
-      if (el) return el.getAttribute('url') || el.getAttribute('src') || null
-    } catch {}
-  }
-
-  const desc = item.querySelector('description')?.textContent || ''
-  const match = desc.match(/<img[^>]+src=["']([^"']+)["']/i)
-  return match?.[1] || null
-}
-
-async function fetchFeed({ id, label, url }) {
-  const proxied = `${PROXY}${encodeURIComponent(url)}`
-  const res = await fetch(proxied, { signal: AbortSignal.timeout(12000) })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  const text = await res.text()
-  const doc = new DOMParser().parseFromString(text, 'text/xml')
-  if (doc.querySelector('parsererror')) throw new Error('XML parse error')
-
-  return Array.from(doc.querySelectorAll('item')).map((item, i) => ({
-    id:      `${id}-${i}`,
-    source:  label,
-    title:   item.querySelector('title')?.textContent?.trim() || '(sin título)',
-    link:    item.querySelector('link')?.textContent?.trim() ||
-             item.querySelector('link')?.getAttribute('href') || '#',
-    pubDate: item.querySelector('pubDate')?.textContent?.trim() || '',
-    image:   extractImage(item),
-  }))
-}
 
 function formatNewsDate(dateStr) {
   if (!dateStr) return ''
   try {
-    return new Intl.DateTimeFormat('es', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-      .format(new Date(dateStr))
+    return new Intl.DateTimeFormat('es', {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+    }).format(new Date(dateStr))
   } catch { return dateStr }
 }
 
@@ -140,10 +96,10 @@ function NewsCard({ item }) {
         </div>
       ) : (
         <div
-          className="bg-slate-800 flex items-center justify-center text-3xl text-slate-700 flex-shrink-0"
-          style={{ height: '80px', borderRadius: '10px 10px 0 0' }}
+          className="bg-slate-800 flex items-center justify-center text-3xl text-slate-600 flex-shrink-0"
+          style={{ height: '120px', borderRadius: '10px 10px 0 0' }}
         >
-          📰
+          ⚽
         </div>
       )}
 
@@ -161,7 +117,9 @@ function NewsCard({ item }) {
           {item.title}
         </p>
         {item.description && (
-          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">{item.description}</p>
+          <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+            {item.description}
+          </p>
         )}
         <p className="text-xs text-slate-500 mt-auto pt-1">Leer nota →</p>
       </div>
@@ -172,30 +130,42 @@ function NewsCard({ item }) {
 export default function News() {
   const [articles, setArticles] = useState([])
   const [loading, setLoading]   = useState(true)
-  const [errors, setErrors]     = useState([])
+  const [usingLive, setUsingLive] = useState(false)
   const [filter, setFilter]     = useState('Todos')
 
   const load = useCallback(async () => {
     setLoading(true)
-    setErrors([])
-    const results = await Promise.allSettled(FEEDS.map(fetchFeed))
+    try {
+      const res = await fetch(GNEWS_URL)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
 
-    const all = []
-    const errs = []
-    results.forEach((r, i) => {
-      if (r.status === 'fulfilled') all.push(...r.value)
-      else errs.push(FEEDS[i].label)
-    })
-
-    const final = all.length > 0 ? all : STATIC_ARTICLES
-    final.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    setArticles(final)
-    setErrors(errs)
+      if (data.articles && data.articles.length > 0) {
+        const mapped = data.articles.map((a, i) => ({
+          id:          `gnews-${i}`,
+          source:      a.source?.name || 'Noticias',
+          title:       a.title,
+          link:        a.url,
+          pubDate:     a.publishedAt,
+          image:       a.image,
+          description: a.description,
+        }))
+        setArticles(mapped)
+        setUsingLive(true)
+      } else {
+        setArticles(STATIC_ARTICLES)
+        setUsingLive(false)
+      }
+    } catch {
+      setArticles(STATIC_ARTICLES)
+      setUsingLive(false)
+    }
     setLoading(false)
   }, [])
 
   useEffect(() => { load() }, [load])
 
+  const sources = [...new Set(articles.map(a => a.source))]
   const filtered = filter === 'Todos' ? articles : articles.filter(a => a.source === filter)
 
   return (
@@ -203,12 +173,14 @@ export default function News() {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-black text-white">Noticias · Mundial 2026</h1>
-        <p className="text-slate-400 mt-1">Últimas noticias de FIFA y Goal en español</p>
+        <p className="text-slate-400 mt-1">
+          {usingLive ? 'Últimas noticias en tiempo real' : 'Artículos destacados del Mundial 2026'}
+        </p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6 flex-wrap">
-        {['Todos', ...FEEDS.map(f => f.label)].map(f => (
+        {['Todos', ...sources.slice(0, 5)].map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -230,15 +202,10 @@ export default function News() {
         </button>
       </div>
 
-      {/* Error notices */}
-      {errors.length > 0 && errors.length < FEEDS.length && (
-        <div className="card p-3 mb-4 border-amber-500/30 bg-amber-500/5 text-xs text-amber-400">
-          No se pudo cargar: {errors.join(', ')}. Mostrando artículos disponibles.
-        </div>
-      )}
-      {errors.length === FEEDS.length && (
+      {/* Status */}
+      {!usingLive && !loading && (
         <div className="card p-3 mb-4 border-sky-500/30 bg-sky-500/5 text-xs text-sky-400">
-          📰 Mostrando artículos curados sobre el Mundial 2026. Los feeds en vivo están temporalmente no disponibles.
+          📰 Mostrando artículos curados. Las noticias en vivo se activarán el 11 de junio.
         </div>
       )}
 
@@ -248,12 +215,13 @@ export default function News() {
       ) : filtered.length === 0 ? (
         <div className="card p-16 text-center">
           <p className="text-4xl mb-3">📰</p>
-          <p className="text-slate-400">No hay noticias disponibles en este momento</p>
+          <p className="text-slate-400">No hay noticias disponibles</p>
         </div>
       ) : (
         <>
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-4">
             <span className="text-white font-semibold">{filtered.length}</span> artículos
+            {usingLive && <span className="ml-2 text-green-400">● En vivo</span>}
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map(item => <NewsCard key={item.id} item={item} />)}
