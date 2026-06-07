@@ -76,16 +76,16 @@ export const GROUPS = [
     teams: [
       { code: 'FRA', name: 'Francia',           iso2: 'fr',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 1 },
       { code: 'SEN', name: 'Senegal',           iso2: 'sn',     confederation: 'CAF',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 14 },
-      { code: 'NOR', name: 'Noruega',           iso2: 'no',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 26 },
       { code: 'IRQ', name: 'Irak',              iso2: 'iq',     confederation: 'AFC',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 67 },
+      { code: 'NOR', name: 'Noruega',           iso2: 'no',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 26 },
     ]
   },
   {
     id: 'J',
     teams: [
       { code: 'ARG', name: 'Argentina',         iso2: 'ar',     confederation: 'CONMEBOL', played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 3 },
-      { code: 'AUT', name: 'Austria',           iso2: 'at',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 24 },
       { code: 'ALG', name: 'Argelia',           iso2: 'dz',     confederation: 'CAF',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 48 },
+      { code: 'AUT', name: 'Austria',           iso2: 'at',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 24 },
       { code: 'JOR', name: 'Jordania',          iso2: 'jo',     confederation: 'AFC',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 71 },
     ]
   },
@@ -93,6 +93,8 @@ export const GROUPS = [
     id: 'K',
     teams: [
       { code: 'POR', name: 'Portugal',          iso2: 'pt',     confederation: 'UEFA',     played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 5 },
+      { code: 'COD', name: 'RD Congo',          iso2: 'cd',     confederation: 'CAF',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 60 },
+      { code: 'UZB', name: 'Uzbekistán',        iso2: 'uz',     confederation: 'AFC',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 74 },
       { code: 'COL', name: 'Colombia',          iso2: 'co',     confederation: 'CONMEBOL', played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 13, players: [
         { name: 'Camilo Vargas',          position: 'Arquero',   club: 'Atlas' },
         { name: 'David Ospina',           position: 'Arquero',   club: 'Atlético Nacional' },
@@ -121,8 +123,6 @@ export const GROUPS = [
         { name: 'Carlos Andrés Gómez',   position: 'Delantero', club: 'Vasco da Gama' },
         { name: 'Jaminton Campaz',        position: 'Delantero', club: 'Rosario Central' },
       ]},
-      { code: 'UZB', name: 'Uzbekistán',        iso2: 'uz',     confederation: 'AFC',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 74 },
-      { code: 'COD', name: 'RD Congo',          iso2: 'cd',     confederation: 'CAF',      played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, fifaRanking: 60 },
     ]
   },
   {
