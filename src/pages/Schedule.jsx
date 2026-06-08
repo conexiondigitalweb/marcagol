@@ -52,97 +52,90 @@ function VenuePhoto({ venueName }) {
 }
 
 function MatchRow({ match }) {
-  const [expanded, setExpanded] = useState(false)
   const home = ALL_TEAMS_MAP[match.homeTeam]
   const away = ALL_TEAMS_MAP[match.awayTeam]
   const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
 
+  // Convertir hora ET a local
+  function toLocal(date, timeET) {
+    if (!timeET) return '--:--'
+    try {
+      const d = new Date(`${date}T${timeET.slice(0,5)}:00-04:00`)
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+      return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
+    } catch { return timeET }
+  }
+
   return (
-    <div>
-      <div
-        className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0 cursor-pointer select-none"
-        onClick={() => setExpanded(v => !v)}
-      >
-        {/* Time & group */}
-        <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
-          <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
-            {match.time?.slice(0,5)} ET
+    <Link
+      to={`/partido/${match.id}`}
+      className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0 group"
+    >
+      {/* Time & group */}
+      <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
+        <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
+          {toLocal(match.date, match.time)}
+        </span>
+        <span className="text-xs text-slate-600">
+          {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
+          {match.matchday ? ` · J${match.matchday}` : ''}
+        </span>
+      </div>
+
+      {/* Teams */}
+      <div className="flex-1 flex items-center gap-4 justify-center">
+        <div className="flex items-center gap-2 flex-1 justify-end">
+          <span className="font-semibold text-white text-sm text-right hidden md:block group-hover:text-sky-300 transition-colors">
+            {home?.name || match.homeTeam}
           </span>
-          <span className="text-xs text-slate-600">
-            {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
-            {match.matchday ? ` · J${match.matchday}` : ''}
-          </span>
+          <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
+          {home && (
+            <TeamCrestImg
+              code={home.code}
+              name={home.name}
+              size={24}
+              fallback={<Flag iso2={home.iso2} size="xs" />}
+            />
+          )}
         </div>
 
-        {/* Teams */}
-        <div className="flex-1 flex items-center gap-4 justify-center">
-          <div className="flex items-center gap-2 flex-1 justify-end">
-            <span className="font-semibold text-white text-sm text-right hidden md:block">
-              {home?.name || match.homeTeam}
+        <div className="text-center min-w-[56px]">
+          {match.homeScore !== null ? (
+            <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
+              {match.homeScore}–{match.awayScore}
             </span>
-            <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
-            {home && (
-              <TeamCrestImg
-                code={home.code}
-                name={home.name}
-                size={24}
-                fallback={<Flag iso2={home.iso2} size="xs" />}
-              />
-            )}
-          </div>
-
-          <div className="text-center min-w-[56px]">
-            {match.homeScore !== null ? (
-              <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
-                {match.homeScore}–{match.awayScore}
-              </span>
-            ) : (
-              <span className="text-slate-600 text-sm font-mono">vs</span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-1">
-            {away && (
-              <TeamCrestImg
-                code={away.code}
-                name={away.name}
-                size={24}
-                fallback={<Flag iso2={away.iso2} size="xs" />}
-              />
-            )}
-            <span className="font-semibold text-white text-sm hidden md:block">
-              {away?.name || match.awayTeam}
-            </span>
-            <span className="text-xs text-slate-400 sm:hidden">{match.awayTeam}</span>
-          </div>
+          ) : (
+            <span className="text-slate-600 text-sm font-mono">vs</span>
+          )}
         </div>
 
-        {/* Status & venue */}
-        <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
-          <StatusBadge status={match.status} />
-          <span className="text-xs text-slate-500 text-right truncate max-w-[180px]">
-            📍 {match.venue}
+        <div className="flex items-center gap-2 flex-1">
+          {away && (
+            <TeamCrestImg
+              code={away.code}
+              name={away.name}
+              size={24}
+              fallback={<Flag iso2={away.iso2} size="xs" />}
+            />
+          )}
+          <span className="font-semibold text-white text-sm hidden md:block group-hover:text-sky-300 transition-colors">
+            {away?.name || match.awayTeam}
           </span>
-          <span className={`text-xs transition-transform ${expanded ? 'rotate-180' : ''} text-slate-600`}>▾</span>
+          <span className="text-xs text-slate-400 sm:hidden">{match.awayTeam}</span>
         </div>
       </div>
 
-      {/* Venue photo panel */}
-      {expanded && (
-        <>
-          <VenuePhoto venueName={match.venue} />
-          <div className="px-5 pb-3">
-            <Link
-              to={`/partido/${match.id}`}
-              className="text-xs text-sky-400 hover:text-sky-300 transition-colors font-semibold"
-              onClick={e => e.stopPropagation()}
-            >
-              Ver detalles del partido →
-            </Link>
-          </div>
-        </>
-      )}
-    </div>
+      {/* Status & venue */}
+      <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
+        <StatusBadge status={match.status} />
+        <span className="text-xs text-slate-500 text-right truncate max-w-[180px]">
+          📍 {match.venue}
+        </span>
+        <span className="text-xs text-sky-400 opacity-0 group-hover:opacity-100 transition-opacity">
+          Ver detalles →
+        </span>
+      </div>
+    </Link>
   )
 }
 
