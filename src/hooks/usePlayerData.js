@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { apiFootball } from '../services/api'
 
 const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 h
 
@@ -17,20 +16,27 @@ function extractSearchName(rawName) {
 }
 
 function seasonLabel(season) {
-  return `${season}/${String(season + 1).slice(2)}`  // 2025 → "2025/26"
+  return `${season}/${String(season + 1).slice(2)}`
 }
 
 function appearances(results) {
   return results?.[0]?.statistics?.[0]?.games?.appearences ?? 0
 }
 
+async function searchPlayer(name, teamId, season) {
+  const params = new URLSearchParams({ name, teamId, season })
+  const res = await fetch(`/api/player?${params}`)
+  if (!res.ok) return []
+  return res.json()
+}
+
 async function fetchWithFallback(searchName, teamId) {
-  const r2025 = await apiFootball.searchPlayer(searchName, teamId, 2025)
+  const r2025 = await searchPlayer(searchName, teamId, 2025)
   const apps2025 = appearances(r2025)
 
   if (apps2025 > 5) return { results: r2025, season: 2025 }
 
-  const r2026 = await apiFootball.searchPlayer(searchName, teamId, 2026)
+  const r2026 = await searchPlayer(searchName, teamId, 2026)
   const apps2026 = appearances(r2026)
 
   if (apps2026 >= apps2025 && apps2026 > 0) return { results: r2026, season: 2026 }
@@ -42,7 +48,7 @@ export function usePlayerData(rawName, teamId) {
   const [state, setState] = useState({ photo: null, stats: null, season: null, loading: false, notFound: false })
 
   useEffect(() => {
-    if (!rawName || !teamId || !apiFootball.isConfigured()) return
+    if (!rawName || !teamId) return
 
     const searchName = extractSearchName(rawName)
     const key = cacheKey(teamId, searchName)
@@ -68,9 +74,9 @@ export function usePlayerData(rawName, teamId) {
         }
 
         const { player, statistics } = results[0]
-        const photo  = player?.photo   || null
-        const stats  = statistics?.[0] || null
-        const label  = season ? seasonLabel(season) : null
+        const photo   = player?.photo   || null
+        const stats   = statistics?.[0] || null
+        const label   = season ? seasonLabel(season) : null
         const payload = { photo, stats, season: label, notFound: false }
         try { localStorage.setItem(key, JSON.stringify({ ...payload, ts: Date.now() })) } catch {}
         setState({ ...payload, loading: false })
