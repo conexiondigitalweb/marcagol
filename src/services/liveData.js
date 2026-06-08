@@ -39,9 +39,17 @@ async function apiFetch(path) {
 
 export async function getLiveMatches() {
   try {
+    // Buscar partidos del Mundial en vivo
     const data = await apiFetch(`/fixtures?live=all&league=${LEAGUE_ID}&season=${SEASON}`)
-    if (!data) return []
-    return (data.response || [])
+    const wcMatches = (data?.response || [])
+      .filter(f => LIVE_STATUSES.has(f.fixture.status.short))
+      .map(normalizeFixture)
+
+    if (wcMatches.length > 0) return wcMatches
+
+    // TEMPORAL: fallback a cualquier partido en vivo para pruebas pre-Mundial
+    const all = await apiFetch(`/fixtures?live=all`)
+    return (all?.response || [])
       .filter(f => LIVE_STATUSES.has(f.fixture.status.short))
       .map(normalizeFixture)
   } catch {
