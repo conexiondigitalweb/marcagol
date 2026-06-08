@@ -1,4 +1,16 @@
+import { rateLimit, getClientIp } from './_rateLimit.js'
+
 export const config = { api: { bodyParser: true } }
+
+const MAX_MESSAGE_LEN = 500
+const MAX_SYSTEM_LEN  = 3000
+const RATE_LIMIT_RPM  = 10  // requests per minute per IP
+
+function sanitize(str, maxLen) {
+  if (typeof str !== 'string') return ''
+  // strip ASCII control chars (keep newlines/tabs)
+  return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').slice(0, maxLen).trim()
+}
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 
@@ -31,13 +43,24 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  // Rate limiting
+  const ip = getClientIp(req)
+  const { limited, remaining, resetIn } = rateLimit(ip, RATE_LIMIT_RPM)
+  res.setHeader('X-RateLimit-Limit',     RATE_LIMIT_RPM)
+  res.setHeader('X-RateLimit-Remaining', remaining)
+  if (limited) {
+    res.setHeader('Retry-After', resetIn)
+    return res.status(429).json({ error: `Demasiadas solicitudes. Intenta de nuevo en ${resetIn}s.` })
+  }
+
   let body = req.body
   if (typeof body === 'string') {
     try { body = JSON.parse(body) } catch { body = {} }
   }
   body = body || {}
 
-  const { system, message, stream: wantStream, matchId } = body
+  const { system, message: rawMessage, stream: wantStream, matchId } = body
+  const message = sanitize(rawMessage, MAX_MESSAGE_LEN)
 
   if (!message) {
     return res.status(400).json({ error: 'message requerido' })
@@ -46,10 +69,13 @@ export default async function handler(req, res) {
   const apiKey = process.env.VITE_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY
   if (!apiKey) return res.status(500).json({ error: 'API key no configurada' })
 
+  const safeSystem = sanitize(system, MAX_SYSTEM_LEN) ||
+    'Eres un analista deportivo experto del Mundial 2026. Responde en español, de forma concisa, directa y apasionada.'
+
   const payload = {
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1000,
-    system: system || 'Eres un analista deportivo experto del Mundial 2026. Responde en español, de forma concisa, directa y apasionada.',
+    system: safeSystem,
     messages: [{ role: 'user', content: message }],
   }
 

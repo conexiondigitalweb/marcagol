@@ -165,6 +165,7 @@ export default function MatchAI({ homeCode, awayCode, matchDate, group }) {
   const [simLoading, setSimLoading] = useState(false)
   const [simCount, setSimCount] = useState(1000)
 
+  const MAX_Q = 500
   const [question, setQuestion] = useState('')
   const { text: aiResponse, streaming, loading: aiLoading, error: aiError, ask } = useAnalysis()
 
@@ -185,7 +186,8 @@ export default function MatchAI({ homeCode, awayCode, matchDate, group }) {
 
   // Preguntar a Claude
   const askClaude = useCallback(() => {
-    if (!question.trim()) return
+    const clean = question.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim()
+    if (!clean) return
 
     const context = `
 Partido: ${homeTeam?.name} vs ${awayTeam?.name}
@@ -201,7 +203,7 @@ ${sim ? `Simulación (${sim.iterations.toLocaleString()} iteraciones): ${homeTea
       system: `Eres un analista deportivo experto en fútbol mundial. Respondes en español, de forma clara, informativa y apasionada.
 IMPORTANTE: Nunca hagas recomendaciones de apuestas. Solo análisis deportivo basado en datos históricos y estadísticas.
 Contexto del partido: ${context}`,
-      message: question,
+      message: clean,
       matchId: `${homeCode}-${awayCode}`,
     })
   }, [question, homeTeam, awayTeam, homeHist, awayHist, matchDate, group, sim, ask, homeCode, awayCode])
@@ -355,15 +357,21 @@ Contexto del partido: ${context}`,
           </div>
 
           {/* Input */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
             <input
               type="text"
               value={question}
-              onChange={e => setQuestion(e.target.value)}
+              onChange={e => setQuestion(e.target.value.slice(0, MAX_Q))}
               onKeyDown={e => e.key === 'Enter' && !(aiLoading || streaming) && askClaude()}
               placeholder={`Pregunta sobre ${homeTeam?.name} vs ${awayTeam?.name}...`}
+              maxLength={MAX_Q}
               className="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
             />
+            {question.length > MAX_Q * 0.8 && (
+              <span className="absolute right-16 bottom-3 text-xs text-slate-500 pointer-events-none">
+                {question.length}/{MAX_Q}
+              </span>
+            )}
             <button
               onClick={askClaude}
               disabled={aiLoading || streaming || !question.trim()}
