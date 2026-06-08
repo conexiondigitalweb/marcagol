@@ -151,9 +151,13 @@ export function getMatchStatus(fixture) {
 // Tipo de evento en español con ícono
 export function getEventIcon(type, detail) {
   if (type === 'Goal') {
-    if (detail?.includes('Missed Penalty')) return { icon: '❌', label: 'Penal fallado' }
-    if (detail?.includes('Own Goal'))       return { icon: '⚽', label: 'Gol en contra' }
-    if (detail?.includes('Penalty'))        return { icon: '⚽', label: 'Gol de penal' }
+    if (detail?.includes('Missed Penalty'))    return { icon: '❌', label: 'Penal fallado' }
+    if (detail?.includes('Own Goal'))          return { icon: '⚽', label: 'Gol en contra' }
+    if (detail?.includes('Penalty'))           return { icon: '⚽', label: 'Penal convertido' }
+    if (detail?.includes('Direct Free-kick') || detail?.includes('Free Kick'))
+                                               return { icon: '⚽', label: 'Tiro libre directo' }
+    if ((detail || '').toLowerCase().includes('olympic'))
+                                               return { icon: '⚽', label: 'Gol olímpico' }
     return { icon: '⚽', label: 'Gol' }
   }
   if (type === 'Card') {
@@ -166,15 +170,19 @@ export function getEventIcon(type, detail) {
   if (type === 'subst') return { icon: '🔄', label: 'Sustitución' }
   if (type === 'Var') {
     const d = (detail || '').toLowerCase()
-    if (d.includes('disallowed') || d.includes('anulado')) return { icon: '❌', label: 'Gol anulado por VAR' }
+    if (d.includes('disallowed') || d.includes('anulado'))   return { icon: '❌', label: 'Gol anulado por VAR' }
     if (d.includes('confirmed') || d.includes('confirmado')) return { icon: '✅', label: 'Gol confirmado por VAR' }
-    if (d.includes('card'))   return { icon: '📺', label: 'Tarjeta revisada por VAR' }
+    if (d.includes('card'))    return { icon: '📺', label: 'Tarjeta revisada por VAR' }
     if (d.includes('penalty')) return { icon: '📺', label: 'Penalti revisado por VAR' }
     return { icon: '📺', label: 'Revisión VAR' }
   }
-  if (type === 'Corner')      return { icon: '🏁', label: 'Tiro de esquina' }
+  if (type === 'Corner')       return { icon: '🏁', label: 'Tiro de esquina' }
   if (type === 'Shot on Goal') return { icon: '🎯', label: 'Tiro al arco' }
-  if (type === 'Penalty')     return { icon: '🥊', label: 'Penalti' }
+  if (type === 'Miss') {
+    const d = (detail || '').toLowerCase()
+    return { icon: '🎯', label: d.includes('post') || d.includes('bar') ? 'Disparo al palo' : 'Disparo desviado' }
+  }
+  if (type === 'Penalty')      return { icon: '🥊', label: 'Penalti señalado' }
   return { icon: '·', label: type }
 }
 

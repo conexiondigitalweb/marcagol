@@ -277,7 +277,7 @@ function useExternalMatchData(fixtureId, enabled) {
         const data = await apiFetch(`/fixtures/events?fixture=${fixtureId}`)
         if (alive && data.length) setEvents(data)
       } catch {}
-      if (!done()) setTimeout(pollEvents, 45000)
+      if (!done()) setTimeout(pollEvents, 20000)
     }
 
     async function pollStats() {
@@ -448,6 +448,13 @@ function markDisallowedGoals(events, fixture) {
   return events.map((e, i) => disallowed.has(i) ? { ...e, _disallowed: true } : e)
 }
 
+// Penaltis, tiros libres directos y goles olímpicos no llevan asistencia oficial
+const NO_ASSIST_DETAILS = ['Penalty', 'Missed Penalty', 'Direct Free-kick', 'Free Kick', 'Own Goal', 'Olympic']
+const shouldShowAssist = (event) =>
+  event.type === 'Goal' &&
+  !!event.assist?.name &&
+  !NO_ASSIST_DETAILS.some(d => (event.detail || '').includes(d))
+
 // ─── EventRow ─────────────────────────────────────────────────────────────────
 function EventRow({ event, homeId }) {
   const { icon, label } = getEventIcon(event.type, event.detail)
@@ -457,6 +464,7 @@ function EventRow({ event, homeId }) {
     : event.team?.id === event.fixture?.homeTeam?.id
   const isSubst      = event.type === 'subst'
   const isDisallowed = event._disallowed
+  const showAssist   = !isDisallowed && shouldShowAssist(event)
 
   return (
     <div className={`flex items-center gap-3 py-2.5 border-b border-slate-700/20 last:border-0 ${isHome ? 'flex-row' : 'flex-row-reverse'} ${isDisallowed ? 'opacity-60' : ''}`}>
@@ -475,7 +483,7 @@ function EventRow({ event, homeId }) {
             <p className={`text-sm font-semibold truncate ${isDisallowed ? 'line-through text-slate-500' : 'text-white'}`}>
               {event.player?.name}
             </p>
-            {event.assist?.name && !isDisallowed && (
+            {showAssist && (
               <p className="text-xs text-slate-500 truncate">Asistencia: {event.assist.name}</p>
             )}
           </>
