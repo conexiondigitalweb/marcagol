@@ -179,10 +179,8 @@ export default function Dashboard() {
     return () => clearInterval(id)
   }, [])
 
-  // Live match polling — starts immediately once World Cup begins
+  // Live match polling
   useEffect(() => {
-    const wcStarted = Date.now() >= new Date(WORLD_CUP_START).getTime()
-    if (!wcStarted) return
     return startLivePolling(matches => setApiLiveMatches(matches))
   }, [])
 

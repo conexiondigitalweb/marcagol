@@ -1,22 +1,22 @@
 # CONTEXTO.md — marcagol.live · Mundial 2026
 
 Estado completo del proyecto para continuar en futuros chats sin perder contexto.
-Última actualización: **2026-06-07** · Commit HEAD: `701565c`
+Última actualización: **2026-06-08** · Commit HEAD: `cb48ca3`
 
 ---
 
 ## 1. Proyecto
 
-**marcagol.live** — plataforma de seguimiento del Mundial 2026 (FIFA World Cup 2026).
+**marcagol.live** — plataforma de seguimiento del Mundial FIFA 2026 (48 selecciones, 104 partidos).
 
 | Campo | Valor |
 |-------|-------|
 | Repo local | `C:\Users\USUARIO\marcagol` |
 | GitHub | `https://github.com/conexiondigitalweb/marcagol` |
 | Deploy | Vercel, proyecto `marcagol2026` |
-| Auto-deploy | Sí — cada push a `main` |
+| Auto-deploy | **No** — cada deploy es manual con `npx vercel --prod` |
 | Branch principal | `main` |
-| Inicio del torneo | **11 de junio 2026** (datos en vivo se activan ese día) |
+| Inicio del torneo | **11 de junio 2026** |
 
 ---
 
@@ -25,18 +25,14 @@ Estado completo del proyecto para continuar en futuros chats sin perder contexto
 | Capa | Tecnología |
 |------|-----------|
 | UI | React 18 + React Router 6 |
-| Estilos | Tailwind CSS 3 (sin plugins extra) |
+| Estilos | Tailwind CSS 3 |
 | Build | Vite 5 |
 | Markdown | react-markdown 10 (en MatchAI, lazy) |
 | Deploy | Vercel (SPA + Serverless Functions en `/api/`) |
-| API datos en vivo | API-Football v3 (`v3.api-football.com`) · Plan Starter |
-| API IA | Anthropic Claude (`claude-haiku-4-5-20251001`) vía proxy serverless |
-
-**`package.json` (dependencias de producción):**
-```json
-"react", "react-dom", "react-router-dom", "react-markdown",
-"axios", "clsx", "date-fns"
-```
+| API datos en vivo | API-Football v3 (`v3.football.api-sports.io`) · Plan Pro · 7500 req/día |
+| API IA | Anthropic Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) vía proxy serverless |
+| Banderas | flagcdn.com |
+| Fotos jugadores | media.api-sports.io (solo via proxy serverless) |
 
 ---
 
@@ -45,60 +41,38 @@ Estado completo del proyecto para continuar en futuros chats sin perder contexto
 ```
 marcagol/
 ├── api/
-│   └── analyze.js            # Serverless proxy → Anthropic (streaming SSE + retry)
+│   ├── analyze.js            # Proxy → Anthropic (streaming SSE + retry 529)
+│   ├── player.js             # Proxy → API-Football /players (oculta API key)
+│   └── _rateLimit.js         # Utilidad rate limiting in-memory por IP
 ├── src/
-│   ├── main.jsx              # Entry: AppProvider + BrowserRouter
-│   ├── App.jsx               # 13 rutas, todas con React.lazy + Suspense
+│   ├── main.jsx
+│   ├── App.jsx               # 14 rutas, todas lazy + Suspense
 │   ├── context/
-│   │   ├── AppContext.jsx         # liveMatches, hasLive, selectedCountry
-│   │   └── PredictionsContext.jsx # Quiniela con localStorage
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── Header.jsx    # Nav desktop + hamburger móvil, sticky
-│   │   │   └── Footer.jsx
-│   │   └── ui/
-│   │       ├── MatchAI.jsx       # Simulación Monte Carlo + análisis Claude streaming
-│   │       ├── Flag.jsx          # flagcdn.com
-│   │       ├── Badge.jsx         # ConfederationBadge, StatusBadge
-│   │       ├── LiveIndicator.jsx
-│   │       ├── LiveScores.jsx
-│   │       ├── LoadingSpinner.jsx # prop fullPage
-│   │       ├── TeamCrestImg.jsx
-│   │       └── VenueCard.jsx
+│   │   ├── AppContext.jsx
+│   │   └── PredictionsContext.jsx
+│   ├── components/ui/
+│   │   ├── MatchAI.jsx       # Monte Carlo + análisis Claude streaming
+│   │   └── ...
 │   ├── data/
-│   │   ├── groups.js         # 48 equipos · 12 grupos (A–L)
-│   │   ├── matches.js        # 104 partidos (72 grupos + 32 eliminatoria)
-│   │   ├── squads.js         # 1.248 jugadores oficiales FIFA — chunk lazy
-│   │   ├── history.js        # Historial mundialista 48 selecciones — chunk lazy
-│   │   ├── liveData.js       # Funciones fetch API-Football con cache TTL
-│   │   ├── broadcast.js      # Canales TV/streaming por país
-│   │   ├── venues.js         # 16 estadios (nombre, ciudad, capacidad, imagen)
-│   │   └── teamIds.js        # Código equipo → ID API-Football (para logos)
+│   │   ├── groups.js
+│   │   ├── matches.js
+│   │   ├── squads.js         # 1.248 jugadores oficiales FIFA (7-jun-2026)
+│   │   ├── history.js
+│   │   ├── teamIds.js        # Verificados el 8-jun-2026 (ver §7)
+│   │   ├── broadcast.js
+│   │   └── venues.js
 │   ├── hooks/
-│   │   ├── useLiveData.js    # useLiveMatches, useTodayMatches, useStandings,
-│   │   │                     # useTopStats, useMatchDetail — polling automático
-│   │   └── useAnalysis.js    # Streaming SSE + cache en memoria por matchId:question
+│   │   ├── useLiveData.js
+│   │   ├── useAnalysis.js
+│   │   └── usePlayerData.js  # Datos de jugador con cache 24h localStorage
 │   ├── pages/
-│   │   ├── Dashboard.jsx     # Countdown + partidos del día + grupos resumidos
-│   │   ├── Groups.jsx        # Tablas 12 grupos
-│   │   ├── GroupDetail.jsx   # Tabla + calendario de un grupo
-│   │   ├── Bracket.jsx       # Árbol de llaves R32 → Final
-│   │   ├── Teams.jsx         # Grid 48 equipos, filtro confederación/búsqueda
-│   │   ├── TeamDetail.jsx    # Perfil equipo: stats, convocatoria, historial
-│   │   ├── Predictions.jsx   # Quiniela con sistema de puntos
-│   │   ├── Schedule.jsx      # Calendario completo con filtros y foto estadio
-│   │   ├── MatchDetail.jsx   # Tabs: minuto a min / stats / alineaciones / IA
-│   │   ├── Scorers.jsx       # Goleadores y asistidores (API-Football)
-│   │   ├── History.jsx       # Historia de los mundiales
-│   │   ├── News.jsx          # Noticias
-│   │   └── Broadcast.jsx     # Dónde ver por país/región
-│   └── utils/
-│       └── helpers.js        # formatDate, sortTeams, getCountdown, flagUrl,
-│                             # getConfederationColor, groupMatchesByDate, etc.
-├── vercel.json               # {} — vacío, Vercel detecta todo automáticamente
-├── vite.config.js            # plugin react, puerto 5173
-├── tailwind.config.js
-└── CONTEXTO.md               # Este archivo
+│   │   ├── PlayerProfile.jsx # Perfil jugador: squads.js + API-Football foto/stats
+│   │   └── ... (resto de páginas)
+│   └── services/
+│       ├── api.js            # Cliente API-Football directo (live scores, standings)
+│       └── liveData.js       # Polling partidos en vivo
+├── vercel.json               # Rewrites SPA + headers seguridad
+└── CONTEXTO.md
 ```
 
 ---
@@ -107,313 +81,245 @@ marcagol/
 
 | Ruta | Página | Notas |
 |------|--------|-------|
-| `/` | Dashboard | Countdown hasta inicio del torneo |
+| `/` | Dashboard | Countdown + live scores |
 | `/grupos` | Groups | |
-| `/grupos/:id` | GroupDetail | `:id` es letra del grupo (A–L) |
+| `/grupos/:id` | GroupDetail | `:id` letra A–L |
 | `/llaves` | Bracket | |
 | `/equipos` | Teams | |
-| `/equipos/:code` | TeamDetail | `:code` es código FIFA (ARG, BRA…) |
+| `/equipos/:code` | TeamDetail | `:code` código FIFA (ARG, BRA…) |
+| `/jugador/:team/:number` | PlayerProfile | `:number` = dorsal (URL-safe) |
 | `/predicciones` | Predictions | |
 | `/calendario` | Schedule | |
+| `/partido/:id` | MatchDetail | `:id` numérico de `matches.js` |
 | `/noticias` | News | |
 | `/donde-ver` | Broadcast | |
 | `/historia` | History | |
 | `/goleadores` | Scorers | |
-| `/partido/:id` | MatchDetail | `:id` es `match.id` numérico de `matches.js` |
 
-Todas las páginas son **lazy** (`React.lazy` + `Suspense` con `<LoadingSpinner fullPage />`).
+Todas las páginas son **lazy** (`React.lazy` + `Suspense`).
 
 ---
 
 ## 5. Variables de entorno
 
-| Variable | Archivo | Uso |
-|----------|---------|-----|
-| `VITE_API_FOOTBALL_KEY` | `.env` + Vercel dashboard | API-Football |
-| `VITE_ANTHROPIC_KEY` o `ANTHROPIC_API_KEY` | **Solo Vercel dashboard** | Anthropic — nunca en `.env` local |
+| Variable | Entornos Vercel | Uso |
+|----------|----------------|-----|
+| `VITE_API_FOOTBALL_KEY` | Production, Preview | API-Football (player proxy server-side + live data cliente) |
+| `VITE_ANTHROPIC_KEY` | Production, Preview | Anthropic (analyze proxy) |
+| `ANTHROPIC_API_KEY` | Production, Preview | Fallback Anthropic |
 
-> La clave de Anthropic **solo existe server-side** en `api/analyze.js`.
-> `VITE_API_FOOTBALL_KEY` también está hardcodeada en `src/data/liveData.js` (línea 5) como fallback.
-
----
-
-## 6. Bundle (post-optimización)
-
-| Chunk | Minificado | gzip | Cuándo carga |
-|-------|-----------|------|--------------|
-| `index-*.js` (main) | 226 kB | 67.9 kB | Siempre (React, Router, Header, Footer, contextos) |
-| `TeamDetail-*.js` | 188 kB | 43.7 kB | Al visitar `/equipos/:code` — **contiene squads.js** |
-| `MatchDetail-*.js` | 146 kB | 44.5 kB | Al visitar `/partido/:id` — contiene react-markdown |
-| `history-*.js` | 7.4 kB | 1.5 kB | Con TeamDetail y MatchDetail |
-| `Dashboard-*.js` | 12.4 kB | 3.8 kB | Al visitar `/` |
-| Resto de páginas | 3–9 kB | 1–3 kB | Bajo demanda |
-
-El main bundle bajó de **535 kB → 226 kB (-58%)** al pasar todas las páginas a lazy.
-
----
-
-## 7. Datos estáticos
-
-### `groups.js`
-Objeto `GROUPS` (array). Cada grupo tiene `{ id, name, teams[] }`.
-Cada equipo: `{ code, name, iso2, confederation, fifaRanking, points, played, won, drawn, lost, gf, ga, gd }`.
-Funciones exportadas: `getTeamByCode(code)`, `getGroupById(id)`.
-
-### `matches.js`
-Array `MATCHES`. Cada partido: `{ id, date, time (ET), homeTeam, awayTeam, homeScore, awayScore, status, group, matchday, venue, city, country }`.
-`status` puede ser: `'upcoming'`, `'live'`, `'finished'`.
-Funciones: `getUpcomingMatches()`, `getLiveMatches()`, `getMatchesByGroup(group)`.
-
-### `squads.js`
-Objeto `SQUADS[code]` → `{ coach, avgAge, players[] }`.
-Cada jugador: `{ number, position, name, shirtName, birth, age, club, height }`.
-`position` es uno de: `"Portero"`, `"Defensor"`, `"Mediocampista"`, `"Delantero"`.
-Funciones exportadas: `getSquad(code)`, `getCoach(code)`.
-
-### `history.js`
-Objeto `HISTORY[code]` → `{ participations, edition2026, matches, won, drawn, lost, gf, gc, titles, runnerUp, semis, quarters, best }`.
-Función exportada: `getHistory(code)`.
-
-### `teamIds.js`
-`TEAM_IDS[code]` → número ID en API-Football.
-Usado para logos: `https://media.api-sports.io/football/teams/{id}.png`.
-
-### `venues.js`
-`VENUES_BY_NAME[name]` → `{ name, city, country, capacity, surface, image }`.
-
----
-
-## 8. API de datos en vivo — `src/data/liveData.js`
-
-- **API-Football v3** · League ID `1` · Season `2026`
-- Cache en memoria con TTLs:
-
-| Endpoint | TTL |
-|----------|-----|
-| Partidos en vivo | 30 s |
-| Partidos del día / fixture | 5 min |
-| Tablas / goleadores | 10 min |
-| Eventos del partido | 30 s |
-| Estadísticas del partido | 1 min |
-| Alineaciones / squad | 5 min |
-
-**Funciones disponibles:**
-
-```js
-getLiveMatches()                    // partidos en vivo ahora
-getTodayMatches()                   // partidos del día
-getAllFixtures()                    // fixture completo del torneo
-getMatchDetail(fixtureId)           // { events, stats, lineups }
-getStandings()                      // tablas de posiciones
-getTopScorers()                     // goleadores del torneo
-getTopAssists()                     // asistidores del torneo
-getTeamStats(teamId)                // estadísticas de equipo en el torneo
-getSquad(teamId)                    // convocatoria desde la API (≠ squads.js)
-getPlayerStats(playerId)            // estadísticas de un jugador en el torneo
-toLocalTime(utcDate)               // helper: UTC → hora local del usuario
-toLocalDate(utcDate)               // helper: UTC → fecha local
-getMatchStatus(fixture)            // estado en español
-getEventIcon(type, detail)         // { icon, label } para eventos del partido
-clearCache()                       // limpiar cache manualmente
+**En `.env.local` (no commiteado):**
+```
+VITE_API_FOOTBALL_KEY=217e3ccfd4e714fba62caf18ed3ef01d
+VITE_ANTHROPIC_KEY=...
+ANTHROPIC_API_KEY=...
 ```
 
-### Hooks de datos en vivo — `src/hooks/useLiveData.js`
+> **Exposición pendiente:** `VITE_API_FOOTBALL_KEY` aparece en el bundle del cliente vía `src/services/liveData.js` y `src/services/api.js` (partidos en vivo, standings, goleadores). Para eliminarla del bundle: proxear esas llamadas a serverless y renombrar la variable a `API_FOOTBALL_KEY` (sin prefijo `VITE_`).
 
+---
+
+## 6. Serverless functions (`/api/`)
+
+### `/api/analyze.js`
+- **POST** `{ system, message, stream, matchId }`
+- Proxy a Anthropic Claude Haiku 4.5
+- Rate limit: **10 req/min por IP**
+- Sanitización: message ≤ 500 chars, system ≤ 3000 chars, strip control chars `\x00-\x08\x0B\x0C\x0E-\x1F\x7F`
+- Soporta streaming SSE (`stream: true`)
+- Retry exponencial en error 529: 1.5s → 3s → 6s (máx 3 intentos)
+
+### `/api/player.js`
+- **GET** `?name=&teamId=&season=`
+- Proxy a `v3.football.api-sports.io/players`
+- Rate limit: **20 req/min por IP**
+- Validación: `teamId` numérico, `season` 4 dígitos
+- Cache CDN: `s-maxage=3600, stale-while-revalidate=21600`
+- Retorna `data.response ?? []`
+
+### `/api/_rateLimit.js`
+- Rate limiter in-memory por IP (Map con cleanup automático cada 60 s)
+- **No distribuido** — suficiente para protección básica (una Map por instancia de función)
+
+---
+
+## 7. `teamIds.js` — IDs de API-Football
+
+Todos los IDs fueron verificados el 8-jun-2026 contra `/teams?league=1&season=2026`.  
+**35 de 48 estaban incorrectos en la versión anterior**, incluyendo 4 duplicados críticos:
+
+| Problema anterior | Corrección |
+|---|---|
+| USA = FRA = 2 | FRA: 2, USA: 2384 |
+| ARG = AUS = 26 | ARG: 26, AUS: 20 |
+| PRY = POR = 27 | POR: 27, PRY: 2380 |
+| BRA = UZB = 6 | BRA: 6, UZB: 1568 |
+
+IDs correctos actuales:
 ```js
-useLiveMatches()       // polling 30s → { matches, loading, error, refetch }
-useTodayMatches()      // polling 5min → { matches, loading, error, refetch }
-useStandings()         // polling 10min → { standings, loading, error, refetch }
-useTopStats()          // polling 10min → { scorers, assists, loading, error, refetch }
-useMatchDetail(id)     // polling 30s → { events, stats, lineups, loading, error, refetch }
+ARG:26, BRA:6,   URU:7,    COL:8,    ECU:2382, PRY:2380,
+FRA:2,  GER:25,  ENG:10,   ESP:9,    POR:27,   NED:1118,
+BEL:1,  CRO:3,   SUI:15,   AUT:775,  SCO:1108, TUR:777,
+CZE:770, NOR:1090, SWE:5,  BIH:1113,
+USA:2384, MEX:16, CAN:5529, PAN:11,  HTI:2386, CUW:5530,
+MAR:31, SEN:13,  ALG:1532, EGY:32,   GHA:1504, CIV:1501,
+ZAF:1531, COD:1508,
+JPN:12, KOR:17,  KSA:23,   IRN:22,   AUS:20,   QAT:1569,
+JOR:1548, IRQ:1567, UZB:1568,
+NZL:4673, CPV:1533, TUN:28
 ```
 
 ---
 
-## 9. Proxy IA — `api/analyze.js`
+## 8. Perfil de jugador — flujo completo
 
-Serverless function de Vercel. El frontend **nunca** llama a Anthropic directamente.
+**Ruta:** `/jugador/:team/:number` (`:number` = dorsal, URL-safe)
+
+**`src/pages/PlayerProfile.jsx`:**
+- Busca en `SQUADS[team].players` por `p.number == number`
+- Muestra: nombre, dorsal, posición (badge con color), edad, altura, nacimiento, club
+- Llama a `usePlayerData(player.name, TEAM_IDS[code])`
+- Photo circular con borde color-posición; fallback: bandera del país (flagcdn.com)
+- Stats: partidos, minutos, goles, asistencias, remates, regates, pases clave, tarjetas
+
+**`src/hooks/usePlayerData.js`:**
+- Llama a `/api/player` (proxy serverless, no a api-sports.io directamente)
+- Cache 24 h en localStorage: clave `marcagol_player_{teamId}_{apellido_lowercase}`
+- Lógica de temporada:
+  1. Busca `season=2025`; si appearances > 5 → usa esos datos
+  2. Si no, busca `season=2026`; usa la temporada con más appearances
+- Retorna `{ photo, stats, season, loading, notFound }`
+
+**`src/pages/TeamDetail.jsx`:**
+- Cada tarjeta de jugador es `<Link to="/jugador/{code}/{number}">` con hover
+- Se eliminó el logo/escudo de API-Football (dejando solo la bandera de flagcdn.com)
+
+---
+
+## 9. Datos en vivo (`src/services/liveData.js`)
+
+- **API:** `v3.football.api-sports.io` — acceso directo desde cliente (key en bundle VITE_)
+- **Liga:** `league=1` (FIFA World Cup 2026), `season=2026`
+- **Polling:** 60 s si hay partidos en vivo; 5 min si no hay
+- **⚠️ Fallback TEMPORAL:** si no hay partidos del Mundial en vivo, busca `/fixtures?live=all` sin filtro de liga. Para pruebas pre-torneo con amistosos. **Eliminar cuando empiece el Mundial (11-jun-2026).**
+- Francia vs Irlanda del Norte (fixture `1542183`) verificado como partido de prueba live el 8-jun-2026
+
+---
+
+## 10. Seguridad
+
+### Headers HTTP (vercel.json)
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+Content-Security-Policy:
+  default-src 'self'
+  script-src 'self' 'unsafe-inline'
+  style-src 'self' 'unsafe-inline'
+  img-src 'self' data: https://flagcdn.com https://media.api-sports.io
+  connect-src 'self' https://v3.football.api-sports.io
+  frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+```
+
+### `vercel.json` (estructura completa)
+```json
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }],
+  "headers": [{ "source": "/(.*)", "headers": [ ... ] }]
+}
+```
+Los rewrites son necesarios para que `/jugador/COL/5` no dé 404 al recargar.
+
+### Input del usuario (MatchAI)
+- Límite 500 chars en UI y en serverless
+- Strip control chars en frontend antes de enviar
+- Contador visible al >80% del límite
+
+---
+
+## 11. Proxy IA — `api/analyze.js`
 
 - **Modelo:** `claude-haiku-4-5-20251001`
-- **Retry:** exponencial en 529 (overloaded) — 1.5s → 3s → 6s (máx 3 intentos)
-- **Dos modos de respuesta:**
-  - `stream: true` → `Content-Type: text/event-stream` — proxea el SSE de Anthropic directamente
-  - `stream: false` → JSON `{ text, matchId }`
-- **Body que acepta:** `{ system, message, stream, matchId }`
+- **Rate limit:** 10 req/min por IP
+- **Sanitización:** strip `[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]`, message ≤ 500, system ≤ 3000
+- **Streaming SSE:** proxea el stream de Anthropic directamente al cliente
+- **Retry:** exponencial en 529: 1.5s → 3s → 6s (máx 3 intentos)
 
 ---
 
-## 10. Hook `useAnalysis` — `src/hooks/useAnalysis.js`
+## 12. Hook `useAnalysis` — `src/hooks/useAnalysis.js`
 
 ```js
 const { text, streaming, loading, error, ask, reset } = useAnalysis()
-
-ask({ system, message, matchId })  // dispara la llamada
-reset()                            // cancela y limpia
+ask({ system, message, matchId })
+reset()
 ```
-
-- **Cache en memoria por sesión** — clave `"${matchId}:${message}"`, no repite peticiones
-- Parsea SSE línea a línea: busca `content_block_delta` → `text_delta`
-- `streaming` es distinto de `loading`: `loading=true` mientras espera la primera respuesta, `streaming=true` mientras llegan tokens
-- `reset()` llama a `AbortController.abort()` y limpia estado
+- Cache en memoria por `"${matchId}:${message}"` — no repite llamadas iguales
+- `streaming` = llegando tokens; `loading` = esperando primera respuesta
+- `AbortController` para cancelar
 
 ---
 
-## 11. Componente `MatchAI` — `src/components/ui/MatchAI.jsx`
-
-Usado en `MatchDetail.jsx` tab "Análisis IA". Dos secciones independientes:
+## 13. Componente `MatchAI` — `src/components/ui/MatchAI.jsx`
 
 **Sección 1 — Simulación Monte Carlo:**
-- Modelo Poisson con ranking FIFA + historial mundialista de `history.js`
-- `poissonRandom(lambda)` — método de Knuth, máximo 8 goles
-- Opciones: 1k / 5k / 10k / 50k iteraciones
-- Salida: probabilidades (local/empate/visitante), top 5 marcadores, % ambos anotan, % arco en 0
+- Modelo Poisson con ranking FIFA + historial de `history.js`
+- `poissonRandom(lambda)` — método Knuth, máx 8 goles
+- Opciones: 1k / 5k / 10k / 50k simulaciones
+- Output: % local/empate/visita, top 5 marcadores, % ambos anotan, % arco en 0
 
 **Sección 2 — Análisis Claude:**
-- Usa `useAnalysis()` hook
-- Construye un `context` con datos del partido + resultado de la simulación si existe
-- Respuesta renderizada con `<ReactMarkdown components={MD_COMPONENTS}>` — sin `@tailwindcss/typography`
-- `MD_COMPONENTS` define estilos Tailwind para: `p`, `strong`, `em`, `h1/h2/h3`, `ul/ol/li`, `hr`, `code`
-- Cursor parpadeante `animate-pulse` mientras `streaming === true`
-- Preguntas sugeridas hardcodeadas (4 botones)
+- Usa `useAnalysis()` con contexto del partido + resultado Monte Carlo
+- Renderizado con `<ReactMarkdown>` y `MD_COMPONENTS` Tailwind
+- Cursor parpadeante `animate-pulse` durante streaming
+- 4 preguntas sugeridas como botones
 
 ---
 
-## 12. TAREA PENDIENTE A: Datos en vivo
+## 14. Bundle
 
-### Problema actual
-
-Los datos en vivo **no se están integrando correctamente** en la UI. Los hooks existen y funcionan, pero hay desconexión entre lo que devuelve la API y lo que muestran los componentes.
-
-**Situación específica en `MatchDetail.jsx`:**
-- El hook `useMatchDetail(id)` llama a `getMatchDetail(fixtureId)` pasando el `:id` de la URL
-- **Problema:** el `:id` de la URL es el `match.id` de `matches.js` (número propio, ej. `1`, `2`, `3`…), pero `getMatchDetail` necesita el **fixture ID de API-Football** (número distinto, de 6 cifras)
-- `liveMatchData` en `MatchDetail.jsx` está hardcodeado con `null` (líneas 289–295) — el marcador en vivo nunca se muestra
-
-**Situación en `Dashboard.jsx`:**
-- `startLivePolling` se importa de `'../services/liveData'` pero ese archivo no existe — hay un import roto
-- La sección de partidos en vivo API (`ApiMatchCard`) existe pero puede no recibir datos reales
-
-### Qué falta implementar
-
-1. **Mapeo `match.id` → fixture ID de API-Football**
-   - Opción A: añadir campo `fixtureId` a cada partido en `matches.js` (lo más simple)
-   - Opción B: cargar todos los fixtures de la API al inicio y cruzar por fecha+equipos
-   - Opción A es preferible: editar `matches.js` agregando `fixtureId: <número>` en los partidos que ya tienen fecha confirmada
-
-2. **Conectar el marcador en vivo en `MatchHeader`**
-   - `liveMatchData` en `MatchDetail.jsx` debe venir del hook `useMatchDetail` que ya retorna `stats`
-   - El marcador se puede extraer de `stats[0]` y `stats[1]` de la respuesta de API-Football
-   - El status (1H, HT, 2H, FT…) viene del fixture general, no del detalle
-
-3. **Arreglar el import roto en `Dashboard.jsx`**
-   - `import { startLivePolling } from '../services/liveData'` — el archivo `src/services/liveData.js` no existe
-   - Eliminar ese import y usar directamente `useLiveMatches()` del hook
-
-4. **Tablas de posiciones en tiempo real**
-   - `useStandings()` ya existe pero los datos de `groups.js` son estáticos
-   - Cuando lleguen datos de la API, mezclar: API manda a `{standings}`, hay que mapear a la estructura de `groups.js`
-
-5. **`Scorers.jsx`** — ya está listo: usa `useTopStats()` con estado de carga/error/vacío correcto. Solo falta que la API tenga datos (desde el 11-jun).
-
-### Archivos a tocar
-
-```
-src/data/matches.js          → agregar fixtureId por partido
-src/pages/MatchDetail.jsx    → conectar liveMatchData con useMatchDetail
-src/pages/Dashboard.jsx      → eliminar import roto, arreglar polling de live
-src/pages/Groups.jsx         → opcional: mezclar standings de API con datos estáticos
-```
-
----
-
-## 13. TAREA PENDIENTE B: Perfil de jugador
-
-### Qué existe hoy
-
-- `squads.js` tiene 1.248 jugadores con: `number, position, name, shirtName, birth, age, club, height`
-- `TeamDetail.jsx` muestra la convocatoria agrupada por posición en tarjetas simples (nombre + club + edad)
-- `liveData.js` ya tiene `getPlayerStats(playerId)` que llama a `/players?id=&league=1&season=2026`
-- `Scorers.jsx` muestra la foto del jugador desde `player.photo` (URL de API-Football)
-- **No existe ninguna ruta `/jugadores/:id` ni página `PlayerDetail.jsx`**
-
-### Qué hay que construir
-
-**Ruta nueva:** `/jugadores/:name` o `/jugadores/:teamCode/:number`
-
-La clave del jugador puede ser `teamCode-number` (ej. `ARG-10`) porque `squads.js` no tiene IDs de API-Football.
-
-**Datos disponibles sin API (de `squads.js`):**
-- Nombre completo, nombre en camiseta, número, posición, fecha de nacimiento, edad, club, altura
-
-**Datos disponibles con API (de `getPlayerStats`):**
-- Fotos del jugador, goles, asistencias, minutos jugados, tarjetas, partidos
-
-**Problema de lookup:** `squads.js` no tiene el ID numérico de API-Football para cada jugador. Opciones:
-- Opción A: `getSquad(teamId)` de la API retorna jugadores con `{ player: { id, name, photo } }` — se puede cruzar por nombre o número de camiseta
-- Opción B: enriquecer `squads.js` con un campo `apiId` por jugador (costoso pero definitivo)
-
-### Plan de implementación sugerido
-
-1. **Crear `src/pages/PlayerDetail.jsx`**
-   - Recibe `teamCode` y `number` de los params
-   - Lee datos base de `SQUADS[teamCode].players.find(p => p.number === number)`
-   - Llama a `getSquad(TEAM_IDS[teamCode])` de la API para obtener el `player.id` y la foto
-   - Con ese `player.id`, llama a `getPlayerStats(playerId)` para las estadísticas del torneo
-   - Muestra: foto, bandera del equipo, nombre, posición, club, stats del torneo
-
-2. **Actualizar `TeamDetail.jsx`** — cada tarjeta de jugador con `<Link to={...}>`
-
-3. **Añadir ruta en `App.jsx`:**
-   ```jsx
-   const PlayerDetail = lazy(() => import('./pages/PlayerDetail'))
-   <Route path="/jugadores/:teamCode/:number" element={<PlayerDetail />} />
-   ```
-
-4. **Actualizar `Scorers.jsx`** — nombre del jugador con link a su perfil (requiere cruzar con `squads.js` por nombre)
-
-### Estructura sugerida de `PlayerDetail.jsx`
-
-```
-┌─────────────────────────────────┐
-│  ← Volver a [Equipo]            │
-│  [Foto]  [Bandera] Nombre       │
-│          Posición · #Número     │
-│          Club actual · Edad     │
-├─────────────────────────────────┤
-│  Estadísticas en el torneo      │
-│  ⚽ Goles  🎯 Asistencias       │
-│  ⏱ Minutos  🟨 Tarjetas        │
-├─────────────────────────────────┤
-│  Datos personales               │
-│  Fecha nacimiento · Altura      │
-│  Confederación · Grupo          │
-└─────────────────────────────────┘
-```
-
----
-
-## 14. Commits recientes
-
-```
-701565c docs: agregar CONTEXTO.md con estado completo del proyecto
-375f60f feat: renderizar análisis IA con react-markdown
-3c3efc8 feat: lazy load páginas, hook useAnalysis con streaming y fixes móvil
-6b1c2e0 fix: corregir nombre modelo Claude en proxy
-eaf1819 fix: parseo respuesta IA en frontend
-c07e766 fix: parseo body en funcion serverless
-39b887f fix: limpiar vercel.json conflicto rutas SPA
-fcb8285 feat: proxy serverless para análisis IA
-28eabad feat: información detallada partidos
-```
+| Chunk | Minificado | gzip | Cuándo carga |
+|-------|-----------|------|--------------|
+| `index-*.js` (main) | ~226 kB | ~68 kB | Siempre |
+| `TeamDetail-*.js` | ~188 kB | ~44 kB | Al visitar `/equipos/:code` — incluye squads.js |
+| `PlayerProfile-*.js` | pequeño | pequeño | Al visitar `/jugador/:team/:number` |
+| `MatchDetail-*.js` | ~146 kB | ~45 kB | Al visitar `/partido/:id` — incluye react-markdown |
+| Resto de páginas | 3–12 kB | 1–4 kB | Bajo demanda |
 
 ---
 
 ## 15. Comandos frecuentes
 
 ```bash
-npm run dev        # Desarrollo en http://localhost:5173
-npm run build      # Build de producción → dist/
-npm run preview    # Preview del build local
+npm run dev                  # Dev en http://localhost:5173
+npm run build                # Build producción → dist/
+npx vercel --prod            # Deploy a producción
+npx vercel env ls            # Ver variables de entorno configuradas
+git push origin main         # Push (deploy manual tras push)
+```
 
-git push origin main   # Deploy automático a Vercel
+---
+
+## 16. Pendientes / deuda técnica
+
+1. **Eliminar fallback `live=all`** en `liveData.js` cuando empiece el Mundial (11-jun-2026)
+2. **Proxear live data** a serverless para eliminar `VITE_API_FOOTBALL_KEY` del bundle cliente (renombrar a `API_FOOTBALL_KEY`)
+3. **Auto-deploy** desde GitHub (actualmente deploy manual)
+4. **Rate limiting distribuido** — el actual es in-memory por instancia de función
+5. **Fotos de jugadores poco conocidos** — búsqueda por apellido falla para apellidos comunes o no indexados
+
+---
+
+## 17. Commits de esta sesión (8-jun-2026)
+
+```
+cb48ca3  feat: fallback live=all en liveData para pruebas pre-Mundial
+e260b0e  security: headers HTTP, rate limiting y sanitización inputs
+733cf15  fix: eliminar logo API-Football en detalle de equipo
+cae80d5  fix: corregir 35/48 IDs API-Football (4 duplicados críticos)
+ac0bab2  feat: proxy serverless /api/player para ocultar API key
+2b1cbf3  fix: SPA rewrites vercel.json + fallback bandera en perfil jugador
+69fc93d  feat: página de perfil de jugador con foto y stats de API-Football
 ```

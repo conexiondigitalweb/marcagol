@@ -233,6 +233,110 @@ function OddsPanel({ fixtureId }) {
   )
 }
 
+// ─── Hook: datos de un fixture externo (partido no-WC) ───────────────────────
+function useFixture(fixtureId, enabled) {
+  const [fixture, setFixture] = useState(null)
+  const [loading, setLoading] = useState(enabled)
+
+  useEffect(() => {
+    if (!enabled || !fixtureId) return
+    let alive = true
+    async function load() {
+      try {
+        const r = await fetch(
+          `https://v3.football.api-sports.io/fixtures?id=${fixtureId}`,
+          { headers: { 'x-apisports-key': API_KEY }, signal: AbortSignal.timeout(8000) }
+        )
+        const data = await r.json()
+        if (alive) { setFixture(data.response?.[0] ?? null); setLoading(false) }
+      } catch { if (alive) setLoading(false) }
+    }
+    load()
+    const interval = setInterval(load, 60000)
+    return () => { alive = false; clearInterval(interval) }
+  }, [fixtureId, enabled])
+
+  return { fixture, loading }
+}
+
+// ─── Header para partidos externos (no del Mundial) ───────────────────────────
+function ExternalMatchHeader({ f }) {
+  const { teams, goals, fixture, league } = f
+  const isLive     = ['1H','2H','HT','ET','BT','PEN'].includes(fixture.status.short)
+  const isFinished = ['FT','AET','PEN'].includes(fixture.status.short)
+  const localTime  = new Date(fixture.date).toLocaleTimeString('es-CO', {
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  })
+
+  return (
+    <div className="card overflow-hidden mb-6">
+      <div className="relative p-6" style={{
+        background: 'linear-gradient(135deg, #0F2442 0%, #162032 100%)',
+        borderBottom: '1px solid rgba(56,189,248,0.15)',
+      }}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest truncate max-w-[180px]">
+            {league?.name || 'Partido en vivo'}{league?.round ? ` · ${league.round}` : ''}
+          </span>
+          {isLive && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 flex-shrink-0">
+              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"/>
+              <span className="text-xs font-bold text-red-400">EN VIVO · {fixture.status.elapsed}'</span>
+            </span>
+          )}
+          {isFinished && (
+            <span className="px-3 py-1 rounded-full bg-slate-700 text-xs text-slate-400 font-semibold">Finalizado</span>
+          )}
+          {!isLive && !isFinished && (
+            <span className="px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-xs text-orange-400 font-semibold">Próximo</span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+            <img src={teams.home.logo} alt={teams.home.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{teams.home.name}</span>
+          </div>
+          <div className="text-center flex-shrink-0">
+            {(isLive || isFinished) ? (
+              <div>
+                <div className={`text-3xl sm:text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
+                  {goals.home ?? 0} – {goals.away ?? 0}
+                </div>
+                {isFinished && <div className="text-slate-500 text-xs mt-1">Final</div>}
+              </div>
+            ) : (
+              <div className="text-2xl font-black text-orange-400">{localTime}</div>
+            )}
+          </div>
+          <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+            <img src={teams.away.logo} alt={teams.away.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
+            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{teams.away.name}</span>
+          </div>
+        </div>
+      </div>
+
+      {(fixture.venue?.name || fixture.referee) && (
+        <div className={`grid divide-x divide-slate-700/50 ${fixture.venue?.name && fixture.referee ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          {fixture.venue?.name && (
+            <div className="p-4 text-center">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🏟️ Estadio</p>
+              <p className="text-sm font-semibold text-white truncate">{fixture.venue.name}</p>
+              {fixture.venue.city && <p className="text-xs text-slate-500">{fixture.venue.city}</p>}
+            </div>
+          )}
+          {fixture.referee && (
+            <div className="p-4 text-center">
+              <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🟨 Árbitro</p>
+              <p className="text-sm font-semibold text-white">{fixture.referee}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── EventRow ─────────────────────────────────────────────────────────────────
 function EventRow({ event }) {
   const { icon, label } = getEventIcon(event.type, event.detail)
@@ -275,32 +379,138 @@ export default function MatchDetail() {
   const { events, stats, lineups, loading, error } = useMatchDetail(id)
   const [tab, setTab] = useState('events')
 
-  const matchData = MATCHES?.find(m => m.id === Number(id))
-  const homeCode  = matchData?.homeTeam || ''
-  const awayCode  = matchData?.awayTeam || ''
-  const matchDate = matchData?.date || ''
-  const group     = matchData?.group || ''
+  const matchData  = MATCHES?.find(m => m.id === Number(id))
+  const isExternal = !matchData
+  const homeCode   = matchData?.homeTeam || ''
+  const awayCode   = matchData?.awayTeam || ''
+  const matchDate  = matchData?.date || ''
+  const group      = matchData?.group || ''
+
+  // Llamada incondicional (reglas de hooks) — activa solo para partidos externos
+  const { fixture: externalFixture, loading: fixtureLoading } = useFixture(id, isExternal)
 
   const homeStats = stats?.[0]?.statistics || []
   const awayStats = stats?.[1]?.statistics || []
   const getStat   = (arr, type) => arr.find(s => s.type === type)?.value
 
-  // Datos en vivo del partido (del hook)
-  const liveMatchData = events.length > 0 || stats.length > 0 ? {
-    homeScore: stats?.[0]?.team ? null : null, // vendrá de API
-    awayScore: null,
-    status: null,
-    minute: null,
-    referee: null,
-  } : null
+  const liveMatchData = null
 
-  if (!matchData) return (
-    <div className="text-center py-20">
-      <p className="text-4xl mb-4">🔍</p>
-      <p className="text-slate-400">Partido no encontrado</p>
-      <Link to="/calendario" className="btn-secondary mt-4 inline-block">← Volver al calendario</Link>
-    </div>
-  )
+  // ── Partido externo (no del Mundial) — usa fixture_id de la API directamente ──
+  if (isExternal) {
+    if (fixtureLoading) return (
+      <div className="animate-slide-up max-w-3xl mx-auto">
+        <Link to="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">← Volver</Link>
+        <div className="card p-16 text-center text-slate-500">Cargando partido…</div>
+      </div>
+    )
+    if (!externalFixture) return (
+      <div className="text-center py-20">
+        <p className="text-4xl mb-4">🔍</p>
+        <p className="text-slate-400">Partido no encontrado</p>
+        <Link to="/" className="btn-secondary mt-4 inline-block">← Volver al inicio</Link>
+      </div>
+    )
+    return (
+      <div className="animate-slide-up max-w-3xl mx-auto">
+        <Link to="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">← Volver</Link>
+        <ExternalMatchHeader f={externalFixture} />
+        <div className="grid grid-cols-3 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
+          {[
+            { id: 'events',  label: 'Minuto a min.', icon: '⚽' },
+            { id: 'stats',   label: 'Estadísticas',  icon: '📊' },
+            { id: 'lineups', label: 'Alineaciones',  icon: '👥' },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg text-xs font-semibold transition-all ${
+                tab === t.id ? 'bg-sky-500 text-white' : 'text-slate-400 hover:text-white'
+              }`}>
+              <span>{t.icon}</span>
+              <span className="hidden sm:block leading-tight text-center">{t.label}</span>
+            </button>
+          ))}
+        </div>
+        {loading ? (
+          <div className="card p-16 text-center text-slate-500">Cargando datos del partido…</div>
+        ) : (
+          <>
+            {tab === 'events' && (
+              <div className="card overflow-hidden">
+                <div className="px-5 py-3 border-b border-slate-700/50 font-semibold text-white" style={{ backgroundColor: '#162032' }}>Minuto a minuto</div>
+                {events.length === 0 ? (
+                  <div className="py-16 text-center text-slate-500">
+                    <p className="text-3xl mb-3">⏱️</p>
+                    <p>Los eventos aparecerán cuando inicie el partido.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-700/20">
+                    {[...events].reverse().map((e, i) => <EventRow key={i} event={e} />)}
+                  </div>
+                )}
+              </div>
+            )}
+            {tab === 'stats' && (
+              <div className="card p-5">
+                <h3 className="font-semibold text-white mb-5">Estadísticas del partido</h3>
+                {homeStats.length === 0 ? (
+                  <p className="text-center text-slate-500 py-8">Disponibles cuando inicie el partido.</p>
+                ) : (
+                  <>
+                    <StatBar label="Posesión"           home={parseInt(getStat(homeStats,'Ball Possession'))} away={parseInt(getStat(awayStats,'Ball Possession'))} />
+                    <StatBar label="Tiros al arco"      home={getStat(homeStats,'Shots on Goal')}    away={getStat(awayStats,'Shots on Goal')} />
+                    <StatBar label="Total tiros"        home={getStat(homeStats,'Total Shots')}      away={getStat(awayStats,'Total Shots')} />
+                    <StatBar label="Corners"            home={getStat(homeStats,'Corner Kicks')}     away={getStat(awayStats,'Corner Kicks')} />
+                    <StatBar label="Faltas"             home={getStat(homeStats,'Fouls')}            away={getStat(awayStats,'Fouls')} />
+                    <StatBar label="Fueras de juego"    home={getStat(homeStats,'Offsides')}         away={getStat(awayStats,'Offsides')} />
+                    <StatBar label="Tarjetas amarillas" home={getStat(homeStats,'Yellow Cards')}     away={getStat(awayStats,'Yellow Cards')} />
+                    <StatBar label="Pases completados"  home={getStat(homeStats,'Passes accurate')}  away={getStat(awayStats,'Passes accurate')} />
+                  </>
+                )}
+              </div>
+            )}
+            {tab === 'lineups' && (
+              <div className="grid md:grid-cols-2 gap-4">
+                {lineups.length === 0 ? (
+                  <div className="card p-16 text-center text-slate-500 md:col-span-2">
+                    <p className="text-3xl mb-3">👥</p>
+                    <p>Las alineaciones se publican 1 hora antes del partido.</p>
+                  </div>
+                ) : lineups.map((team, i) => (
+                  <div key={i} className="card overflow-hidden">
+                    <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
+                      <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
+                      <span className="font-bold text-white text-sm">{team.team?.name}</span>
+                      <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
+                    </div>
+                    <div className="divide-y divide-slate-700/20">
+                      {team.startXI?.map((p, j) => (
+                        <div key={j} className="flex items-center gap-3 px-4 py-2.5">
+                          <span className="w-6 text-center text-xs font-bold text-sky-400">{p.player?.number}</span>
+                          <span className="text-sm text-white">{p.player?.name}</span>
+                          <span className="text-xs text-slate-500 ml-auto">{p.player?.pos}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {team.substitutes?.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
+                        {team.substitutes.map((p, j) => (
+                          <div key={j} className="flex items-center gap-3 px-4 py-2 opacity-60">
+                            <span className="w-6 text-center text-xs font-bold text-slate-500">{p.player?.number}</span>
+                            <span className="text-sm text-slate-400">{p.player?.name}</span>
+                            <span className="text-xs text-slate-600 ml-auto">{p.player?.pos}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="animate-slide-up max-w-3xl mx-auto">
