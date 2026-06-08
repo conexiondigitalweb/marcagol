@@ -198,8 +198,12 @@ Contexto del partido: ${context}`,
         })
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error')
-      setAiResponse(data.text || 'No se pudo obtener respuesta.')
+      if (data.error) throw new Error(data.error)
+      if (data.text && data.text.length > 0) {
+        setAiResponse(data.text)
+      } else {
+        setAiResponse('No se pudo obtener respuesta. Intenta de nuevo.')
+      }
     } catch (err) {
       setAiResponse('Error al conectar con el análisis. Intenta de nuevo.')
       console.error(err)
