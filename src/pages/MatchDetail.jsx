@@ -82,16 +82,16 @@ function MatchHeader({ match, liveData }) {
         </div>
 
         {/* Equipos y marcador */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Local */}
-          <div className="flex-1 flex flex-col items-center gap-2">
+          <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img
               src={`https://flagcdn.com/w80/${home?.iso2?.toLowerCase()}.png`}
               alt={home?.name}
-              className="w-16 h-12 object-cover rounded-lg shadow-lg"
+              className="w-12 h-9 sm:w-16 sm:h-12 object-cover rounded-lg shadow-lg"
               onError={e => e.target.style.display='none'}
             />
-            <Link to={`/equipos/${match.homeTeam}`} className="text-white font-black text-center text-lg hover:text-sky-400 transition-colors">
+            <Link to={`/equipos/${match.homeTeam}`} className="text-white font-black text-center text-sm sm:text-lg hover:text-sky-400 transition-colors leading-tight">
               {home?.name || match.homeTeam}
             </Link>
             <span className="text-xs text-slate-500">#{home?.fifaRanking} FIFA</span>
@@ -101,7 +101,7 @@ function MatchHeader({ match, liveData }) {
           <div className="text-center flex-shrink-0">
             {(isLive || isFinished) && liveData ? (
               <div>
-                <div className={`text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
+                <div className={`text-3xl sm:text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
                   {liveData.homeScore ?? 0} – {liveData.awayScore ?? 0}
                 </div>
                 {isLive && liveData.minute && (
@@ -111,22 +111,22 @@ function MatchHeader({ match, liveData }) {
               </div>
             ) : (
               <div>
-                <div className="text-4xl font-black text-orange-400">{time}</div>
+                <div className="text-2xl sm:text-4xl font-black text-orange-400">{time}</div>
                 <div className="text-xs text-slate-500 mt-1">{tz}</div>
-                <div className="text-xs text-slate-600 mt-1">{formatDate(match.date)}</div>
+                <div className="text-xs text-slate-600 mt-1 hidden sm:block">{formatDate(match.date)}</div>
               </div>
             )}
           </div>
 
           {/* Visitante */}
-          <div className="flex-1 flex flex-col items-center gap-2">
+          <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img
               src={`https://flagcdn.com/w80/${away?.iso2?.toLowerCase()}.png`}
               alt={away?.name}
-              className="w-16 h-12 object-cover rounded-lg shadow-lg"
+              className="w-12 h-9 sm:w-16 sm:h-12 object-cover rounded-lg shadow-lg"
               onError={e => e.target.style.display='none'}
             />
-            <Link to={`/equipos/${match.awayTeam}`} className="text-white font-black text-center text-lg hover:text-sky-400 transition-colors">
+            <Link to={`/equipos/${match.awayTeam}`} className="text-white font-black text-center text-sm sm:text-lg hover:text-sky-400 transition-colors leading-tight">
               {away?.name || match.awayTeam}
             </Link>
             <span className="text-xs text-slate-500">#{away?.fifaRanking} FIFA</span>

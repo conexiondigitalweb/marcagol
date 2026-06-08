@@ -1,40 +1,45 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
-import Header     from './components/layout/Header'
-import Footer     from './components/layout/Footer'
-import Dashboard  from './pages/Dashboard'
-import Groups     from './pages/Groups'
-import GroupDetail from './pages/GroupDetail'
-import Bracket    from './pages/Bracket'
-import Teams      from './pages/Teams'
-import TeamDetail from './pages/TeamDetail'
-import Predictions from './pages/Predictions'
-import Broadcast  from './pages/Broadcast'
-import Schedule   from './pages/Schedule'
-import News       from './pages/News'
-import History    from './pages/History'
-import Scorers    from './pages/Scorers'
-import MatchDetail from './pages/MatchDetail'
+import Header        from './components/layout/Header'
+import Footer        from './components/layout/Footer'
+import LoadingSpinner from './components/ui/LoadingSpinner'
+
+const Dashboard   = lazy(() => import('./pages/Dashboard'))
+const Groups      = lazy(() => import('./pages/Groups'))
+const GroupDetail = lazy(() => import('./pages/GroupDetail'))
+const Bracket     = lazy(() => import('./pages/Bracket'))
+const Teams       = lazy(() => import('./pages/Teams'))
+const TeamDetail  = lazy(() => import('./pages/TeamDetail'))
+const Predictions = lazy(() => import('./pages/Predictions'))
+const Schedule    = lazy(() => import('./pages/Schedule'))
+const News        = lazy(() => import('./pages/News'))
+const Broadcast   = lazy(() => import('./pages/Broadcast'))
+const History     = lazy(() => import('./pages/History'))
+const Scorers     = lazy(() => import('./pages/Scorers'))
+const MatchDetail = lazy(() => import('./pages/MatchDetail'))
 
 export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl animate-fade-in">
-        <Routes>
-          <Route path="/"              element={<Dashboard />}  />
-          <Route path="/grupos"        element={<Groups />}     />
-          <Route path="/grupos/:id"    element={<GroupDetail />}/>
-          <Route path="/llaves"        element={<Bracket />}    />
-          <Route path="/equipos"       element={<Teams />}      />
-          <Route path="/equipos/:code" element={<TeamDetail />} />
-          <Route path="/predicciones"  element={<Predictions />}/>
-          <Route path="/calendario"    element={<Schedule />}   />
-          <Route path="/noticias"      element={<News />}       />
-          <Route path="/donde-ver"     element={<Broadcast />}  />
-          <Route path="/historia"      element={<History />}    />
-          <Route path="/goleadores"    element={<Scorers />}    />
-          <Route path="/partido/:id"   element={<MatchDetail />}/>
-        </Routes>
+        <Suspense fallback={<LoadingSpinner fullPage />}>
+          <Routes>
+            <Route path="/"              element={<Dashboard />}  />
+            <Route path="/grupos"        element={<Groups />}     />
+            <Route path="/grupos/:id"    element={<GroupDetail />}/>
+            <Route path="/llaves"        element={<Bracket />}    />
+            <Route path="/equipos"       element={<Teams />}      />
+            <Route path="/equipos/:code" element={<TeamDetail />} />
+            <Route path="/predicciones"  element={<Predictions />}/>
+            <Route path="/calendario"    element={<Schedule />}   />
+            <Route path="/noticias"      element={<News />}       />
+            <Route path="/donde-ver"     element={<Broadcast />}  />
+            <Route path="/historia"      element={<History />}    />
+            <Route path="/goleadores"    element={<Scorers />}    />
+            <Route path="/partido/:id"   element={<MatchDetail />}/>
+          </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

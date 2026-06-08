@@ -1,7 +1,7 @@
 // MatchAI.jsx — Análisis con IA y simulación estadística del partido
-// Usa la API de Anthropic directamente desde el frontend
 
 import { useState, useCallback } from 'react'
+import { useAnalysis } from '../../hooks/useAnalysis'
 import { getHistory } from '../../data/history'
 import { GROUPS } from '../../data/groups'
 
@@ -149,10 +149,8 @@ export default function MatchAI({ homeCode, awayCode, matchDate, group }) {
   const [simLoading, setSimLoading] = useState(false)
   const [simCount, setSimCount] = useState(1000)
 
-  const [aiResponse, setAiResponse] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
   const [question, setQuestion] = useState('')
-  const [asked, setAsked] = useState(false)
+  const { text: aiResponse, streaming, loading: aiLoading, error: aiError, ask } = useAnalysis()
 
   const homeTeam = ALL_TEAMS[homeCode]
   const awayTeam = ALL_TEAMS[awayCode]
@@ -170,11 +168,8 @@ export default function MatchAI({ homeCode, awayCode, matchDate, group }) {
   }, [homeCode, awayCode, simCount])
 
   // Preguntar a Claude
-  const askClaude = useCallback(async () => {
+  const askClaude = useCallback(() => {
     if (!question.trim()) return
-    setAiLoading(true)
-    setAiResponse('')
-    setAsked(true)
 
     const context = `
 Partido: ${homeTeam?.name} vs ${awayTeam?.name}
@@ -186,30 +181,14 @@ Historial mundialista ${awayTeam?.name}: ${awayHist ? `${awayHist.participations
 ${sim ? `Simulación (${sim.iterations.toLocaleString()} iteraciones): ${homeTeam?.name} gana ${sim.homeWin}% | Empate ${sim.draw}% | ${awayTeam?.name} gana ${sim.awayWin}%` : ''}
     `.trim()
 
-    try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system: `Eres un analista deportivo experto en fútbol mundial. Respondes en español, de forma clara, informativa y apasionada.
+    ask({
+      system: `Eres un analista deportivo experto en fútbol mundial. Respondes en español, de forma clara, informativa y apasionada.
 IMPORTANTE: Nunca hagas recomendaciones de apuestas. Solo análisis deportivo basado en datos históricos y estadísticas.
 Contexto del partido: ${context}`,
-          message: question,
-        })
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      if (data.text && data.text.length > 0) {
-        setAiResponse(data.text)
-      } else {
-        setAiResponse('No se pudo obtener respuesta. Intenta de nuevo.')
-      }
-    } catch (err) {
-      setAiResponse('Error al conectar con el análisis. Intenta de nuevo.')
-      console.error(err)
-    }
-    setAiLoading(false)
-  }, [question, homeTeam, awayTeam, homeHist, awayHist, matchDate, group, sim])
+      message: question,
+      matchId: `${homeCode}-${awayCode}`,
+    })
+  }, [question, homeTeam, awayTeam, homeHist, awayHist, matchDate, group, sim, ask, homeCode, awayCode])
 
   const suggestedQuestions = [
     `¿Cuáles son las fortalezas y debilidades de ${homeTeam?.name} para este partido?`,
@@ -365,37 +344,51 @@ Contexto del partido: ${context}`,
               type="text"
               value={question}
               onChange={e => setQuestion(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !aiLoading && askClaude()}
+              onKeyDown={e => e.key === 'Enter' && !(aiLoading || streaming) && askClaude()}
               placeholder={`Pregunta sobre ${homeTeam?.name} vs ${awayTeam?.name}...`}
               className="flex-1 bg-slate-700 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-colors"
             />
             <button
               onClick={askClaude}
-              disabled={aiLoading || !question.trim()}
+              disabled={aiLoading || streaming || !question.trim()}
               className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-white text-sm font-bold transition-all disabled:opacity-40 flex-shrink-0"
             >
-              {aiLoading ? '⟳' : '→'}
+              {(aiLoading || streaming) ? '⟳' : '→'}
             </button>
           </div>
 
           {/* Respuesta */}
-          {aiLoading && (
+          {aiLoading && !streaming && (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-700/30">
               <span className="text-orange-400 animate-pulse text-xl">🤖</span>
               <span className="text-slate-400 text-sm">Analizando el partido...</span>
             </div>
           )}
 
-          {aiResponse && !aiLoading && (
+          {aiError && !aiLoading && !streaming && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+              {aiError}
+            </div>
+          )}
+
+          {(aiResponse || streaming) && (
             <div className="p-4 rounded-xl bg-slate-700/20 border border-slate-600/30">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-orange-400">🤖</span>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Análisis IA</span>
+                {streaming && (
+                  <span className="ml-auto text-xs text-orange-400 animate-pulse">Escribiendo...</span>
+                )}
               </div>
-              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
-              <p className="text-xs text-slate-600 mt-3 border-t border-slate-700 pt-2">
-                ⚠️ Este análisis es informativo y no constituye recomendación de apuesta.
+              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+                {aiResponse}
+                {streaming && <span className="inline-block w-0.5 h-4 bg-orange-400 animate-pulse ml-0.5 align-middle" />}
               </p>
+              {!streaming && aiResponse && (
+                <p className="text-xs text-slate-600 mt-3 border-t border-slate-700 pt-2">
+                  ⚠️ Este análisis es informativo y no constituye recomendación de apuesta.
+                </p>
+              )}
             </div>
           )}
         </div>
