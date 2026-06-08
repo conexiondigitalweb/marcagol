@@ -151,18 +151,31 @@ export function getMatchStatus(fixture) {
 // Tipo de evento en español con ícono
 export function getEventIcon(type, detail) {
   if (type === 'Goal') {
-    if (detail?.includes('Penalty')) return { icon: '⚽🅿️', label: 'Gol de penal' }
-    if (detail?.includes('Own Goal')) return { icon: '⚽🔴', label: 'Gol en contra' }
+    if (detail?.includes('Missed Penalty')) return { icon: '❌', label: 'Penal fallado' }
+    if (detail?.includes('Own Goal'))       return { icon: '⚽', label: 'Gol en contra' }
+    if (detail?.includes('Penalty'))        return { icon: '⚽', label: 'Gol de penal' }
     return { icon: '⚽', label: 'Gol' }
   }
   if (type === 'Card') {
-    if (detail?.includes('Yellow')) return { icon: '🟨', label: 'Tarjeta amarilla' }
-    if (detail?.includes('Red')) return { icon: '🟥', label: 'Tarjeta roja' }
+    const d = detail || ''
+    if (d.includes('Yellow Red') || d.includes('Second Yellow')) return { icon: '🟥', label: 'Doble amarilla / Expulsión' }
+    if (d.includes('Yellow')) return { icon: '🟨', label: 'Tarjeta amarilla' }
+    if (d.includes('Red'))    return { icon: '🟥', label: 'Tarjeta roja' }
     return { icon: '🃏', label: 'Tarjeta' }
   }
   if (type === 'subst') return { icon: '🔄', label: 'Sustitución' }
-  if (type === 'Var') return { icon: '📺', label: 'VAR' }
-  return { icon: '•', label: type }
+  if (type === 'Var') {
+    const d = (detail || '').toLowerCase()
+    if (d.includes('disallowed') || d.includes('anulado')) return { icon: '❌', label: 'Gol anulado por VAR' }
+    if (d.includes('confirmed') || d.includes('confirmado')) return { icon: '✅', label: 'Gol confirmado por VAR' }
+    if (d.includes('card'))   return { icon: '📺', label: 'Tarjeta revisada por VAR' }
+    if (d.includes('penalty')) return { icon: '📺', label: 'Penalti revisado por VAR' }
+    return { icon: '📺', label: 'Revisión VAR' }
+  }
+  if (type === 'Corner')      return { icon: '🏁', label: 'Tiro de esquina' }
+  if (type === 'Shot on Goal') return { icon: '🎯', label: 'Tiro al arco' }
+  if (type === 'Penalty')     return { icon: '🥊', label: 'Penalti' }
+  return { icon: '·', label: type }
 }
 
 // Limpiar cache (llamar cuando se cambia de partido)

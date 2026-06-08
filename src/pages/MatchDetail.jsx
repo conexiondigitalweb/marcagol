@@ -392,13 +392,28 @@ function EventRow({ event, homeId }) {
   const isHome = homeId != null
     ? event.team?.id === homeId
     : event.team?.id === event.fixture?.homeTeam?.id
+  const isSubst = event.type === 'subst'
+
   return (
     <div className={`flex items-center gap-3 py-2.5 border-b border-slate-700/20 last:border-0 ${isHome ? 'flex-row' : 'flex-row-reverse'}`}>
-      <span className="text-slate-500 text-xs font-mono w-8 text-center flex-shrink-0">{event.time?.elapsed}'</span>
+      <span className="text-slate-500 text-xs font-mono w-8 text-center flex-shrink-0 tabular-nums">
+        {event.time?.elapsed}{event.time?.extra ? `+${event.time.extra}` : ''}'
+      </span>
       <span className="text-lg flex-shrink-0">{icon}</span>
-      <div className={`flex-1 ${isHome ? 'text-left' : 'text-right'}`}>
-        <p className="text-sm font-semibold text-white">{event.player?.name}</p>
-        {event.assist?.name && <p className="text-xs text-slate-500">Asistencia: {event.assist.name}</p>}
+      <div className={`flex-1 min-w-0 ${isHome ? 'text-left' : 'text-right'}`}>
+        {isSubst ? (
+          <>
+            <p className="text-sm font-semibold text-green-400 truncate">↑ {event.assist?.name ?? '—'}</p>
+            <p className="text-xs text-slate-500 truncate">↓ {event.player?.name}</p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-semibold text-white truncate">{event.player?.name}</p>
+            {event.assist?.name && (
+              <p className="text-xs text-slate-500 truncate">Asistencia: {event.assist.name}</p>
+            )}
+          </>
+        )}
         <p className="text-xs text-slate-600">{label}</p>
       </div>
     </div>
@@ -493,7 +508,11 @@ export default function MatchDetail() {
               {extEvents.length === 0 ? (
                 <div className="py-16 text-center text-slate-500">
                   <p className="text-3xl mb-3">⏱️</p>
-                  <p>Los eventos aparecerán cuando inicie el partido.</p>
+                  {['1H','2H','ET','BT','PEN'].includes(externalFixture.fixture.status.short) ? (
+                    <p className="text-sm">Sin eventos aún<br/><span className="text-slate-600 text-xs">Goles, tarjetas y cambios aparecerán aquí en tiempo real</span></p>
+                  ) : (
+                    <p className="text-sm">Los eventos aparecerán cuando inicie el partido.</p>
+                  )}
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
