@@ -5,7 +5,6 @@ import { getMatchesByGroup } from '../data/matches'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
-import { TEAM_IDS } from '../data/teamIds'
 import { getSquad, getCoach } from '../data/squads'
 import { getHistory } from '../data/history'
 
@@ -104,16 +103,6 @@ export default function TeamDetail() {
         />
         <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6">
           <Flag iso2={team.iso2} size="xl" className="rounded-lg shadow-xl" />
-          <img
-            src={`https://media.api-sports.io/football/teams/${TEAM_IDS[team.code]}.png`}
-            width={80}
-            height={80}
-            alt={team.name}
-            className="rounded-lg shadow-xl object-contain flex-shrink-0"
-            style={{ background: '#1E293B', padding: '6px' }}
-            onError={(e) => { e.target.onerror = null; e.target.style.display = 'none' }}
-            loading="lazy"
-          />
           <div className="text-center sm:text-left">
             <ConfederationBadge confederation={team.confederation} />
             <h1 className="text-4xl font-black text-white mt-2 mb-1">{team.name}</h1>
