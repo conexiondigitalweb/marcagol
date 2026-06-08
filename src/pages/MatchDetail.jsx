@@ -385,6 +385,69 @@ function ExternalMatchHeader({ f }) {
   )
 }
 
+// ─── Detección de goles anulados ─────────────────────────────────────────────
+// Compara eventos Goal con el marcador real del fixture.
+// Estrategia 1: empareja con eventos Var "Goal Disallowed" por equipo + minuto.
+// Estrategia 2: si hay más Goal events que goles reales, marca los más recientes.
+function markDisallowedGoals(events, fixture) {
+  if (!events?.length || !fixture) return events
+
+  const homeId = fixture.teams?.home?.id
+  const awayId = fixture.teams?.away?.id
+  const actualHome = fixture.goals?.home ?? 0
+  const actualAway = fixture.goals?.away ?? 0
+
+  // Índices de goles que suman al marcador de cada equipo
+  const isHomeScore = (e) =>
+    e.type === 'Goal' && e.detail !== 'Missed Penalty' &&
+    ((e.team?.id === homeId && e.detail !== 'Own Goal') ||
+     (e.team?.id === awayId && e.detail === 'Own Goal'))
+  const isAwayScore = (e) =>
+    e.type === 'Goal' && e.detail !== 'Missed Penalty' &&
+    ((e.team?.id === awayId && e.detail !== 'Own Goal') ||
+     (e.team?.id === homeId && e.detail === 'Own Goal'))
+
+  const homeIdxs = events.reduce((a, e, i) => { if (isHomeScore(e)) a.push(i); return a }, [])
+  const awayIdxs = events.reduce((a, e, i) => { if (isAwayScore(e)) a.push(i); return a }, [])
+  const homeExcess = homeIdxs.length - actualHome
+  const awayExcess = awayIdxs.length - actualAway
+
+  const varDisallowed = events
+    .map((e, i) => ({ e, i }))
+    .filter(({ e }) => e.type === 'Var' && (e.detail || '').toLowerCase().includes('disallowed'))
+
+  if (varDisallowed.length === 0 && homeExcess <= 0 && awayExcess <= 0) return events
+
+  const disallowed = new Set()
+
+  // Estrategia 1: emparejar por equipo + ventana de 5 minutos
+  for (const { e: varEvt } of varDisallowed) {
+    const allGoalIdxs = [...homeIdxs, ...awayIdxs]
+    const candidates = allGoalIdxs
+      .filter(i => !disallowed.has(i) && events[i].team?.id === varEvt.team?.id)
+      .filter(i => {
+        const diff = (varEvt.time?.elapsed ?? 0) - (events[i].time?.elapsed ?? 0)
+        return diff >= 0 && diff <= 5
+      })
+      .sort((a, b) =>
+        Math.abs((varEvt.time?.elapsed ?? 0) - (events[a].time?.elapsed ?? 0)) -
+        Math.abs((varEvt.time?.elapsed ?? 0) - (events[b].time?.elapsed ?? 0))
+      )
+    if (candidates.length) disallowed.add(candidates[0])
+  }
+
+  // Estrategia 2: exceso sin VAR → marcar los más recientes
+  const markExcess = (idxs, excess) => {
+    const candidates = [...idxs].filter(i => !disallowed.has(i)).reverse()
+    for (let n = 0; n < excess && n < candidates.length; n++) disallowed.add(candidates[n])
+  }
+  if (homeExcess > 0) markExcess(homeIdxs, homeExcess)
+  if (awayExcess > 0) markExcess(awayIdxs, awayExcess)
+
+  if (!disallowed.size) return events
+  return events.map((e, i) => disallowed.has(i) ? { ...e, _disallowed: true } : e)
+}
+
 // ─── EventRow ─────────────────────────────────────────────────────────────────
 function EventRow({ event, homeId }) {
   const { icon, label } = getEventIcon(event.type, event.detail)
@@ -392,14 +455,15 @@ function EventRow({ event, homeId }) {
   const isHome = homeId != null
     ? event.team?.id === homeId
     : event.team?.id === event.fixture?.homeTeam?.id
-  const isSubst = event.type === 'subst'
+  const isSubst      = event.type === 'subst'
+  const isDisallowed = event._disallowed
 
   return (
-    <div className={`flex items-center gap-3 py-2.5 border-b border-slate-700/20 last:border-0 ${isHome ? 'flex-row' : 'flex-row-reverse'}`}>
+    <div className={`flex items-center gap-3 py-2.5 border-b border-slate-700/20 last:border-0 ${isHome ? 'flex-row' : 'flex-row-reverse'} ${isDisallowed ? 'opacity-60' : ''}`}>
       <span className="text-slate-500 text-xs font-mono w-8 text-center flex-shrink-0 tabular-nums">
         {event.time?.elapsed}{event.time?.extra ? `+${event.time.extra}` : ''}'
       </span>
-      <span className="text-lg flex-shrink-0">{icon}</span>
+      <span className="text-lg flex-shrink-0">{isDisallowed ? '❌' : icon}</span>
       <div className={`flex-1 min-w-0 ${isHome ? 'text-left' : 'text-right'}`}>
         {isSubst ? (
           <>
@@ -408,13 +472,17 @@ function EventRow({ event, homeId }) {
           </>
         ) : (
           <>
-            <p className="text-sm font-semibold text-white truncate">{event.player?.name}</p>
-            {event.assist?.name && (
+            <p className={`text-sm font-semibold truncate ${isDisallowed ? 'line-through text-slate-500' : 'text-white'}`}>
+              {event.player?.name}
+            </p>
+            {event.assist?.name && !isDisallowed && (
               <p className="text-xs text-slate-500 truncate">Asistencia: {event.assist.name}</p>
             )}
           </>
         )}
-        <p className="text-xs text-slate-600">{label}</p>
+        <p className={`text-xs ${isDisallowed ? 'text-red-400/70' : 'text-slate-600'}`}>
+          {isDisallowed ? 'Gol anulado' : label}
+        </p>
       </div>
     </div>
   )
@@ -516,7 +584,9 @@ export default function MatchDetail() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
-                  {[...extEvents].reverse().map((e, i) => <EventRow key={i} event={e} homeId={homeTeamId} />)}
+                  {[...markDisallowedGoals(extEvents, externalFixture)].reverse().map((e, i) => (
+                    <EventRow key={i} event={e} homeId={homeTeamId} />
+                  ))}
                 </div>
               )}
             </div>
