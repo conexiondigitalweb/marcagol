@@ -187,26 +187,19 @@ ${sim ? `Simulación (${sim.iterations.toLocaleString()} iteraciones): ${homeTea
     `.trim()
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/analyze', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
           system: `Eres un analista deportivo experto en fútbol mundial. Respondes en español, de forma clara, informativa y apasionada.
 IMPORTANTE: Nunca hagas recomendaciones de apuestas. Solo análisis deportivo basado en datos históricos y estadísticas.
 Contexto del partido: ${context}`,
-          messages: [{ role: 'user', content: question }],
+          message: question,
         })
       })
       const data = await res.json()
-      const text = data.content?.map(c => c.text || '').join('') || 'No se pudo obtener respuesta.'
-      setAiResponse(text)
+      if (!res.ok) throw new Error(data.error || 'Error')
+      setAiResponse(data.text || 'No se pudo obtener respuesta.')
     } catch (err) {
       setAiResponse('Error al conectar con el análisis. Intenta de nuevo.')
       console.error(err)
