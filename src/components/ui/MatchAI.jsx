@@ -1,6 +1,7 @@
 // MatchAI.jsx — Análisis con IA y simulación estadística del partido
 
 import { useState, useCallback } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useAnalysis } from '../../hooks/useAnalysis'
 import { getHistory } from '../../data/history'
 import { GROUPS } from '../../data/groups'
@@ -141,6 +142,21 @@ function ProbBar({ homeVal, drawVal, awayVal, homeName, awayName }) {
       </div>
     </div>
   )
+}
+
+// ─── Estilos para ReactMarkdown ───────────────────────────────────────────────
+const MD_COMPONENTS = {
+  p:      ({ children }) => <p className="my-1.5">{children}</p>,
+  strong: ({ children }) => <strong className="font-bold text-white">{children}</strong>,
+  em:     ({ children }) => <em className="italic text-slate-300">{children}</em>,
+  h1:     ({ children }) => <h1 className="text-base font-bold text-white mt-3 mb-1">{children}</h1>,
+  h2:     ({ children }) => <h2 className="text-base font-bold text-white mt-3 mb-1">{children}</h2>,
+  h3:     ({ children }) => <h3 className="text-sm font-bold text-slate-200 mt-2 mb-0.5">{children}</h3>,
+  ul:     ({ children }) => <ul className="list-disc list-inside space-y-0.5 my-1.5 pl-2">{children}</ul>,
+  ol:     ({ children }) => <ol className="list-decimal list-inside space-y-0.5 my-1.5 pl-2">{children}</ol>,
+  li:     ({ children }) => <li className="text-slate-200">{children}</li>,
+  hr:     () => <hr className="border-slate-600 my-3" />,
+  code:   ({ children }) => <code className="bg-slate-700 px-1.5 py-0.5 rounded text-xs text-sky-300 font-mono">{children}</code>,
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -380,10 +396,10 @@ Contexto del partido: ${context}`,
                   <span className="ml-auto text-xs text-orange-400 animate-pulse">Escribiendo...</span>
                 )}
               </div>
-              <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
-                {aiResponse}
+              <div className="text-sm text-slate-200 leading-relaxed space-y-2">
+                <ReactMarkdown components={MD_COMPONENTS}>{aiResponse}</ReactMarkdown>
                 {streaming && <span className="inline-block w-0.5 h-4 bg-orange-400 animate-pulse ml-0.5 align-middle" />}
-              </p>
+              </div>
               {!streaming && aiResponse && (
                 <p className="text-xs text-slate-600 mt-3 border-t border-slate-700 pt-2">
                   ⚠️ Este análisis es informativo y no constituye recomendación de apuesta.
