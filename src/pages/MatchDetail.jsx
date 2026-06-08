@@ -1,5 +1,5 @@
 // MatchDetail.jsx — Página de detalle de un partido
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { VENUES_BY_NAME } from '../data/venues'
@@ -233,30 +233,78 @@ function OddsPanel({ fixtureId }) {
   )
 }
 
-// ─── Hook: datos de un fixture externo (partido no-WC) ───────────────────────
-function useFixture(fixtureId, enabled) {
+// ─── Hook: todos los datos de un partido externo (no-WC) ─────────────────────
+// Polling diferenciado: marcador 30s · eventos 45s · stats 60s · lineups 5min
+// Se detiene automáticamente en HT (descanso) y FT/AET/PEN (finalizado)
+function useExternalMatchData(fixtureId, enabled) {
   const [fixture, setFixture] = useState(null)
+  const [events,  setEvents]  = useState([])
+  const [stats,   setStats]   = useState([])
+  const [lineups, setLineups] = useState([])
   const [loading, setLoading] = useState(enabled)
+  const statusRef = useRef(null)
 
   useEffect(() => {
     if (!enabled || !fixtureId) return
     let alive = true
-    async function load() {
-      try {
-        const r = await fetch(
-          `https://v3.football.api-sports.io/fixtures?id=${fixtureId}`,
-          { headers: { 'x-apisports-key': API_KEY }, signal: AbortSignal.timeout(8000) }
-        )
-        const data = await r.json()
-        if (alive) { setFixture(data.response?.[0] ?? null); setLoading(false) }
-      } catch { if (alive) setLoading(false) }
+
+    const STOP = new Set(['HT', 'FT', 'AET', 'PEN'])
+    const done = () => !alive || STOP.has(statusRef.current)
+
+    async function apiFetch(path) {
+      const r = await fetch(`https://v3.football.api-sports.io${path}`, {
+        headers: { 'x-apisports-key': API_KEY },
+        signal: AbortSignal.timeout(8000),
+      })
+      const data = await r.json()
+      return data.response ?? []
     }
-    load()
-    const interval = setInterval(load, 60000)
-    return () => { alive = false; clearInterval(interval) }
+
+    async function pollFixture() {
+      try {
+        const data = await apiFetch(`/fixtures?id=${fixtureId}`)
+        if (!alive) return
+        const f = data[0] ?? null
+        setFixture(f)
+        setLoading(false)
+        statusRef.current = f?.fixture?.status?.short ?? null
+      } catch { if (alive) setLoading(false) }
+      if (!done()) setTimeout(pollFixture, 30000)
+    }
+
+    async function pollEvents() {
+      try {
+        const data = await apiFetch(`/fixtures/events?fixture=${fixtureId}`)
+        if (alive && data.length) setEvents(data)
+      } catch {}
+      if (!done()) setTimeout(pollEvents, 45000)
+    }
+
+    async function pollStats() {
+      try {
+        const data = await apiFetch(`/fixtures/statistics?fixture=${fixtureId}`)
+        if (alive && data.length) setStats(data)
+      } catch {}
+      if (!done()) setTimeout(pollStats, 60000)
+    }
+
+    async function pollLineups() {
+      try {
+        const data = await apiFetch(`/fixtures/lineups?fixture=${fixtureId}`)
+        if (alive && data.length) setLineups(data)
+      } catch {}
+      if (!done()) setTimeout(pollLineups, 5 * 60 * 1000)
+    }
+
+    pollFixture()
+    pollEvents()
+    pollStats()
+    pollLineups()
+
+    return () => { alive = false }
   }, [fixtureId, enabled])
 
-  return { fixture, loading }
+  return { fixture, events, stats, lineups, loading }
 }
 
 // ─── Header para partidos externos (no del Mundial) ───────────────────────────
@@ -338,9 +386,12 @@ function ExternalMatchHeader({ f }) {
 }
 
 // ─── EventRow ─────────────────────────────────────────────────────────────────
-function EventRow({ event }) {
+function EventRow({ event, homeId }) {
   const { icon, label } = getEventIcon(event.type, event.detail)
-  const isHome = event.team?.id === event.fixture?.homeTeam?.id
+  // homeId viene del fixture para partidos externos; fallback al campo legacy
+  const isHome = homeId != null
+    ? event.team?.id === homeId
+    : event.team?.id === event.fixture?.homeTeam?.id
   return (
     <div className={`flex items-center gap-3 py-2.5 border-b border-slate-700/20 last:border-0 ${isHome ? 'flex-row' : 'flex-row-reverse'}`}>
       <span className="text-slate-500 text-xs font-mono w-8 text-center flex-shrink-0">{event.time?.elapsed}'</span>
@@ -387,7 +438,7 @@ export default function MatchDetail() {
   const group      = matchData?.group || ''
 
   // Llamada incondicional (reglas de hooks) — activa solo para partidos externos
-  const { fixture: externalFixture, loading: fixtureLoading } = useFixture(id, isExternal)
+  const extData = useExternalMatchData(id, isExternal)
 
   const homeStats = stats?.[0]?.statistics || []
   const awayStats = stats?.[1]?.statistics || []
@@ -397,7 +448,13 @@ export default function MatchDetail() {
 
   // ── Partido externo (no del Mundial) — usa fixture_id de la API directamente ──
   if (isExternal) {
-    if (fixtureLoading) return (
+    const { fixture: externalFixture, events: extEvents, stats: extStats,
+            lineups: extLineups, loading: extLoading } = extData
+    const extHomeStats = extStats?.[0]?.statistics || []
+    const extAwayStats = extStats?.[1]?.statistics || []
+    const homeTeamId   = externalFixture?.teams?.home?.id
+
+    if (extLoading) return (
       <div className="animate-slide-up max-w-3xl mx-auto">
         <Link to="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">← Volver</Link>
         <div className="card p-16 text-center text-slate-500">Cargando partido…</div>
@@ -429,85 +486,81 @@ export default function MatchDetail() {
             </button>
           ))}
         </div>
-        {loading ? (
-          <div className="card p-16 text-center text-slate-500">Cargando datos del partido…</div>
-        ) : (
-          <>
-            {tab === 'events' && (
-              <div className="card overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-700/50 font-semibold text-white" style={{ backgroundColor: '#162032' }}>Minuto a minuto</div>
-                {events.length === 0 ? (
-                  <div className="py-16 text-center text-slate-500">
-                    <p className="text-3xl mb-3">⏱️</p>
-                    <p>Los eventos aparecerán cuando inicie el partido.</p>
+        <>
+          {tab === 'events' && (
+            <div className="card overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-700/50 font-semibold text-white" style={{ backgroundColor: '#162032' }}>Minuto a minuto</div>
+              {extEvents.length === 0 ? (
+                <div className="py-16 text-center text-slate-500">
+                  <p className="text-3xl mb-3">⏱️</p>
+                  <p>Los eventos aparecerán cuando inicie el partido.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-700/20">
+                  {[...extEvents].reverse().map((e, i) => <EventRow key={i} event={e} homeId={homeTeamId} />)}
+                </div>
+              )}
+            </div>
+          )}
+          {tab === 'stats' && (
+            <div className="card p-5">
+              <h3 className="font-semibold text-white mb-5">Estadísticas del partido</h3>
+              {extHomeStats.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">Disponibles cuando inicie el partido.</p>
+              ) : (
+                <>
+                  <StatBar label="Posesión"           home={parseInt(getStat(extHomeStats,'Ball Possession'))} away={parseInt(getStat(extAwayStats,'Ball Possession'))} />
+                  <StatBar label="Tiros al arco"      home={getStat(extHomeStats,'Shots on Goal')}    away={getStat(extAwayStats,'Shots on Goal')} />
+                  <StatBar label="Total tiros"        home={getStat(extHomeStats,'Total Shots')}      away={getStat(extAwayStats,'Total Shots')} />
+                  <StatBar label="Corners"            home={getStat(extHomeStats,'Corner Kicks')}     away={getStat(extAwayStats,'Corner Kicks')} />
+                  <StatBar label="Faltas"             home={getStat(extHomeStats,'Fouls')}            away={getStat(extAwayStats,'Fouls')} />
+                  <StatBar label="Fueras de juego"    home={getStat(extHomeStats,'Offsides')}         away={getStat(extAwayStats,'Offsides')} />
+                  <StatBar label="Tarjetas amarillas" home={getStat(extHomeStats,'Yellow Cards')}     away={getStat(extAwayStats,'Yellow Cards')} />
+                  <StatBar label="Pases completados"  home={getStat(extHomeStats,'Passes accurate')}  away={getStat(extAwayStats,'Passes accurate')} />
+                </>
+              )}
+            </div>
+          )}
+          {tab === 'lineups' && (
+            <div className="grid md:grid-cols-2 gap-4">
+              {extLineups.length === 0 ? (
+                <div className="card p-16 text-center text-slate-500 md:col-span-2">
+                  <p className="text-3xl mb-3">👥</p>
+                  <p>Las alineaciones se publican 1 hora antes del partido.</p>
+                </div>
+              ) : extLineups.map((team, i) => (
+                <div key={i} className="card overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
+                    <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
+                    <span className="font-bold text-white text-sm">{team.team?.name}</span>
+                    <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
                   </div>
-                ) : (
                   <div className="divide-y divide-slate-700/20">
-                    {[...events].reverse().map((e, i) => <EventRow key={i} event={e} />)}
+                    {team.startXI?.map((p, j) => (
+                      <div key={j} className="flex items-center gap-3 px-4 py-2.5">
+                        <span className="w-6 text-center text-xs font-bold text-sky-400">{p.player?.number}</span>
+                        <span className="text-sm text-white">{p.player?.name}</span>
+                        <span className="text-xs text-slate-500 ml-auto">{p.player?.pos}</span>
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            )}
-            {tab === 'stats' && (
-              <div className="card p-5">
-                <h3 className="font-semibold text-white mb-5">Estadísticas del partido</h3>
-                {homeStats.length === 0 ? (
-                  <p className="text-center text-slate-500 py-8">Disponibles cuando inicie el partido.</p>
-                ) : (
-                  <>
-                    <StatBar label="Posesión"           home={parseInt(getStat(homeStats,'Ball Possession'))} away={parseInt(getStat(awayStats,'Ball Possession'))} />
-                    <StatBar label="Tiros al arco"      home={getStat(homeStats,'Shots on Goal')}    away={getStat(awayStats,'Shots on Goal')} />
-                    <StatBar label="Total tiros"        home={getStat(homeStats,'Total Shots')}      away={getStat(awayStats,'Total Shots')} />
-                    <StatBar label="Corners"            home={getStat(homeStats,'Corner Kicks')}     away={getStat(awayStats,'Corner Kicks')} />
-                    <StatBar label="Faltas"             home={getStat(homeStats,'Fouls')}            away={getStat(awayStats,'Fouls')} />
-                    <StatBar label="Fueras de juego"    home={getStat(homeStats,'Offsides')}         away={getStat(awayStats,'Offsides')} />
-                    <StatBar label="Tarjetas amarillas" home={getStat(homeStats,'Yellow Cards')}     away={getStat(awayStats,'Yellow Cards')} />
-                    <StatBar label="Pases completados"  home={getStat(homeStats,'Passes accurate')}  away={getStat(awayStats,'Passes accurate')} />
-                  </>
-                )}
-              </div>
-            )}
-            {tab === 'lineups' && (
-              <div className="grid md:grid-cols-2 gap-4">
-                {lineups.length === 0 ? (
-                  <div className="card p-16 text-center text-slate-500 md:col-span-2">
-                    <p className="text-3xl mb-3">👥</p>
-                    <p>Las alineaciones se publican 1 hora antes del partido.</p>
-                  </div>
-                ) : lineups.map((team, i) => (
-                  <div key={i} className="card overflow-hidden">
-                    <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
-                      <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
-                      <span className="font-bold text-white text-sm">{team.team?.name}</span>
-                      <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
-                    </div>
-                    <div className="divide-y divide-slate-700/20">
-                      {team.startXI?.map((p, j) => (
-                        <div key={j} className="flex items-center gap-3 px-4 py-2.5">
-                          <span className="w-6 text-center text-xs font-bold text-sky-400">{p.player?.number}</span>
-                          <span className="text-sm text-white">{p.player?.name}</span>
-                          <span className="text-xs text-slate-500 ml-auto">{p.player?.pos}</span>
+                  {team.substitutes?.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
+                      {team.substitutes.map((p, j) => (
+                        <div key={j} className="flex items-center gap-3 px-4 py-2 opacity-60">
+                          <span className="w-6 text-center text-xs font-bold text-slate-500">{p.player?.number}</span>
+                          <span className="text-sm text-slate-400">{p.player?.name}</span>
+                          <span className="text-xs text-slate-600 ml-auto">{p.player?.pos}</span>
                         </div>
                       ))}
-                    </div>
-                    {team.substitutes?.length > 0 && (
-                      <>
-                        <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
-                        {team.substitutes.map((p, j) => (
-                          <div key={j} className="flex items-center gap-3 px-4 py-2 opacity-60">
-                            <span className="w-6 text-center text-xs font-bold text-slate-500">{p.player?.number}</span>
-                            <span className="text-sm text-slate-400">{p.player?.name}</span>
-                            <span className="text-xs text-slate-600 ml-auto">{p.player?.pos}</span>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       </div>
     )
   }
