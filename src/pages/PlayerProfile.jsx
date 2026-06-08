@@ -141,7 +141,12 @@ export default function PlayerProfile() {
           ) : loading ? (
             <div className="w-20 h-20 rounded-full bg-slate-700/60 animate-pulse" />
           ) : (
-            <span className="text-5xl">{pos.icon}</span>
+            <img
+              src={`https://flagcdn.com/w80/${team.iso2.toLowerCase()}.png`}
+              alt={team.name}
+              className="w-20 h-20 rounded-full object-cover shadow-xl"
+              style={{ border: `3px solid ${pos.color}66` }}
+            />
           )}
           <div className="flex items-center gap-2">
             <Flag iso2={team.iso2} size="sm" />
