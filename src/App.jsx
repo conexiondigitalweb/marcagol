@@ -16,7 +16,8 @@ const News        = lazy(() => import('./pages/News'))
 const Broadcast   = lazy(() => import('./pages/Broadcast'))
 const History     = lazy(() => import('./pages/History'))
 const Scorers     = lazy(() => import('./pages/Scorers'))
-const MatchDetail = lazy(() => import('./pages/MatchDetail'))
+const MatchDetail    = lazy(() => import('./pages/MatchDetail'))
+const PlayerProfile  = lazy(() => import('./pages/PlayerProfile'))
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/historia"      element={<History />}    />
             <Route path="/goleadores"    element={<Scorers />}    />
             <Route path="/partido/:id"   element={<MatchDetail />}/>
+            <Route path="/jugador/:team/:number" element={<PlayerProfile />}/>
           </Routes>
         </Suspense>
       </main>

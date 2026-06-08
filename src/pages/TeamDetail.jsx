@@ -233,7 +233,11 @@ export default function TeamDetail() {
                   </div>
                   <div className="space-y-1.5">
                     {playersByPos[pos].map(player => (
-                      <div key={player.number} className="bg-slate-700/30 rounded-lg px-3 py-2">
+                      <Link
+                        key={player.number}
+                        to={`/jugador/${team.code}/${player.number}`}
+                        className="block bg-slate-700/30 hover:bg-slate-700/60 rounded-lg px-3 py-2 transition-colors"
+                      >
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-sky-400 w-5 text-center flex-shrink-0">
                             {player.number}
@@ -248,7 +252,7 @@ export default function TeamDetail() {
                             {player.age}
                           </span>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 </div>

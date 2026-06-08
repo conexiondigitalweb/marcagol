@@ -3,14 +3,10 @@ import axios from 'axios'
 const LEAGUE_ID = import.meta.env.VITE_WORLD_CUP_LEAGUE_ID || 22
 const SEASON    = import.meta.env.VITE_WORLD_CUP_SEASON    || 2026
 const API_KEY   = import.meta.env.VITE_API_FOOTBALL_KEY
-const API_HOST  = import.meta.env.VITE_API_FOOTBALL_HOST || 'api-football-v1.p.rapidapi.com'
 
 const client = axios.create({
-  baseURL: `https://${API_HOST}/v3`,
-  headers: {
-    'X-RapidAPI-Key': API_KEY,
-    'X-RapidAPI-Host': API_HOST,
-  },
+  baseURL: 'https://v3.football.api-sports.io',
+  headers: { 'x-apisports-key': API_KEY },
   timeout: 8000,
 })
 
@@ -53,6 +49,15 @@ export const apiFootball = {
     if (!isConfigured()) return null
     const { data } = await client.get('/players/topscorers', {
       params: { league: LEAGUE_ID, season: SEASON },
+    })
+    return data.response
+  },
+
+  // teamId requerido por la API junto a search
+  async searchPlayer(name, teamId, season = 2025) {
+    if (!isConfigured()) return null
+    const { data } = await client.get('/players', {
+      params: { search: name, team: teamId, season },
     })
     return data.response
   },
