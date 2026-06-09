@@ -469,30 +469,60 @@ function buildSubstMap(events) {
   return { entered, exited, expelled }
 }
 
-// Busca un nombre tolerando: acentos, inicial abreviada y solo apellido.
-// Normaliza ambos lados antes de cada comparación.
+// Busca un nombre en el mapa con matching robusto y detección de ambigüedad.
+// Estrategias en orden de confianza; las dos primeras retornan inmediatamente.
+// Las demás acumulan un score y el ganador único se devuelve al final.
 function lookupSubst(playerName, map) {
   if (!playerName) return undefined
-  const entries = Object.entries(map)
-  const norm = normName(playerName)
-  const parts = norm.split(/\s+/)
 
-  // 1. Coincidencia exacta normalizada
-  for (const [k, v] of entries) if (normName(k) === norm) return v
+  const norm      = normName(playerName)
+  const normParts = norm.split(/\s+/)
+  const entries   = Object.entries(map)
+  const scored    = []
 
-  // 2. Inicial + apellido(s): "tim stalheden" → "t. stalheden"
-  if (parts.length > 1) {
-    const abbr = `${parts[0][0]}. ${parts.slice(1).join(' ')}`
-    for (const [k, v] of entries) if (normName(k) === abbr) return v
+  for (const [rawKey, val] of entries) {
+    const nKey = normName(rawKey)
+
+    // 1. Exacto normalizado (diacríticos ya resueltos por normName)
+    if (nKey === norm) return val
+
+    // 2. Lineup → formato abreviado del evento: "Victor Backman" → "v. backman"
+    if (normParts.length > 1) {
+      const abbr = `${normParts[0][0]}. ${normParts.slice(1).join(' ')}`
+      if (nKey === abbr) return val
+    }
+
+    // 3. Evento en formato "X. Apellido(s)": extraer initial + tokens de apellido
+    //    y cruzar contra los tokens del nombre completo del lineup.
+    //    La inicial DEBE coincidir para evitar falsos positivos entre equipos.
+    if (/^[a-z]\. /.test(nKey)) {
+      const evtInitial      = nKey[0]
+      const evtSurnameParts = nKey.slice(3).split(/\s+/)
+      const initialOk       = normParts[0]?.[0] === evtInitial
+      const shared          = evtSurnameParts.filter(t => normParts.includes(t))
+      if (initialOk && shared.length > 0) {
+        scored.push({ val, score: 1 + shared.length })
+      }
+    } else {
+      // 4. Evento con nombre completo: fallback por último token (apellido)
+      const evtLast    = nKey.split(/\s+/).pop()
+      const lineupLast = normParts[normParts.length - 1]
+      if (evtLast && evtLast.length > 2 && evtLast === lineupLast) {
+        scored.push({ val, score: 1 })
+      }
+    }
   }
 
-  // 3. Solo apellido (última palabra) como último recurso
-  const lastName = parts[parts.length - 1]
-  for (const [k, v] of entries) {
-    if (normName(k).split(/\s+/).pop() === lastName) return v
+  if (scored.length === 0) return undefined
+  scored.sort((a, b) => b.score - a.score)
+
+  // Ambigüedad: dos candidatos con el mismo score → no aplicar match
+  if (scored.length > 1 && scored[0].score === scored[1].score) {
+    console.warn(`[lookupSubst] Ambiguous match for "${playerName}" — skipped`)
+    return undefined
   }
 
-  return undefined
+  return scored[0].val
 }
 
 // ─── StatItem (para modal de jugador) ────────────────────────────────────────
