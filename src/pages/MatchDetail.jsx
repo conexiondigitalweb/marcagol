@@ -16,7 +16,6 @@ const ALL_TEAMS = Object.fromEntries(
 
 const API_KEY = '217e3ccfd4e714fba62caf18ed3ef01d'
 
-// Convierte hora ET a local del usuario
 function toLocal(date, timeET) {
   if (!timeET) return { time: '--:--', tz: '' }
   try {
@@ -46,19 +45,16 @@ function MatchHeader({ match, liveData }) {
   const isLive = liveData && ['1H','HT','2H','ET','PEN','LIVE'].includes(liveData.status)
   const isFinished = liveData && ['FT','AET','PEN'].includes(liveData.status)
 
-  // Canales para Colombia
   const colBroadcast = BROADCAST_BY_COUNTRY
     .flatMap(r => r.countries)
     .find(c => c.iso2 === 'co')
 
   return (
     <div className="card overflow-hidden mb-6">
-      {/* Fondo degradado */}
       <div className="relative p-6" style={{
         background: 'linear-gradient(135deg, #0F2442 0%, #162032 100%)',
         borderBottom: '1px solid rgba(56,189,248,0.15)'
       }}>
-        {/* Grupo + Jornada */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
             Grupo {match.group} · Jornada {match.matchday} · Copa Mundial 2026
@@ -81,9 +77,7 @@ function MatchHeader({ match, liveData }) {
           )}
         </div>
 
-        {/* Equipos y marcador */}
         <div className="flex items-center justify-between gap-2 sm:gap-4">
-          {/* Local */}
           <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img
               src={`https://flagcdn.com/w80/${home?.iso2?.toLowerCase()}.png`}
@@ -97,7 +91,6 @@ function MatchHeader({ match, liveData }) {
             <span className="text-xs text-slate-500">#{home?.fifaRanking} FIFA</span>
           </div>
 
-          {/* Marcador / Hora */}
           <div className="text-center flex-shrink-0">
             {(isLive || isFinished) && liveData ? (
               <div>
@@ -118,7 +111,6 @@ function MatchHeader({ match, liveData }) {
             )}
           </div>
 
-          {/* Visitante */}
           <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img
               src={`https://flagcdn.com/w80/${away?.iso2?.toLowerCase()}.png`}
@@ -134,7 +126,6 @@ function MatchHeader({ match, liveData }) {
         </div>
       </div>
 
-      {/* Info del partido */}
       <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-700/50">
         <div className="p-4 text-center">
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">🏟️ Estadio</p>
@@ -200,7 +191,6 @@ function OddsPanel({ fixtureId }) {
   if (loading) return (
     <div className="card p-4 mb-6 text-center text-slate-500 text-sm">Cargando cuotas...</div>
   )
-
   if (!odds) return null
 
   return (
@@ -234,8 +224,7 @@ function OddsPanel({ fixtureId }) {
 }
 
 // ─── Hook: todos los datos de un partido externo (no-WC) ─────────────────────
-// Polling diferenciado: marcador 30s · eventos 45s · stats 60s · lineups 5min
-// Se detiene automáticamente en HT (descanso) y FT/AET/PEN (finalizado)
+// Polling diferenciado: marcador 30s · eventos 20s · stats 60s · lineups 5min
 function useExternalMatchData(fixtureId, enabled) {
   const [fixture, setFixture] = useState(null)
   const [events,  setEvents]  = useState([])
@@ -307,7 +296,7 @@ function useExternalMatchData(fixtureId, enabled) {
   return { fixture, events, stats, lineups, loading }
 }
 
-// ─── Header para partidos externos (no del Mundial) ───────────────────────────
+// ─── Header para partidos externos ───────────────────────────────────────────
 function ExternalMatchHeader({ f }) {
   const { teams, goals, fixture, league } = f
   const isLive     = ['1H','2H','HT','ET','BT','PEN'].includes(fixture.status.short)
@@ -386,9 +375,6 @@ function ExternalMatchHeader({ f }) {
 }
 
 // ─── Detección de goles anulados ─────────────────────────────────────────────
-// Compara eventos Goal con el marcador real del fixture.
-// Estrategia 1: empareja con eventos Var "Goal Disallowed" por equipo + minuto.
-// Estrategia 2: si hay más Goal events que goles reales, marca los más recientes.
 function markDisallowedGoals(events, fixture) {
   if (!events?.length || !fixture) return events
 
@@ -397,7 +383,6 @@ function markDisallowedGoals(events, fixture) {
   const actualHome = fixture.goals?.home ?? 0
   const actualAway = fixture.goals?.away ?? 0
 
-  // Índices de goles que suman al marcador de cada equipo
   const isHomeScore = (e) =>
     e.type === 'Goal' && e.detail !== 'Missed Penalty' &&
     ((e.team?.id === homeId && e.detail !== 'Own Goal') ||
@@ -420,7 +405,6 @@ function markDisallowedGoals(events, fixture) {
 
   const disallowed = new Set()
 
-  // Estrategia 1: emparejar por equipo + ventana de 5 minutos
   for (const { e: varEvt } of varDisallowed) {
     const allGoalIdxs = [...homeIdxs, ...awayIdxs]
     const candidates = allGoalIdxs
@@ -436,7 +420,6 @@ function markDisallowedGoals(events, fixture) {
     if (candidates.length) disallowed.add(candidates[0])
   }
 
-  // Estrategia 2: exceso sin VAR → marcar los más recientes
   const markExcess = (idxs, excess) => {
     const candidates = [...idxs].filter(i => !disallowed.has(i)).reverse()
     for (let n = 0; n < excess && n < candidates.length; n++) disallowed.add(candidates[n])
@@ -455,10 +438,187 @@ const shouldShowAssist = (event) =>
   !!event.assist?.name &&
   !NO_ASSIST_DETAILS.some(d => (event.detail || '').includes(d))
 
+// ─── Sustituciones: cruzar eventos con alineaciones ──────────────────────────
+// event.player.name = quien entra · event.assist.name = quien sale
+function buildSubstMap(events) {
+  const entered = {}, exited = {}
+  for (const e of events || []) {
+    if (e.type === 'subst') {
+      const min   = e.time?.elapsed ?? ''
+      const extra = e.time?.extra ? `+${e.time.extra}` : ''
+      const label = `${min}${extra}`
+      if (e.player?.name) entered[e.player.name] = label
+      if (e.assist?.name) exited[e.assist.name]  = label
+    }
+  }
+  return { entered, exited }
+}
+
+// ─── StatItem (para modal de jugador) ────────────────────────────────────────
+function StatItem({ label, value }) {
+  return (
+    <div className="flex justify-between py-1.5 border-b border-slate-700/30 last:border-0">
+      <span className="text-slate-400 text-sm">{label}</span>
+      <span className="text-white font-medium text-sm">{value ?? '—'}</span>
+    </div>
+  )
+}
+
+// ─── Modal de jugador ─────────────────────────────────────────────────────────
+function PlayerModal({ player, team, teamCode, fixturePlayersData, loading, onClose }) {
+  const teamStats = fixturePlayersData?.find(td => td.team?.id === team?.id)
+  const pdata     = teamStats?.players?.find(p =>
+    p.player?.id === player.player?.id || p.player?.name === player.player?.name
+  )
+  const s       = pdata?.statistics?.[0]
+  const photo   = pdata?.player?.photo
+  const minutes = s?.games?.minutes
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="card max-w-sm w-full overflow-hidden"
+        style={{ maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div
+          className="flex items-center justify-between px-4 py-3 border-b border-slate-700/50 sticky top-0"
+          style={{ backgroundColor: '#162032' }}
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            {team?.logo && <img src={team.logo} alt="" className="w-5 h-5 object-contain flex-shrink-0" />}
+            <span className="font-bold text-white text-sm truncate">{player.player?.name}</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white ml-2 flex-shrink-0 text-lg leading-none">✕</button>
+        </div>
+
+        <div className="p-4">
+          <div className="flex items-start gap-4 mb-5">
+            {photo ? (
+              <img
+                src={photo} alt=""
+                className="w-16 h-16 rounded-full object-cover bg-slate-700 flex-shrink-0"
+                onError={e => { e.target.style.display = 'none' }}
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-slate-700 flex-shrink-0 flex items-center justify-center text-2xl">👤</div>
+            )}
+            <div className="min-w-0">
+              <p className="text-white font-bold truncate">{player.player?.name}</p>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400">#{player.player?.number}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">{player.player?.pos}</span>
+              </div>
+              {s?.games?.rating && (
+                <p className="mt-1.5 text-xs">
+                  <span className="text-slate-500">Rating: </span>
+                  <span className="font-bold text-amber-400">{parseFloat(s.games.rating).toFixed(1)}</span>
+                </p>
+              )}
+            </div>
+          </div>
+
+          {loading && <p className="text-center text-slate-500 text-sm py-6">Cargando estadísticas…</p>}
+
+          {!loading && minutes > 0 && (
+            <div className="mb-4">
+              <StatItem label="Minutos jugados" value={minutes} />
+              <StatItem label="Goles" value={s.goals?.total ?? 0} />
+              <StatItem label="Asistencias" value={s.goals?.assists ?? 0} />
+              <StatItem label="Tiros / al arco" value={`${s.shots?.total ?? 0} / ${s.shots?.on ?? 0}`} />
+              <StatItem label="Pases / precisión" value={`${s.passes?.total ?? 0} / ${s.passes?.accuracy ?? 0}%`} />
+              <StatItem label="Duelos ganados" value={`${s.duels?.won ?? 0}/${s.duels?.total ?? 0}`} />
+              <StatItem label="Regates exitosos" value={s.dribbles?.success ?? 0} />
+              {(s.cards?.yellow > 0 || s.cards?.red > 0) && (
+                <StatItem label="Tarjetas" value={`${s.cards?.yellow ?? 0}🟨  ${s.cards?.red ?? 0}🟥`} />
+              )}
+            </div>
+          )}
+
+          {!loading && !(minutes > 0) && (
+            <p className="text-center text-slate-500 text-sm py-4">
+              {pdata ? 'No entró al partido.' : 'Sin estadísticas disponibles.'}
+            </p>
+          )}
+
+          {teamCode && (
+            <Link
+              to={`/jugador/${teamCode}/${player.player?.number}`}
+              onClick={onClose}
+              className="mt-3 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-700/50 text-sm text-slate-300 hover:text-white hover:bg-slate-700 transition-all w-full"
+            >
+              Ver perfil completo →
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tarjeta de alineación con sustituciones y clic en jugador ────────────────
+function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
+  const { entered, exited } = substMap
+  return (
+    <div className="card overflow-hidden">
+      <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
+        <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
+        <span className="font-bold text-white text-sm">{team.team?.name}</span>
+        <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
+      </div>
+
+      <div className="divide-y divide-slate-700/20">
+        {team.startXI?.map((p, j) => {
+          const exitMin = exited[p.player?.name]
+          return (
+            <button
+              key={j}
+              onClick={() => onPlayerClick(p, team.team, teamCode ?? null)}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-700/20 transition-colors ${exitMin ? 'opacity-50' : ''}`}
+            >
+              <span className="w-6 text-center text-xs font-bold text-sky-400 flex-shrink-0">{p.player?.number}</span>
+              <span className={`text-sm flex-1 min-w-0 truncate ${exitMin ? 'text-slate-500' : 'text-white'}`}>{p.player?.name}</span>
+              {exitMin
+                ? <span className="text-xs text-red-400 flex-shrink-0">🔴 {exitMin}'</span>
+                : <span className="text-xs text-slate-500 flex-shrink-0">{p.player?.pos}</span>
+              }
+            </button>
+          )
+        })}
+      </div>
+
+      {team.substitutes?.length > 0 && (
+        <>
+          <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
+          {team.substitutes.map((p, j) => {
+            const enterMin = entered[p.player?.name]
+            return (
+              <button
+                key={j}
+                onClick={() => onPlayerClick(p, team.team, teamCode ?? null)}
+                className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-700/20 transition-colors ${!enterMin ? 'opacity-60' : ''}`}
+              >
+                <span className="w-6 text-center text-xs font-bold text-slate-500 flex-shrink-0">{p.player?.number}</span>
+                <span className={`text-sm flex-1 min-w-0 truncate ${enterMin ? 'text-green-400 font-semibold' : 'text-slate-400'}`}>{p.player?.name}</span>
+                {enterMin
+                  ? <span className="text-xs text-green-400 flex-shrink-0">🟢 {enterMin}'</span>
+                  : <span className="text-xs text-slate-600 flex-shrink-0">{p.player?.pos}</span>
+                }
+              </button>
+            )
+          })}
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── EventRow ─────────────────────────────────────────────────────────────────
 function EventRow({ event, homeId }) {
   const { icon, label } = getEventIcon(event.type, event.detail)
-  // homeId viene del fixture para partidos externos; fallback al campo legacy
   const isHome = homeId != null
     ? event.team?.id === homeId
     : event.team?.id === event.fixture?.homeTeam?.id
@@ -521,6 +681,39 @@ export default function MatchDetail() {
   const { events, stats, lineups, loading, error } = useMatchDetail(id)
   const [tab, setTab] = useState('events')
 
+  // Estado del modal de jugador
+  const [selectedPlayer,   setSelectedPlayer]   = useState(null)
+  const [selectedTeam,     setSelectedTeam]     = useState(null)
+  const [selectedTeamCode, setSelectedTeamCode] = useState(null)
+  const [fixturePlayersData,    setFixturePlayersData]    = useState(null)
+  const [fixturePlayersLoading, setFixturePlayersLoading] = useState(false)
+  const fixturePlayersFetched = useRef(false)
+
+  const openPlayerModal = async (player, team, teamCode = null) => {
+    setSelectedPlayer(player)
+    setSelectedTeam(team)
+    setSelectedTeamCode(teamCode)
+    if (!fixturePlayersFetched.current) {
+      fixturePlayersFetched.current = true
+      setFixturePlayersLoading(true)
+      try {
+        const r = await fetch(
+          `https://v3.football.api-sports.io/fixtures/players?fixture=${id}`,
+          { headers: { 'x-apisports-key': API_KEY }, signal: AbortSignal.timeout(10000) }
+        )
+        const data = await r.json()
+        setFixturePlayersData(data.response || [])
+      } catch {}
+      setFixturePlayersLoading(false)
+    }
+  }
+
+  const closeModal = () => {
+    setSelectedPlayer(null)
+    setSelectedTeam(null)
+    setSelectedTeamCode(null)
+  }
+
   const matchData  = MATCHES?.find(m => m.id === Number(id))
   const isExternal = !matchData
   const homeCode   = matchData?.homeTeam || ''
@@ -528,7 +721,6 @@ export default function MatchDetail() {
   const matchDate  = matchData?.date || ''
   const group      = matchData?.group || ''
 
-  // Llamada incondicional (reglas de hooks) — activa solo para partidos externos
   const extData = useExternalMatchData(id, isExternal)
 
   const homeStats = stats?.[0]?.statistics || []
@@ -537,13 +729,16 @@ export default function MatchDetail() {
 
   const liveMatchData = null
 
-  // ── Partido externo (no del Mundial) — usa fixture_id de la API directamente ──
+  // ── Partido externo ──────────────────────────────────────────────────────────
   if (isExternal) {
     const { fixture: externalFixture, events: extEvents, stats: extStats,
             lineups: extLineups, loading: extLoading } = extData
     const extHomeStats = extStats?.[0]?.statistics || []
     const extAwayStats = extStats?.[1]?.statistics || []
     const homeTeamId   = externalFixture?.teams?.home?.id
+    const extStatus    = externalFixture?.fixture?.status?.short
+    const extStarted   = extStatus && extStatus !== 'NS'
+    const extSubstMap  = buildSubstMap(extEvents)
 
     if (extLoading) return (
       <div className="animate-slide-up max-w-3xl mx-auto">
@@ -558,10 +753,23 @@ export default function MatchDetail() {
         <Link to="/" className="btn-secondary mt-4 inline-block">← Volver al inicio</Link>
       </div>
     )
+
     return (
       <div className="animate-slide-up max-w-3xl mx-auto">
+        {selectedPlayer && (
+          <PlayerModal
+            player={selectedPlayer}
+            team={selectedTeam}
+            teamCode={selectedTeamCode}
+            fixturePlayersData={fixturePlayersData}
+            loading={fixturePlayersLoading}
+            onClose={closeModal}
+          />
+        )}
+
         <Link to="/" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">← Volver</Link>
         <ExternalMatchHeader f={externalFixture} />
+
         <div className="grid grid-cols-3 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
           {[
             { id: 'events',  label: 'Minuto a min.', icon: '⚽' },
@@ -577,6 +785,7 @@ export default function MatchDetail() {
             </button>
           ))}
         </div>
+
         <>
           {tab === 'events' && (
             <div className="card overflow-hidden">
@@ -599,11 +808,16 @@ export default function MatchDetail() {
               )}
             </div>
           )}
+
           {tab === 'stats' && (
             <div className="card p-5">
               <h3 className="font-semibold text-white mb-5">Estadísticas del partido</h3>
               {extHomeStats.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">Disponibles cuando inicie el partido.</p>
+                <p className="text-center text-slate-500 py-8">
+                  {extStarted
+                    ? 'Estadísticas no disponibles para este partido.'
+                    : 'Disponibles cuando inicie el partido.'}
+                </p>
               ) : (
                 <>
                   <StatBar label="Posesión"           home={parseInt(getStat(extHomeStats,'Ball Possession'))} away={parseInt(getStat(extAwayStats,'Ball Possession'))} />
@@ -618,42 +832,26 @@ export default function MatchDetail() {
               )}
             </div>
           )}
+
           {tab === 'lineups' && (
             <div className="grid md:grid-cols-2 gap-4">
               {extLineups.length === 0 ? (
                 <div className="card p-16 text-center text-slate-500 md:col-span-2">
                   <p className="text-3xl mb-3">👥</p>
-                  <p>Las alineaciones se publican 1 hora antes del partido.</p>
+                  <p>
+                    {extStarted
+                      ? 'Alineaciones no disponibles para este partido.'
+                      : 'Las alineaciones se publican 1 hora antes del partido.'}
+                  </p>
                 </div>
               ) : extLineups.map((team, i) => (
-                <div key={i} className="card overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
-                    <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
-                    <span className="font-bold text-white text-sm">{team.team?.name}</span>
-                    <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
-                  </div>
-                  <div className="divide-y divide-slate-700/20">
-                    {team.startXI?.map((p, j) => (
-                      <div key={j} className="flex items-center gap-3 px-4 py-2.5">
-                        <span className="w-6 text-center text-xs font-bold text-sky-400">{p.player?.number}</span>
-                        <span className="text-sm text-white">{p.player?.name}</span>
-                        <span className="text-xs text-slate-500 ml-auto">{p.player?.pos}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {team.substitutes?.length > 0 && (
-                    <>
-                      <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
-                      {team.substitutes.map((p, j) => (
-                        <div key={j} className="flex items-center gap-3 px-4 py-2 opacity-60">
-                          <span className="w-6 text-center text-xs font-bold text-slate-500">{p.player?.number}</span>
-                          <span className="text-sm text-slate-400">{p.player?.name}</span>
-                          <span className="text-xs text-slate-600 ml-auto">{p.player?.pos}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
+                <LineupTeamCard
+                  key={i}
+                  team={team}
+                  substMap={extSubstMap}
+                  onPlayerClick={openPlayerModal}
+                  teamCode={null}
+                />
               ))}
             </div>
           )}
@@ -662,19 +860,30 @@ export default function MatchDetail() {
     )
   }
 
+  // ── Partido del Mundial ──────────────────────────────────────────────────────
+  const wcStarted   = events.length > 0 || homeStats.length > 0
+  const wcSubstMap  = buildSubstMap(events)
+
   return (
     <div className="animate-slide-up max-w-3xl mx-auto">
+      {selectedPlayer && (
+        <PlayerModal
+          player={selectedPlayer}
+          team={selectedTeam}
+          teamCode={selectedTeamCode}
+          fixturePlayersData={fixturePlayersData}
+          loading={fixturePlayersLoading}
+          onClose={closeModal}
+        />
+      )}
+
       <Link to="/calendario" className="text-slate-400 hover:text-white text-sm mb-4 inline-block">
         ← Volver al calendario
       </Link>
 
-      {/* Header con info completa del partido */}
       <MatchHeader match={matchData} liveData={liveMatchData} />
-
-      {/* Cuotas de apuestas */}
       <OddsPanel fixtureId={id} />
 
-      {/* Tabs — compactas para móvil */}
       <div className="grid grid-cols-4 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
         {[
           { id: 'events',  label: 'Minuto a min.', icon: '⚽' },
@@ -696,7 +905,6 @@ export default function MatchDetail() {
         <div className="card p-16 text-center text-slate-500">Cargando datos del partido…</div>
       ) : (
         <>
-          {/* Minuto a minuto */}
           {tab === 'events' && (
             <div className="card overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-700/50 font-semibold text-white"
@@ -714,12 +922,15 @@ export default function MatchDetail() {
             </div>
           )}
 
-          {/* Estadísticas */}
           {tab === 'stats' && (
             <div className="card p-5">
               <h3 className="font-semibold text-white mb-5">Estadísticas del partido</h3>
               {homeStats.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">Disponibles cuando inicie el partido.</p>
+                <p className="text-center text-slate-500 py-8">
+                  {wcStarted
+                    ? 'Estadísticas no disponibles para este partido.'
+                    : 'Disponibles cuando inicie el partido.'}
+                </p>
               ) : (
                 <>
                   <StatBar label="Posesión"           home={parseInt(getStat(homeStats,'Ball Possession'))} away={parseInt(getStat(awayStats,'Ball Possession'))} />
@@ -735,49 +946,29 @@ export default function MatchDetail() {
             </div>
           )}
 
-          {/* Alineaciones */}
           {tab === 'lineups' && (
             <div className="grid md:grid-cols-2 gap-4">
               {lineups.length === 0 ? (
                 <div className="card p-16 text-center text-slate-500 md:col-span-2">
                   <p className="text-3xl mb-3">👥</p>
-                  <p>Las alineaciones se publican 1 hora antes del partido.</p>
+                  <p>
+                    {wcStarted
+                      ? 'Alineaciones no disponibles para este partido.'
+                      : 'Las alineaciones se publican 1 hora antes del partido.'}
+                  </p>
                 </div>
               ) : lineups.map((team, i) => (
-                <div key={i} className="card overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3"
-                    style={{ backgroundColor: '#162032' }}>
-                    <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
-                    <span className="font-bold text-white text-sm">{team.team?.name}</span>
-                    <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
-                  </div>
-                  <div className="divide-y divide-slate-700/20">
-                    {team.startXI?.map((p, j) => (
-                      <div key={j} className="flex items-center gap-3 px-4 py-2.5">
-                        <span className="w-6 text-center text-xs font-bold text-sky-400">{p.player?.number}</span>
-                        <span className="text-sm text-white">{p.player?.name}</span>
-                        <span className="text-xs text-slate-500 ml-auto">{p.player?.pos}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {team.substitutes?.length > 0 && (
-                    <>
-                      <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
-                      {team.substitutes.map((p, j) => (
-                        <div key={j} className="flex items-center gap-3 px-4 py-2 opacity-60">
-                          <span className="w-6 text-center text-xs font-bold text-slate-500">{p.player?.number}</span>
-                          <span className="text-sm text-slate-400">{p.player?.name}</span>
-                          <span className="text-xs text-slate-600 ml-auto">{p.player?.pos}</span>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
+                <LineupTeamCard
+                  key={i}
+                  team={team}
+                  substMap={wcSubstMap}
+                  onPlayerClick={openPlayerModal}
+                  teamCode={i === 0 ? homeCode : awayCode}
+                />
               ))}
             </div>
           )}
 
-          {/* Análisis IA */}
           {tab === 'ai' && (
             <MatchAI homeCode={homeCode} awayCode={awayCode} matchDate={matchDate} group={group} />
           )}
