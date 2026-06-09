@@ -438,42 +438,60 @@ const shouldShowAssist = (event) =>
   !!event.assist?.name &&
   !NO_ASSIST_DETAILS.some(d => (event.detail || '').includes(d))
 
-// ─── Sustituciones: cruzar eventos con alineaciones ──────────────────────────
+// ─── Sustituciones + expulsiones: cruzar eventos con alineaciones ────────────
 // API-Football: event.assist.name = quien entra · event.player.name = quien sale
-// (consistente con EventRow: ↑ assist verde = entra, ↓ player = sale)
-function buildSubstMap(events) {
-  const entered = {}, exited = {}
-  for (const e of events || []) {
-    if (e.type === 'subst') {
-      const min   = e.time?.elapsed ?? ''
-      const extra = e.time?.extra ? `+${e.time.extra}` : ''
-      const label = `${min}${extra}`
-      if (e.assist?.name) entered[e.assist.name] = label  // assist = entra
-      if (e.player?.name) exited[e.player.name]  = label  // player = sale
-    }
-  }
-  return { entered, exited }
+
+// Normaliza nombre para comparación: minúsculas + sin diacríticos
+function normName(s) {
+  return (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
 }
 
-// Busca un nombre en un mapa de sustituciones tolerando formatos distintos:
-// Alineación: "Tim Stalheden" · Evento: "T. Stalheden"
-// Prueba: 1) coincidencia exacta  2) abreviatura del nombre  3) apellido
+function fmtMin(time) {
+  return `${time?.elapsed ?? ''}${time?.extra ? `+${time.extra}` : ''}`
+}
+
+function buildSubstMap(events) {
+  const entered = {}, exited = {}, expelled = {}
+  for (const e of events || []) {
+    if (e.type === 'subst') {
+      const label = fmtMin(e.time)
+      if (e.assist?.name) entered[e.assist.name] = label   // assist = entra
+      if (e.player?.name) exited[e.player.name]  = label   // player = sale
+    }
+    if (e.type === 'Card') {
+      const d = e.detail || ''
+      if (d.includes('Red Card') || d.includes('Second Yellow') || d.includes('Yellow Red')) {
+        const label = fmtMin(e.time)
+        if (e.player?.name) expelled[e.player.name] = label
+      }
+    }
+  }
+  return { entered, exited, expelled }
+}
+
+// Busca un nombre tolerando: acentos, inicial abreviada y solo apellido.
+// Normaliza ambos lados antes de cada comparación.
 function lookupSubst(playerName, map) {
   if (!playerName) return undefined
-  if (map[playerName]) return map[playerName]
+  const entries = Object.entries(map)
+  const norm = normName(playerName)
+  const parts = norm.split(/\s+/)
 
-  const parts = playerName.trim().split(/\s+/)
-  // intento con inicial: "Tim Stalheden" → "T. Stalheden"
+  // 1. Coincidencia exacta normalizada
+  for (const [k, v] of entries) if (normName(k) === norm) return v
+
+  // 2. Inicial + apellido(s): "tim stalheden" → "t. stalheden"
   if (parts.length > 1) {
     const abbr = `${parts[0][0]}. ${parts.slice(1).join(' ')}`
-    if (map[abbr]) return map[abbr]
+    for (const [k, v] of entries) if (normName(k) === abbr) return v
   }
-  // fallback por apellido (última palabra)
-  const lastName = parts[parts.length - 1].toLowerCase()
-  for (const [key, val] of Object.entries(map)) {
-    const kParts = key.trim().split(/\s+/)
-    if (kParts[kParts.length - 1].toLowerCase() === lastName) return val
+
+  // 3. Solo apellido (última palabra) como último recurso
+  const lastName = parts[parts.length - 1]
+  for (const [k, v] of entries) {
+    if (normName(k).split(/\s+/).pop() === lastName) return v
   }
+
   return undefined
 }
 
@@ -584,7 +602,22 @@ function PlayerModal({ player, team, teamCode, fixturePlayersData, loading, onCl
 
 // ─── Tarjeta de alineación con sustituciones y clic en jugador ────────────────
 function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
-  const { entered, exited } = substMap
+  const { entered, exited, expelled } = substMap
+
+  // Validación: jugadores activos en cancha no pueden superar 11.
+  // Si superan 11 hay un falso positivo en el matching → no mostrar indicadores.
+  const startXIOut = (team.startXI ?? []).filter(p =>
+    lookupSubst(p.player?.name, exited) || lookupSubst(p.player?.name, expelled)
+  ).length
+  const subsIn = (team.substitutes ?? []).filter(p =>
+    lookupSubst(p.player?.name, entered)
+  ).length
+  const activeCount = (team.startXI?.length ?? 0) - startXIOut + subsIn
+  const matchingOk = activeCount <= 11
+  if (!matchingOk) {
+    console.error(`[LineupTeamCard] ${team.team?.name}: ${activeCount} activos (esperado ≤ 11), omitiendo indicadores`)
+  }
+
   return (
     <div className="card overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
@@ -595,18 +628,24 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
 
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
-          const exitMin = lookupSubst(p.player?.name, exited)
+          const exitMin  = matchingOk && lookupSubst(p.player?.name, exited)
+          const expelMin = matchingOk && lookupSubst(p.player?.name, expelled)
+          const isOut    = exitMin || expelMin
           return (
             <button
               key={j}
               onClick={() => onPlayerClick(p, team.team, teamCode ?? null)}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-700/20 transition-colors ${exitMin ? 'opacity-50' : ''}`}
+              className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-700/20 transition-colors ${isOut ? 'opacity-50' : ''}`}
             >
               <span className="w-6 text-center text-xs font-bold text-sky-400 flex-shrink-0">{p.player?.number}</span>
-              <span className={`text-sm flex-1 min-w-0 truncate ${exitMin ? 'text-slate-500' : 'text-white'}`}>{p.player?.name}</span>
-              {exitMin
-                ? <span className="text-xs text-red-400 flex-shrink-0">🔴 {exitMin}'</span>
-                : <span className="text-xs text-slate-500 flex-shrink-0">{p.player?.pos}</span>
+              <span className={`text-sm flex-1 min-w-0 truncate ${expelMin ? 'line-through text-slate-500' : exitMin ? 'text-slate-500' : 'text-white'}`}>
+                {p.player?.name}
+              </span>
+              {expelMin
+                ? <span className="text-xs text-red-500 flex-shrink-0">🟥 {expelMin}'</span>
+                : exitMin
+                  ? <span className="text-xs text-red-400 flex-shrink-0">🔴 {exitMin}'</span>
+                  : <span className="text-xs text-slate-500 flex-shrink-0">{p.player?.pos}</span>
               }
             </button>
           )
@@ -617,7 +656,7 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
         <>
           <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
           {team.substitutes.map((p, j) => {
-            const enterMin = lookupSubst(p.player?.name, entered)
+            const enterMin = matchingOk && lookupSubst(p.player?.name, entered)
             return (
               <button
                 key={j}
