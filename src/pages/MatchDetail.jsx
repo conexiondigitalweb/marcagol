@@ -439,7 +439,8 @@ const shouldShowAssist = (event) =>
   !NO_ASSIST_DETAILS.some(d => (event.detail || '').includes(d))
 
 // ─── Sustituciones: cruzar eventos con alineaciones ──────────────────────────
-// event.player.name = quien entra · event.assist.name = quien sale
+// API-Football: event.assist.name = quien entra · event.player.name = quien sale
+// (consistente con EventRow: ↑ assist verde = entra, ↓ player = sale)
 function buildSubstMap(events) {
   const entered = {}, exited = {}
   for (const e of events || []) {
@@ -447,8 +448,8 @@ function buildSubstMap(events) {
       const min   = e.time?.elapsed ?? ''
       const extra = e.time?.extra ? `+${e.time.extra}` : ''
       const label = `${min}${extra}`
-      if (e.player?.name) entered[e.player.name] = label
-      if (e.assist?.name) exited[e.assist.name]  = label
+      if (e.assist?.name) entered[e.assist.name] = label  // assist = entra
+      if (e.player?.name) exited[e.player.name]  = label  // player = sale
     }
   }
   return { entered, exited }
