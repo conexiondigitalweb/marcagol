@@ -6,6 +6,7 @@ import { VENUES_BY_NAME } from '../data/venues'
 import { BROADCAST_BY_COUNTRY } from '../data/broadcast'
 import MatchAI from '../components/ui/MatchAI'
 import { useMatchDetail } from '../hooks/useLiveData'
+import { useFixtureId } from '../data/fixtureMap'
 import { getEventIcon } from '../data/liveData'
 import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
@@ -770,7 +771,10 @@ function StatBar({ label, home, away }) {
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function MatchDetail() {
   const { id } = useParams()
-  const { events, stats, lineups, loading, error } = useMatchDetail(id)
+  const matchData  = MATCHES?.find(m => m.id === Number(id))
+  const isExternal = !matchData
+  const fixtureId  = useFixtureId(isExternal ? null : id)
+  const { events, stats, lineups, loading, error } = useMatchDetail(fixtureId)
   const [tab, setTab] = useState('events')
 
   // Estado del modal de jugador
@@ -790,7 +794,7 @@ export default function MatchDetail() {
       setFixturePlayersLoading(true)
       try {
         const r = await fetch(
-          `https://v3.football.api-sports.io/fixtures/players?fixture=${id}`,
+          `https://v3.football.api-sports.io/fixtures/players?fixture=${fixtureId}`,
           { headers: { 'x-apisports-key': API_KEY }, signal: AbortSignal.timeout(10000) }
         )
         const data = await r.json()
@@ -806,8 +810,6 @@ export default function MatchDetail() {
     setSelectedTeamCode(null)
   }
 
-  const matchData  = MATCHES?.find(m => m.id === Number(id))
-  const isExternal = !matchData
   const homeCode   = matchData?.homeTeam || ''
   const awayCode   = matchData?.awayTeam || ''
   const matchDate  = matchData?.date || ''
@@ -974,7 +976,7 @@ export default function MatchDetail() {
       </Link>
 
       <MatchHeader match={matchData} liveData={liveMatchData} />
-      <OddsPanel fixtureId={id} />
+      <OddsPanel fixtureId={fixtureId} />
 
       <div className="grid grid-cols-4 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
         {[
