@@ -455,6 +455,28 @@ function buildSubstMap(events) {
   return { entered, exited }
 }
 
+// Busca un nombre en un mapa de sustituciones tolerando formatos distintos:
+// Alineación: "Tim Stalheden" · Evento: "T. Stalheden"
+// Prueba: 1) coincidencia exacta  2) abreviatura del nombre  3) apellido
+function lookupSubst(playerName, map) {
+  if (!playerName) return undefined
+  if (map[playerName]) return map[playerName]
+
+  const parts = playerName.trim().split(/\s+/)
+  // intento con inicial: "Tim Stalheden" → "T. Stalheden"
+  if (parts.length > 1) {
+    const abbr = `${parts[0][0]}. ${parts.slice(1).join(' ')}`
+    if (map[abbr]) return map[abbr]
+  }
+  // fallback por apellido (última palabra)
+  const lastName = parts[parts.length - 1].toLowerCase()
+  for (const [key, val] of Object.entries(map)) {
+    const kParts = key.trim().split(/\s+/)
+    if (kParts[kParts.length - 1].toLowerCase() === lastName) return val
+  }
+  return undefined
+}
+
 // ─── StatItem (para modal de jugador) ────────────────────────────────────────
 function StatItem({ label, value }) {
   return (
@@ -573,7 +595,7 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
 
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
-          const exitMin = exited[p.player?.name]
+          const exitMin = lookupSubst(p.player?.name, exited)
           return (
             <button
               key={j}
@@ -595,7 +617,7 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
         <>
           <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
           {team.substitutes.map((p, j) => {
-            const enterMin = entered[p.player?.name]
+            const enterMin = lookupSubst(p.player?.name, entered)
             return (
               <button
                 key={j}
