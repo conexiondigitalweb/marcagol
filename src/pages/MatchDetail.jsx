@@ -208,69 +208,6 @@ function MatchHeader({ match, liveData }) {
   )
 }
 
-// ─── Odds de apuestas ─────────────────────────────────────────────────────────
-function OddsPanel({ fixtureId }) {
-  const [odds, setOdds] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!fixtureId) return
-    fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}&bet=1`, {
-      headers: { 'x-apisports-key': API_KEY }
-    })
-      .then(r => r.json())
-      .then(data => {
-        const bookmakers = data.response?.[0]?.bookmakers || []
-        const bet365 = bookmakers.find(b => b.name === 'Bet365') || bookmakers[0]
-        if (bet365) {
-          const market = bet365.bets?.find(b => b.name === 'Match Winner')
-          setOdds({
-            bookmaker: bet365.name,
-            home:  market?.values?.find(v => v.value === 'Home')?.odd,
-            draw:  market?.values?.find(v => v.value === 'Draw')?.odd,
-            away:  market?.values?.find(v => v.value === 'Away')?.odd,
-          })
-        }
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [fixtureId])
-
-  if (loading) return (
-    <div className="card p-4 mb-6 text-center text-slate-500 text-sm">Cargando cuotas...</div>
-  )
-  if (!odds) return null
-
-  return (
-    <div className="card p-4 mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Cuotas 1X2</p>
-          <p className="text-xs text-slate-600">{odds.bookmaker} · Solo referencial</p>
-        </div>
-        <span className="text-xs px-2 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
-          ⚠️ Info. No apostar
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: 'Local gana', value: odds.home, color: 'text-sky-400' },
-          { label: 'Empate',     value: odds.draw, color: 'text-slate-300' },
-          { label: 'Visitante gana', value: odds.away, color: 'text-orange-400' },
-        ].map(o => (
-          <div key={o.label} className="bg-slate-700/30 rounded-xl p-3 text-center">
-            <p className="text-xs text-slate-500 mb-1">{o.label}</p>
-            <p className={`text-2xl font-black ${o.color}`}>{o.value || '—'}</p>
-          </div>
-        ))}
-      </div>
-      <p className="text-xs text-slate-600 mt-3 text-center">
-        Las cuotas son información de referencia. marcagol.live no promueve apuestas.
-      </p>
-    </div>
-  )
-}
-
 // ─── Hook: todos los datos de un partido externo (no-WC) ─────────────────────
 // Polling diferenciado: marcador 30s · eventos 20s · stats 60s · lineups 5min
 function useExternalMatchData(fixtureId, enabled) {
@@ -1032,7 +969,6 @@ export default function MatchDetail() {
 
       <MatchCountdownBanner match={matchData} isStarted={isMatchStarted} />
       <MatchHeader match={matchData} liveData={liveMatchData} />
-      <OddsPanel fixtureId={fixtureId} />
 
       <div className="grid grid-cols-4 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
         {[
