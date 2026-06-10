@@ -12,7 +12,16 @@ export const formatDayOfWeek = (dateStr) =>
 
 export const capitalizeFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1)
 
-export const formatTime = (timeStr) => timeStr.slice(0, 5) + ' UTC'
+export function toLocalTime(date, timeET) {
+  if (!date || !timeET) return { time: '--:--', label: '' }
+  try {
+    const d = new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const time  = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
+    const label = d.toLocaleTimeString('en',    { timeZoneName: 'short', timeZone: tz }).split(' ').pop()
+    return { time, label }
+  } catch { return { time: timeET?.slice(0, 5) ?? '--:--', label: 'ET' } }
+}
 
 export const getStatusLabel = (status) => {
   const labels = {

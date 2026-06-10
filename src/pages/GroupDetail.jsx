@@ -1,10 +1,34 @@
 import { useParams, Link } from 'react-router-dom'
 import { getGroupById } from '../data/groups'
-import { sortTeams } from '../utils/helpers'
+import { sortTeams, formatDayOfWeek, capitalizeFirst, getConfederationColor, toLocalTime } from '../utils/helpers'
 import { getMatchesByGroup } from '../data/matches'
-import { formatDayOfWeek, capitalizeFirst, getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { StatusBadge, ConfederationBadge } from '../components/ui/Badge'
+import { getResult } from '../data/matchResults'
+
+const LIVE_STATUSES = new Set(['live','1H','HT','2H','ET','PEN'])
+
+function computeGroupStandings(teams, matches) {
+  const stats = {}
+  teams.forEach(t => {
+    stats[t.code] = { ...t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 }
+  })
+  for (const m of matches) {
+    const r = getResult(m.id)
+    if (!r) continue
+    const h = stats[m.homeTeam]
+    const a = stats[m.awayTeam]
+    if (!h || !a) continue
+    h.played++; a.played++
+    h.gf += r.homeScore; h.ga += r.awayScore
+    a.gf += r.awayScore; a.ga += r.homeScore
+    h.gd = h.gf - h.ga;  a.gd = a.gf - a.ga
+    if (r.homeScore > r.awayScore)        { h.won++;   h.points += 3; a.lost++ }
+    else if (r.homeScore === r.awayScore) { h.drawn++; h.points++;    a.drawn++; a.points++ }
+    else                                  { h.lost++;  a.won++;       a.points += 3 }
+  }
+  return teams.map(t => stats[t.code])
+}
 
 function TeamRow({ team, rank }) {
   const borderColor =
@@ -34,32 +58,44 @@ function TeamRow({ team, rank }) {
 }
 
 function MatchRow({ match }) {
-  const home = { code: match.homeTeam }
-  const away = { code: match.awayTeam }
-  const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
+  const allTeams  = getGroupById(match.group)?.teams || []
+  const homeTeam  = allTeams.find(t => t.code === match.homeTeam) || { name: match.homeTeam, iso2: 'un' }
+  const awayTeam  = allTeams.find(t => t.code === match.awayTeam) || { name: match.awayTeam, iso2: 'un' }
+  const result    = getResult(match.id)
+  const isLive    = LIVE_STATUSES.has(match.status)
+  const isFinished = !!result
+  const { time, label } = toLocalTime(match.date, match.time)
 
-  // Look up names from group data
-  const allTeams = getGroupById(match.group)?.teams || []
-  const homeTeam = allTeams.find(t => t.code === match.homeTeam) || { name: match.homeTeam, iso2: 'un' }
-  const awayTeam = allTeams.find(t => t.code === match.awayTeam) || { name: match.awayTeam, iso2: 'un' }
+  const displayScore = result ?? (
+    match.homeScore !== null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null
+  )
 
   return (
-    <div className="flex items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors">
-      <div className="w-20 text-xs text-slate-500">
-        <div>JOR {match.matchday}</div>
-        <div className="text-slate-600">{match.time?.slice(0,5)} UTC</div>
+    <Link
+      to={`/partido/${match.id}`}
+      className="flex items-center gap-3 px-5 py-4 hover:bg-slate-700/30 transition-colors group"
+    >
+      <div className="w-20 text-xs">
+        <div className="text-slate-500">JOR {match.matchday}</div>
+        {isFinished ? (
+          <div className="text-slate-500 font-semibold">Final</div>
+        ) : (
+          <div className="text-slate-600">{time} <span className="text-slate-700">{label}</span></div>
+        )}
       </div>
 
       <div className="flex-1 flex items-center gap-4 justify-center">
         <div className="flex items-center gap-2 flex-1 justify-end">
-          <span className="font-semibold text-white text-right text-sm">{homeTeam.name}</span>
+          <span className="font-semibold text-white text-right text-sm group-hover:text-sky-300 transition-colors">
+            {homeTeam.name}
+          </span>
           <Flag iso2={homeTeam.iso2} size="xs" />
         </div>
 
         <div className="text-center min-w-[52px]">
-          {match.homeScore !== null ? (
+          {displayScore !== null ? (
             <span className={`font-black text-lg ${isLive ? 'text-sky-400' : 'text-white'}`}>
-              {match.homeScore}–{match.awayScore}
+              {displayScore.homeScore}–{displayScore.awayScore}
             </span>
           ) : (
             <span className="text-slate-500 font-mono text-sm">VS</span>
@@ -68,14 +104,27 @@ function MatchRow({ match }) {
 
         <div className="flex items-center gap-2 flex-1">
           <Flag iso2={awayTeam.iso2} size="xs" />
-          <span className="font-semibold text-white text-sm">{awayTeam.name}</span>
+          <span className="font-semibold text-white text-sm group-hover:text-sky-300 transition-colors">
+            {awayTeam.name}
+          </span>
         </div>
       </div>
 
-      <div className="w-24 text-right">
-        <StatusBadge status={match.status} />
+      <div className="w-28 flex flex-col items-end gap-1">
+        {isFinished ? (
+          <span className="badge-finished">Finalizado</span>
+        ) : isLive ? (
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />EN VIVO
+          </span>
+        ) : (
+          <StatusBadge status={match.status} />
+        )}
+        <span className="text-sky-400 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+          Ver →
+        </span>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -93,9 +142,10 @@ export default function GroupDetail() {
     )
   }
 
-  const sorted  = sortTeams(group.teams)
-  const matches = getMatchesByGroup(group.id)
-  const byMatchday = [1,2,3].map(md => ({
+  const matches    = getMatchesByGroup(group.id)
+  const computed   = computeGroupStandings(group.teams, matches)
+  const sorted     = sortTeams(computed)
+  const byMatchday = [1, 2, 3].map(md => ({
     md,
     matches: matches.filter(m => m.matchday === md),
   }))
@@ -115,7 +165,6 @@ export default function GroupDetail() {
 
       {/* Standings */}
       <div className="card overflow-hidden">
-        {/* Table header */}
         <div className="flex items-center px-5 py-3 border-b border-slate-700/50 text-xs text-slate-600 uppercase tracking-wider">
           <span className="w-4 mr-3 text-right">#</span>
           <span className="ml-10 flex-1">Selección</span>
@@ -134,8 +183,8 @@ export default function GroupDetail() {
 
         <div className="px-5 py-3 flex gap-6 border-t border-slate-700/30 bg-slate-800/30">
           {[
-            { color: 'bg-sky-400', label: '1° y 2° – Clasifican a Octavos' },
-            { color: 'bg-amber-400',   label: '3° – Posible clasificación' },
+            { color: 'bg-sky-400',   label: '1° y 2° – Clasifican a Octavos' },
+            { color: 'bg-amber-400', label: '3° – Posible clasificación' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${color}`}></span>

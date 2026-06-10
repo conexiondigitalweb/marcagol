@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom'
 import { getTeamByCode, getGroupById } from '../data/groups'
-import { sortTeams } from '../utils/helpers'
+import { sortTeams, toLocalTime } from '../utils/helpers'
 import { getMatchesByGroup } from '../data/matches'
 import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
 import { getSquad, getCoach } from '../data/squads'
+import { getResult } from '../data/matchResults'
 import { getHistory } from '../data/history'
 
 const TEAM_COLORS = {
@@ -161,27 +162,32 @@ export default function TeamDetail() {
             Partidos de Fase de Grupos
           </div>
           {teamMatches.map(match => {
-            const isHome = match.homeTeam === team.code
+            const isHome       = match.homeTeam === team.code
             const opponentCode = isHome ? match.awayTeam : match.homeTeam
-            const opponent = group.teams.find(t => t.code === opponentCode)
+            const opponent     = group.teams.find(t => t.code === opponentCode)
+            const result       = getResult(match.id)
+            const { time, label } = toLocalTime(match.date, match.time)
             return (
-              <div key={match.id} className="flex items-center gap-3 px-5 py-3 border-b border-slate-700/20 last:border-0">
+              <Link key={match.id} to={`/partido/${match.id}`}
+                className="flex items-center gap-3 px-5 py-3 border-b border-slate-700/20 last:border-0 hover:bg-slate-700/20 transition-colors group">
                 <div className="text-xs text-slate-600 w-12">J{match.matchday}</div>
                 {opponent && <Flag iso2={opponent.iso2} size="xs" />}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-slate-300">
+                  <div className="text-sm text-slate-300 group-hover:text-sky-300 transition-colors">
                     {isHome ? 'vs' : 'en'} {opponent?.name || opponentCode}
                   </div>
-                  <div className="text-xs text-slate-600">{match.date} · {match.time?.slice(0,5)} UTC</div>
+                  <div className="text-xs text-slate-600">
+                    {match.date} · {time} {label}
+                  </div>
                 </div>
-                {match.homeScore !== null ? (
-                  <span className="text-white font-bold">
-                    {isHome ? match.homeScore : match.awayScore}–{isHome ? match.awayScore : match.homeScore}
+                {result ? (
+                  <span className="text-white font-bold tabular-nums">
+                    {isHome ? result.homeScore : result.awayScore}–{isHome ? result.awayScore : result.homeScore}
                   </span>
                 ) : (
                   <StatusBadge status={match.status} />
                 )}
-              </div>
+              </Link>
             )
           })}
         </div>
