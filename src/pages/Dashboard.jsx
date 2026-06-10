@@ -69,6 +69,17 @@ function ApiMatchCard({ match }) {
   )
 }
 
+function toLocalTime(date, timeET) {
+  if (!timeET) return { time: '--:--', label: '' }
+  try {
+    const d = new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const time  = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
+    const label = d.toLocaleTimeString('en',    { timeZoneName: 'short', timeZone: tz }).split(' ').pop()
+    return { time, label }
+  } catch { return { time: timeET?.slice(0, 5) ?? '--:--', label: 'ET' } }
+}
+
 function MatchCard({ match, compact = false }) {
   const isLive     = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
   const home       = ALL_TEAMS_MAP[match.homeTeam]
@@ -91,6 +102,7 @@ function MatchCard({ match, compact = false }) {
   const COUNTRY_NAMES = { USA: 'Estados Unidos', CAN: 'Canadá', MEX: 'México' }
 
   const displayScore = result ?? (match.homeScore != null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null)
+  const { time: localTime, label: tzLabel } = toLocalTime(match.date, match.time)
 
   function fmtCountdown(cd) {
     if (!cd) return ''
@@ -153,8 +165,8 @@ function MatchCard({ match, compact = false }) {
             </>
           ) : (
             <>
-              <div className="font-bold text-xl" style={{ color: '#F97316' }}>{match.time?.slice(0,5)}</div>
-              <div className="text-xs text-slate-600 mt-0.5">ET</div>
+              <div className="font-bold text-xl" style={{ color: '#F97316' }}>{localTime}</div>
+              <div className="text-xs text-slate-600 mt-0.5">{tzLabel}</div>
             </>
           )}
         </div>

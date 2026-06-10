@@ -29,7 +29,7 @@ async function fetchAndBuild() {
     }
   } catch {}
 
-  const res = await fetch('https://v3.api-football.com/fixtures?league=1&season=2026', {
+  const res = await fetch('https://v3.football.api-sports.io/fixtures?league=1&season=2026', {
     headers: { 'x-apisports-key': API_KEY },
   })
   const json = await res.json()

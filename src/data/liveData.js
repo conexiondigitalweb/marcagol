@@ -3,7 +3,7 @@
 // Doiler Sanjuan — Mundial 2026
 
 const API_KEY = '217e3ccfd4e714fba62caf18ed3ef01d'
-const BASE_URL = 'https://v3.api-football.com'
+const BASE_URL = 'https://v3.football.api-sports.io'
 const LEAGUE_ID = 1 // FIFA World Cup 2026
 const SEASON = 2026
 

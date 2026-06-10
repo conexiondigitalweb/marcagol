@@ -7,7 +7,7 @@ const SEASON = 2026
 const POLL_INTERVAL = 30000 // 30 segundos
 
 function buildUrl(params) {
-  const url = new URL('https://v3.api-football.com/fixtures')
+  const url = new URL('https://v3.football.api-sports.io/fixtures')
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   return url.toString()
 }

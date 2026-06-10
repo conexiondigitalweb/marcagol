@@ -51,7 +51,8 @@ function MatchCountdownBanner({ match, isStarted }) {
       setCd(newCd)
       if (!newCd) {
         const kickoff = getKickoffDate(match.date, match.time)
-        setImminent(kickoff != null && Date.now() - kickoff.getTime() < 5 * 60_000)
+        const elapsed = kickoff ? Date.now() - kickoff.getTime() : -1
+        setImminent(elapsed >= 0 && elapsed < 5 * 60_000)
       } else {
         setImminent(false)
       }
@@ -214,7 +215,7 @@ function OddsPanel({ fixtureId }) {
 
   useEffect(() => {
     if (!fixtureId) return
-    fetch(`https://v3.api-football.com/odds?fixture=${fixtureId}&bet=1`, {
+    fetch(`https://v3.football.api-sports.io/odds?fixture=${fixtureId}&bet=1`, {
       headers: { 'x-apisports-key': API_KEY }
     })
       .then(r => r.json())
