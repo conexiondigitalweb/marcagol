@@ -70,6 +70,28 @@ export const calculatePredictionPoints = (pred, homeScore, awayScore) => {
 export const flagUrl = (iso2, size = 40) =>
   `https://flagcdn.com/w${size}/${iso2.toLowerCase()}.png`
 
+// Returns the kickoff Date for a match (time stored in matches.js is ET = UTC-4 in summer)
+export function getKickoffDate(date, timeET) {
+  if (!date || !timeET) return null
+  try {
+    return new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+  } catch { return null }
+}
+
+// Returns { hh, mm, ss } if kickoff is within 3 hours and in the future, otherwise null
+export function getKickoffCountdown(date, timeET) {
+  const kickoff = getKickoffDate(date, timeET)
+  if (!kickoff) return null
+  const diff = kickoff.getTime() - Date.now()
+  if (diff <= 0 || diff > 3 * 3_600_000) return null
+  const total = Math.floor(diff / 1000)
+  return {
+    hh: Math.floor(total / 3600),
+    mm: Math.floor((total % 3600) / 60),
+    ss: total % 60,
+  }
+}
+
 export const groupMatchesByDate = (matches) => {
   const grouped = {}
   matches.forEach(m => {

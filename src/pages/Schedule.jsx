@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
 import { VENUES_BY_NAME } from '../data/venues'
-import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/helpers'
+import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst, getKickoffCountdown } from '../utils/helpers'
+import { getResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
@@ -54,9 +55,21 @@ function VenuePhoto({ venueName }) {
 function MatchRow({ match }) {
   const home = ALL_TEAMS_MAP[match.homeTeam]
   const away = ALL_TEAMS_MAP[match.awayTeam]
-  const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
+  const result     = getResult(match.id)
+  const isLive     = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
+  const isFinished = !!result
 
-  // Convertir hora ET a local
+  const [countdown, setCountdown] = useState(() =>
+    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
+  )
+  useEffect(() => {
+    if (isLive || isFinished) return
+    const initial = getKickoffCountdown(match.date, match.time)
+    if (!initial) return
+    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.time)), 1000)
+    return () => clearInterval(id)
+  }, [isLive, isFinished, match.date, match.time])
+
   function toLocal(date, timeET) {
     if (!timeET) return '--:--'
     try {
@@ -66,16 +79,34 @@ function MatchRow({ match }) {
     } catch { return timeET }
   }
 
+  function fmtCountdown(cd) {
+    if (!cd) return ''
+    if (cd.hh > 0) return `${cd.hh}h ${String(cd.mm).padStart(2, '0')}m`
+    if (cd.mm > 0) return `${cd.mm}m ${String(cd.ss).padStart(2, '0')}s`
+    return `${cd.ss}s`
+  }
+
+  const displayScore = result ?? (match.homeScore !== null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null)
+
   return (
     <Link
       to={`/partido/${match.id}`}
       className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-700/20 transition-colors border-b border-slate-700/20 last:border-0 group"
     >
       {/* Time & group */}
-      <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-2">
-        <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
-          {toLocal(match.date, match.time)}
-        </span>
+      <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-1">
+        {isFinished ? (
+          <span className="text-sm font-bold text-slate-400">Final</span>
+        ) : (
+          <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
+            {toLocal(match.date, match.time)}
+          </span>
+        )}
+        {countdown && !isLive && !isFinished && (
+          <span className="text-xs font-semibold text-orange-400 leading-tight">
+            Inicia en {fmtCountdown(countdown)}
+          </span>
+        )}
         <span className="text-xs text-slate-600">
           {match.group && match.group.length <= 2 ? `Grupo ${match.group}` : match.group}
           {match.matchday ? ` · J${match.matchday}` : ''}
@@ -100,9 +131,9 @@ function MatchRow({ match }) {
         </div>
 
         <div className="text-center min-w-[56px]">
-          {match.homeScore !== null ? (
+          {displayScore !== null ? (
             <span className={`font-black text-lg tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
-              {match.homeScore}–{match.awayScore}
+              {displayScore.homeScore}–{displayScore.awayScore}
             </span>
           ) : (
             <span className="text-slate-600 text-sm font-mono">vs</span>
@@ -127,7 +158,11 @@ function MatchRow({ match }) {
 
       {/* Status & venue */}
       <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
-        <StatusBadge status={match.status} />
+        {isFinished ? (
+          <span className="badge-finished">Finalizado</span>
+        ) : (
+          <StatusBadge status={match.status} />
+        )}
         <span className="text-xs text-slate-500 text-right truncate max-w-[180px]">
           📍 {match.venue}
         </span>

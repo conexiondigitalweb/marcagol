@@ -5,9 +5,11 @@ import { MATCHES } from '../data/matches'
 import { VENUES_BY_NAME } from '../data/venues'
 import { BROADCAST_BY_COUNTRY } from '../data/broadcast'
 import MatchAI from '../components/ui/MatchAI'
-import { useMatchDetail } from '../hooks/useLiveData'
+import { useMatchDetail, useFixtureData } from '../hooks/useLiveData'
 import { useFixtureId } from '../data/fixtureMap'
 import { getEventIcon } from '../data/liveData'
+import { getKickoffDate, getKickoffCountdown } from '../utils/helpers'
+import { saveResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
 
@@ -35,6 +37,50 @@ function formatDate(dateStr) {
       weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     })
   } catch { return dateStr }
+}
+
+// ─── Banner countdown (≤3h antes del kickoff) ─────────────────────────────────
+function MatchCountdownBanner({ match, isStarted }) {
+  const [cd, setCd]           = useState(() => isStarted ? null : getKickoffCountdown(match.date, match.time))
+  const [imminent, setImminent] = useState(false)
+
+  useEffect(() => {
+    if (isStarted) { setCd(null); setImminent(false); return }
+    const id = setInterval(() => {
+      const newCd = getKickoffCountdown(match.date, match.time)
+      setCd(newCd)
+      if (!newCd) {
+        const kickoff = getKickoffDate(match.date, match.time)
+        setImminent(kickoff != null && Date.now() - kickoff.getTime() < 5 * 60_000)
+      } else {
+        setImminent(false)
+      }
+    }, 1000)
+    return () => clearInterval(id)
+  }, [match.date, match.time, isStarted])
+
+  if (isStarted) return null
+
+  if (imminent) {
+    return (
+      <div className="mb-4 flex items-center gap-3 rounded-xl px-5 py-3.5 border border-orange-500/40 bg-orange-500/10">
+        <span className="text-orange-400 text-lg animate-pulse">⚡</span>
+        <span className="font-bold text-orange-300 text-sm">El partido está por comenzar</span>
+      </div>
+    )
+  }
+
+  if (!cd) return null
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-xl px-5 py-3.5 border border-sky-500/30 bg-sky-500/10">
+      <span className="text-sky-400">⏱️</span>
+      <span className="font-semibold text-sky-300 text-sm">El partido inicia en</span>
+      <span className="font-black text-white tabular-nums text-xl tracking-tight">
+        {String(cd.hh).padStart(2, '0')}:{String(cd.mm).padStart(2, '0')}:{String(cd.ss).padStart(2, '0')}
+      </span>
+    </div>
+  )
 }
 
 // ─── Header del partido ───────────────────────────────────────────────────────
@@ -774,7 +820,8 @@ export default function MatchDetail() {
   const matchData  = MATCHES?.find(m => m.id === Number(id))
   const isExternal = !matchData
   const fixtureId  = useFixtureId(isExternal ? null : id)
-  const { events, stats, lineups, loading, error } = useMatchDetail(fixtureId)
+  const { data: fixtureData, isFinished } = useFixtureData(fixtureId)
+  const { events, stats, lineups, loading, error } = useMatchDetail(fixtureId, isFinished)
   const [tab, setTab] = useState('events')
 
   // Estado del modal de jugador
@@ -810,6 +857,12 @@ export default function MatchDetail() {
     setSelectedTeamCode(null)
   }
 
+  // Guardar resultado final en caché permanente cuando se detecta FT
+  useEffect(() => {
+    if (!isFinished || !fixtureData || fixtureData.homeScore == null) return
+    saveResult(Number(id), fixtureData.homeScore, fixtureData.awayScore)
+  }, [isFinished, fixtureData, id])
+
   const homeCode   = matchData?.homeTeam || ''
   const awayCode   = matchData?.awayTeam || ''
   const matchDate  = matchData?.date || ''
@@ -821,7 +874,8 @@ export default function MatchDetail() {
   const awayStats = stats?.[1]?.statistics || []
   const getStat   = (arr, type) => arr.find(s => s.type === type)?.value
 
-  const liveMatchData = null
+  const liveMatchData  = fixtureData
+  const isMatchStarted = fixtureData?.status != null && fixtureData.status !== 'NS'
 
   // ── Partido externo ──────────────────────────────────────────────────────────
   if (isExternal) {
@@ -975,6 +1029,7 @@ export default function MatchDetail() {
         ← Volver al calendario
       </Link>
 
+      <MatchCountdownBanner match={matchData} isStarted={isMatchStarted} />
       <MatchHeader match={matchData} liveData={liveMatchData} />
       <OddsPanel fixtureId={fixtureId} />
 

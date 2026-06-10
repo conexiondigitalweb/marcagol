@@ -66,12 +66,25 @@ export async function getAllFixtures() {
 
 // ─── 4. DETALLE DE UN PARTIDO (eventos, estadísticas, alineaciones) ───────────
 export async function getMatchDetail(fixtureId) {
+  // Partidos finalizados: caché permanente en localStorage (sin TTL)
+  const FT_KEY = `wc2026_ft_detail_v1_${fixtureId}`
+  try {
+    const cached = localStorage.getItem(FT_KEY)
+    if (cached) return JSON.parse(cached)
+  } catch {}
+
   const [events, stats, lineups] = await Promise.all([
     fetchAPI('/fixtures/events',     { fixture: fixtureId }, 'events'),
     fetchAPI('/fixtures/statistics', { fixture: fixtureId }, 'statistics'),
     fetchAPI('/fixtures/lineups',    { fixture: fixtureId }, 'lineups'),
   ])
   return { events, stats, lineups }
+}
+
+// ─── 4b. FIXTURE INDIVIDUAL (para estado/marcador en vivo) ────────────────────
+export async function getFixture(fixtureId) {
+  const data = await fetchAPI('/fixtures', { id: fixtureId }, 'events')  // 30s TTL
+  return Array.isArray(data) ? (data[0] ?? null) : null
 }
 
 // ─── 5. TABLAS DE POSICIONES ──────────────────────────────────────────────────

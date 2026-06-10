@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
 import { getUpcomingMatches, getLiveMatches as getStaticLiveMatches } from '../data/matches'
-import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl } from '../utils/helpers'
+import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl, getKickoffCountdown } from '../utils/helpers'
+import { getResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import LiveIndicator from '../components/ui/LiveIndicator'
 import { TEAM_IDS } from '../data/teamIds'
@@ -69,12 +70,34 @@ function ApiMatchCard({ match }) {
 }
 
 function MatchCard({ match, compact = false }) {
-  const isLive = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
-  const home = ALL_TEAMS_MAP[match.homeTeam]
-  const away = ALL_TEAMS_MAP[match.awayTeam]
+  const isLive     = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
+  const home       = ALL_TEAMS_MAP[match.homeTeam]
+  const away       = ALL_TEAMS_MAP[match.awayTeam]
+  const result     = getResult(match.id)
+  const isFinished = !!result
+
+  const [countdown, setCountdown] = useState(() =>
+    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
+  )
+  useEffect(() => {
+    if (isLive || isFinished) return
+    const initial = getKickoffCountdown(match.date, match.time)
+    if (!initial) return
+    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.time)), 1000)
+    return () => clearInterval(id)
+  }, [isLive, isFinished, match.date, match.time])
 
   const COUNTRY_FLAGS = { USA: '🇺🇸', CAN: '🇨🇦', MEX: '🇲🇽' }
   const COUNTRY_NAMES = { USA: 'Estados Unidos', CAN: 'Canadá', MEX: 'México' }
+
+  const displayScore = result ?? (match.homeScore != null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null)
+
+  function fmtCountdown(cd) {
+    if (!cd) return ''
+    if (cd.hh > 0) return `${cd.hh}h ${String(cd.mm).padStart(2, '0')}m`
+    if (cd.mm > 0) return `${cd.mm}m ${String(cd.ss).padStart(2, '0')}s`
+    return `${cd.ss}s`
+  }
 
   return (
     <div
@@ -88,6 +111,8 @@ function MatchCard({ match, compact = false }) {
         </span>
         {isLive ? (
           <LiveIndicator minute={match.minute} />
+        ) : isFinished ? (
+          <span className="badge-finished">Finalizado</span>
         ) : (
           <StatusBadge status={match.status} />
         )}
@@ -112,16 +137,26 @@ function MatchCard({ match, compact = false }) {
           )}
         </div>
 
-        {/* Score / Time */}
+        {/* Score / Time / Countdown */}
         <div className="flex-shrink-0 text-center min-w-[60px]">
-          {match.homeScore != null ? (
-            <div className={`text-xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
-              {match.homeScore}–{match.awayScore}
-            </div>
+          {displayScore != null ? (
+            <>
+              <div className={`text-xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
+                {displayScore.homeScore}–{displayScore.awayScore}
+              </div>
+              <div className="text-xs text-slate-500 mt-0.5">{isFinished ? 'Final' : 'ET'}</div>
+            </>
+          ) : countdown ? (
+            <>
+              <div className="text-xs font-bold text-orange-400 leading-tight">Inicia en</div>
+              <div className="text-sm font-black text-orange-400 tabular-nums">{fmtCountdown(countdown)}</div>
+            </>
           ) : (
-            <div className="font-bold text-xl" style={{ color: '#F97316' }}>{match.time?.slice(0,5)}</div>
+            <>
+              <div className="font-bold text-xl" style={{ color: '#F97316' }}>{match.time?.slice(0,5)}</div>
+              <div className="text-xs text-slate-600 mt-0.5">ET</div>
+            </>
           )}
-          <div className="text-xs text-slate-600 mt-0.5">ET</div>
         </div>
 
         {/* Away */}
