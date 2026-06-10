@@ -30,29 +30,44 @@ function computeGroupStandings(teams, matches) {
   return teams.map(t => stats[t.code])
 }
 
+// Stat cell: w-8 (32px) fixed — mismo ancho en header y filas garantiza alineación
+const S  = ({ v, bold = false }) => (
+  <span className={`w-8 text-center tabular-nums shrink-0 ${bold ? 'font-bold text-white' : 'text-slate-400'}`}>{v}</span>
+)
+
 function TeamRow({ team, rank }) {
   const borderColor =
     rank === 1 ? 'border-l-sky-400' :
     rank === 2 ? 'border-l-blue-500' :
     rank === 3 ? 'border-l-amber-400' :
     'border-l-transparent'
+  const gd = team.gd > 0 ? `+${team.gd}` : `${team.gd}`
 
   return (
-    <Link to={`/equipos/${team.code}`} className={`flex items-center gap-3 px-5 py-3.5 border-l-4 ${borderColor} hover:bg-slate-700/30 transition-colors group`}>
-      <span className="text-slate-500 text-sm font-bold w-4 text-right">{rank}</span>
-      <Flag iso2={team.iso2} size="sm" />
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold text-white group-hover:text-sky-400 transition-colors">{team.name}</div>
+    <Link to={`/equipos/${team.code}`}
+      className={`flex items-center px-3 sm:px-5 py-3.5 border-l-4 ${borderColor} hover:bg-slate-700/30 transition-colors group`}
+    >
+      <span className="text-slate-500 text-sm font-bold w-5 text-center shrink-0 mr-2">{rank}</span>
+      <span className="shrink-0 mr-2"><Flag iso2={team.iso2} size="sm" /></span>
+      <div className="flex-1 min-w-0 mr-2">
+        <div className="font-semibold text-white text-sm truncate group-hover:text-sky-400 transition-colors">{team.name}</div>
         <ConfederationBadge confederation={team.confederation} />
       </div>
-      <div className="grid grid-cols-7 gap-2 text-sm text-center text-slate-400 tabular-nums min-w-[280px]">
-        {[team.played, team.won, team.drawn, team.lost, team.gf, team.ga,
-          team.gd > 0 ? `+${team.gd}` : team.gd].map((v, i) => (
-          <span key={i}>{v}</span>
-        ))}
-        <span className="font-bold text-white">{team.points}</span>
+
+      {/* Desktop: todas las columnas */}
+      <div className="hidden sm:flex items-center text-sm shrink-0">
+        <S v={team.played} /><S v={team.won} /><S v={team.drawn} />
+        <S v={team.lost} /><S v={team.gf} /><S v={team.ga} />
+        <S v={gd} /><S v={team.points} bold />
       </div>
-      <span className="text-slate-600 text-xs">#{team.fifaRanking}</span>
+      {/* Mobile: solo PJ · DG · PTS */}
+      <div className="flex sm:hidden items-center text-xs shrink-0">
+        <S v={team.played} /><S v={gd} /><S v={team.points} bold />
+      </div>
+
+      <span className="text-slate-700 text-xs w-7 text-right shrink-0 ml-1 hidden sm:block">
+        #{team.fifaRanking}
+      </span>
     </Link>
   )
 }
@@ -165,14 +180,24 @@ export default function GroupDetail() {
 
       {/* Standings */}
       <div className="card overflow-hidden">
-        <div className="flex items-center px-5 py-3 border-b border-slate-700/50 text-xs text-slate-600 uppercase tracking-wider">
-          <span className="w-4 mr-3 text-right">#</span>
-          <span className="ml-10 flex-1">Selección</span>
-          <div className="grid grid-cols-7 gap-2 text-center min-w-[280px]">
-            {['PJ','G','E','P','GF','GA','DG'].map(h => <span key={h}>{h}</span>)}
-            <span className="font-bold text-slate-500">Pts</span>
+        <div className="flex items-center px-3 sm:px-5 py-3 border-b border-slate-700/50 text-xs text-slate-600 uppercase tracking-wider">
+          <span className="w-5 text-center shrink-0 mr-2">#</span>
+          <span className="w-5 sm:w-6 shrink-0 mr-2" />{/* flag placeholder */}
+          <span className="flex-1 min-w-0 mr-2">Selección</span>
+          {/* Desktop headers */}
+          <div className="hidden sm:flex items-center shrink-0">
+            {['PJ','G','E','P','GF','GA','DG'].map(h => (
+              <span key={h} className="w-8 text-center">{h}</span>
+            ))}
+            <span className="w-8 text-center font-bold text-slate-500">PTS</span>
           </div>
-          <span className="w-10 ml-4"></span>
+          {/* Mobile headers */}
+          <div className="flex sm:hidden items-center shrink-0">
+            <span className="w-8 text-center">PJ</span>
+            <span className="w-8 text-center">DG</span>
+            <span className="w-8 text-center font-bold text-slate-500">PTS</span>
+          </div>
+          <span className="w-7 shrink-0 ml-1 hidden sm:block" />{/* fifa placeholder */}
         </div>
 
         {sorted.map((team, i) => (
