@@ -3,6 +3,10 @@ const API_KEY  = import.meta.env.VITE_API_FOOTBALL_KEY
 const LEAGUE_ID = 1   // FIFA World Cup 2026
 const SEASON    = 2026
 
+// Primer partido del Mundial: MEX vs ZAF, 2026-06-11T19:00:00Z (Estadio Azteca)
+// Fallback pre-Mundial se desactiva a partir de las 18:00 UTC (1h de margen)
+const WORLD_CUP_START_MS = new Date('2026-06-11T18:00:00Z').getTime()
+
 const headers = { 'x-apisports-key': API_KEY }
 
 const LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN'])
@@ -46,6 +50,9 @@ export async function getLiveMatches() {
       .map(normalizeFixture)
 
     if (wcMatches.length > 0) return wcMatches
+
+    // A partir del inicio del Mundial el fallback queda desactivado
+    if (Date.now() >= WORLD_CUP_START_MS) return []
 
     // TEMPORAL: fallback a cualquier partido en vivo para pruebas pre-Mundial
     const all = await apiFetch(`/fixtures?live=all`)
