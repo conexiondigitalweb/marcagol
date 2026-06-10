@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import Header        from './components/layout/Header'
 import Footer        from './components/layout/Footer'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import InstallPrompt from './components/InstallPrompt'
 
 const Dashboard   = lazy(() => import('./pages/Dashboard'))
 const Groups      = lazy(() => import('./pages/Groups'))
@@ -44,6 +45,7 @@ export default function App() {
         </Suspense>
       </main>
       <Footer />
+      <InstallPrompt />
     </div>
   )
 }
