@@ -415,6 +415,9 @@ function markDisallowedGoals(events, fixture) {
   return events.map((e, i) => disallowed.has(i) ? { ...e, _disallowed: true } : e)
 }
 
+// Tipos siempre visibles en partidos finalizados; el resto solo en vivo
+const ALWAYS_SHOW_TYPES = new Set(['Goal', 'Card', 'subst', 'Var'])
+
 // Penaltis, tiros libres directos y goles olímpicos no llevan asistencia oficial
 const NO_ASSIST_DETAILS = ['Penalty', 'Missed Penalty', 'Direct Free-kick', 'Free Kick', 'Own Goal', 'Olympic']
 const shouldShowAssist = (event) =>
@@ -818,12 +821,17 @@ export default function MatchDetail() {
   if (isExternal) {
     const { fixture: externalFixture, events: extEvents, stats: extStats,
             lineups: extLineups, loading: extLoading } = extData
-    const extHomeStats = extStats?.[0]?.statistics || []
-    const extAwayStats = extStats?.[1]?.statistics || []
-    const homeTeamId   = externalFixture?.teams?.home?.id
-    const extStatus    = externalFixture?.fixture?.status?.short
-    const extStarted   = extStatus && extStatus !== 'NS'
-    const extSubstMap  = buildSubstMap(extEvents)
+    const extHomeStats  = extStats?.[0]?.statistics || []
+    const extAwayStats  = extStats?.[1]?.statistics || []
+    const homeTeamId    = externalFixture?.teams?.home?.id
+    const extStatus     = externalFixture?.fixture?.status?.short
+    const extStarted    = extStatus && extStatus !== 'NS'
+    const extFinished   = ['FT', 'AET', 'PEN'].includes(extStatus)
+    const extSubstMap   = buildSubstMap(extEvents)
+    const extEventsProc = markDisallowedGoals(extEvents, externalFixture)
+    const visibleExtEvents = extFinished
+      ? extEventsProc.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
+      : extEventsProc
 
     if (extLoading) return (
       <div className="animate-slide-up max-w-3xl mx-auto">
@@ -886,7 +894,7 @@ export default function MatchDetail() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
-                  {[...markDisallowedGoals(extEvents, externalFixture)].reverse().map((e, i) => (
+                  {[...visibleExtEvents].reverse().map((e, i) => (
                     <EventRow key={i} event={e} homeId={homeTeamId} />
                   ))}
                 </div>
@@ -947,8 +955,11 @@ export default function MatchDetail() {
   }
 
   // ── Partido del Mundial ──────────────────────────────────────────────────────
-  const wcStarted   = events.length > 0 || homeStats.length > 0
-  const wcSubstMap  = buildSubstMap(events)
+  const wcStarted      = events.length > 0 || homeStats.length > 0
+  const wcSubstMap     = buildSubstMap(events)
+  const visibleWcEvents = isFinished
+    ? events.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
+    : events
 
   return (
     <div className="animate-slide-up max-w-3xl mx-auto">
@@ -1002,7 +1013,7 @@ export default function MatchDetail() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
-                  {[...events].reverse().map((e, i) => <EventRow key={i} event={e} />)}
+                  {[...visibleWcEvents].reverse().map((e, i) => <EventRow key={i} event={e} />)}
                 </div>
               )}
             </div>

@@ -42,6 +42,8 @@ function ttlFor(endpoint, params) {
     return null
   }
 
+  if (endpoint === '/fixtures/events') return 0  // sin caché: máxima velocidad en vivo
+
   if (endpoint === '/standings') {
     return hasActiveLive() ? 60_000 : 5 * 60_000
   }
@@ -118,10 +120,15 @@ export default async function handler(req, res) {
       }
     }
 
-    cache.set(cacheKey, { data, ts: Date.now(), ttl })
+    if (ttl > 0) cache.set(cacheKey, { data, ts: Date.now(), ttl })
 
     res.setHeader('X-Cache', 'MISS')
-    res.setHeader('Cache-Control', `public, s-maxage=${Math.floor(ttl / 1000)}, stale-while-revalidate=10`)
+    res.setHeader(
+      'Cache-Control',
+      ttl > 0
+        ? `public, s-maxage=${Math.floor(ttl / 1000)}, stale-while-revalidate=10`
+        : 'no-store'
+    )
     return res.status(200).json(data)
   } catch (err) {
     return res.status(502).json({ error: err.message })

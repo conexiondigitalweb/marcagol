@@ -180,11 +180,14 @@ export function getEventIcon(type, detail) {
     if (d.includes('penalty')) return { icon: '📺', label: 'Penalti revisado por VAR' }
     return { icon: '📺', label: 'Revisión VAR' }
   }
-  if (type === 'Corner')       return { icon: '🏁', label: 'Tiro de esquina' }
-  if (type === 'Shot on Goal') return { icon: '🎯', label: 'Tiro al arco' }
+  if (type === 'Corner')       return { icon: '🚩', label: 'Tiro de esquina' }
+  if (type === 'Free Kick')    return { icon: '🎯', label: 'Tiro libre' }
+  if (type === 'Shot on Goal') return { icon: '🎯', label: 'Remate al arco' }
+  if (type === 'Shot off Goal' || type === 'Missed Shots') return { icon: '↗️', label: 'Remate desviado' }
   if (type === 'Miss') {
     const d = (detail || '').toLowerCase()
-    return { icon: '🎯', label: d.includes('post') || d.includes('bar') ? 'Disparo al palo' : 'Disparo desviado' }
+    if (d.includes('post') || d.includes('bar')) return { icon: '🎯', label: 'Disparo al palo' }
+    return { icon: '↗️', label: 'Remate fuera' }
   }
   if (type === 'Penalty')      return { icon: '🥊', label: 'Penalti señalado' }
   return { icon: '·', label: type }
