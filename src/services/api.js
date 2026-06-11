@@ -1,68 +1,40 @@
-import axios from 'axios'
-
 const LEAGUE_ID = import.meta.env.VITE_WORLD_CUP_LEAGUE_ID || 22
 const SEASON    = import.meta.env.VITE_WORLD_CUP_SEASON    || 2026
-const API_KEY   = import.meta.env.VITE_API_FOOTBALL_KEY
 
-const client = axios.create({
-  baseURL: 'https://v3.football.api-sports.io',
-  headers: { 'x-apisports-key': API_KEY },
-  timeout: 8000,
-})
-
-const isConfigured = () => !!API_KEY && API_KEY !== 'your_rapidapi_key_here'
+async function proxyFetch(endpoint, params = {}) {
+  const qs  = new URLSearchParams({ endpoint, ...params }).toString()
+  const res = await fetch(`/api/football?${qs}`, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`API ${res.status}`)
+  const data = await res.json()
+  return data.response
+}
 
 export const apiFootball = {
   async getLiveFixtures() {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/fixtures', {
-      params: { league: LEAGUE_ID, season: SEASON, live: 'all' },
-    })
-    return data.response
+    return proxyFetch('/fixtures', { league: LEAGUE_ID, season: SEASON, live: 'all' })
   },
 
   async getFixtures(params = {}) {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/fixtures', {
-      params: { league: LEAGUE_ID, season: SEASON, ...params },
-    })
-    return data.response
+    return proxyFetch('/fixtures', { league: LEAGUE_ID, season: SEASON, ...params })
   },
 
   async getStandings() {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/standings', {
-      params: { league: LEAGUE_ID, season: SEASON },
-    })
-    return data.response
+    return proxyFetch('/standings', { league: LEAGUE_ID, season: SEASON })
   },
 
   async getTeamStats(teamId) {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/teams/statistics', {
-      params: { league: LEAGUE_ID, season: SEASON, team: teamId },
-    })
-    return data.response
+    return proxyFetch('/teams/statistics', { league: LEAGUE_ID, season: SEASON, team: teamId })
   },
 
   async getTopScorers() {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/players/topscorers', {
-      params: { league: LEAGUE_ID, season: SEASON },
-    })
-    return data.response
+    return proxyFetch('/players/topscorers', { league: LEAGUE_ID, season: SEASON })
   },
 
-  // teamId requerido por la API junto a search
   async searchPlayer(name, teamId, season = 2025) {
-    if (!isConfigured()) return null
-    const { data } = await client.get('/players', {
-      params: { search: name, team: teamId, season },
-    })
-    return data.response
+    return proxyFetch('/players', { search: name, team: teamId, season })
   },
 
-  isConfigured,
+  isConfigured: () => true,
 }
 
 export default apiFootball

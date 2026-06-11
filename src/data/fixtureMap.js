@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { TEAM_IDS } from './teamIds'
 import { MATCHES } from './matches'
 
-const API_KEY   = '217e3ccfd4e714fba62caf18ed3ef01d'
 const CACHE_KEY = 'wc2026_fixture_map_v1'
 const CACHE_TTL = 24 * 60 * 60 * 1000
 
@@ -29,9 +28,7 @@ async function fetchAndBuild() {
     }
   } catch {}
 
-  const res = await fetch('https://v3.football.api-sports.io/fixtures?league=1&season=2026', {
-    headers: { 'x-apisports-key': API_KEY },
-  })
+  const res = await fetch('/api/football?endpoint=/fixtures&league=1&season=2026')
   const json = await res.json()
 
   // Índice por homeId-awayId (par único en el mundial)

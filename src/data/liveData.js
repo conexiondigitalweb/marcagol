@@ -2,42 +2,33 @@
 // API-Football v3 — Plan Starter
 // Doiler Sanjuan — Mundial 2026
 
-const API_KEY = '217e3ccfd4e714fba62caf18ed3ef01d'
-const BASE_URL = 'https://v3.football.api-sports.io'
 const LEAGUE_ID = 1 // FIFA World Cup 2026
 const SEASON = 2026
-
-const headers = {
-  'x-apisports-key': API_KEY,
-  'Content-Type': 'application/json',
-}
 
 // ─── Cache simple en memoria para no desperdiciar requests ────────────────────
 const cache = new Map()
 const CACHE_TTL = {
-  live:       30 * 1000,       // 30 segundos para partidos en vivo
-  fixtures:   5 * 60 * 1000,   // 5 minutos para fixture del día
-  standings:  10 * 60 * 1000,  // 10 minutos para tablas
-  scorers:    10 * 60 * 1000,  // 10 minutos para goleadores
-  events:     30 * 1000,       // 30 segundos para eventos del partido
-  lineups:    5 * 60 * 1000,   // 5 minutos para alineaciones
-  statistics: 60 * 1000,       // 1 minuto para estadísticas
+  live:       30 * 1000,
+  fixtures:   5 * 60 * 1000,
+  standings:  10 * 60 * 1000,
+  scorers:    10 * 60 * 1000,
+  events:     30 * 1000,
+  lineups:    5 * 60 * 1000,
+  statistics: 60 * 1000,
 }
 
 async function fetchAPI(endpoint, params = {}, ttlKey = 'fixtures') {
-  const url = new URL(`${BASE_URL}${endpoint}`)
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
-  const cacheKey = url.toString()
+  const cacheKey = `${endpoint}?${new URLSearchParams(params)}`
   const now = Date.now()
 
-  // Revisar cache
   if (cache.has(cacheKey)) {
     const { data, ts } = cache.get(cacheKey)
     if (now - ts < CACHE_TTL[ttlKey]) return data
   }
 
   try {
-    const res = await fetch(url.toString(), { headers })
+    const proxyQs = new URLSearchParams({ endpoint, ...params }).toString()
+    const res = await fetch(`/api/football?${proxyQs}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const json = await res.json()
     cache.set(cacheKey, { data: json.response, ts: now })

@@ -1,9 +1,5 @@
-const BASE_URL = 'https://v3.football.api-sports.io'
-const API_KEY  = import.meta.env.VITE_API_FOOTBALL_KEY
 const LEAGUE_ID = 1   // FIFA World Cup 2026
 const SEASON    = 2026
-
-const headers = { 'x-apisports-key': API_KEY }
 
 const LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN'])
 
@@ -26,19 +22,16 @@ function normalizeFixture(f) {
   }
 }
 
-async function apiFetch(path) {
-  if (!API_KEY) return null
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers,
-    signal: AbortSignal.timeout(10000),
-  })
+async function apiFetch(endpoint, params = {}) {
+  const qs  = new URLSearchParams({ endpoint, ...params }).toString()
+  const res = await fetch(`/api/football?${qs}`, { signal: AbortSignal.timeout(10000) })
   if (!res.ok) throw new Error(`API ${res.status}`)
   return res.json()
 }
 
 export async function getLiveMatches() {
   try {
-    const data = await apiFetch(`/fixtures?live=all&league=${LEAGUE_ID}&season=${SEASON}`)
+    const data = await apiFetch('/fixtures', { live: 'all', league: LEAGUE_ID, season: SEASON })
     return (data?.response || [])
       .filter(f => LIVE_STATUSES.has(f.fixture.status.short))
       .map(normalizeFixture)
@@ -49,7 +42,7 @@ export async function getLiveMatches() {
 
 export async function getStandings(group) {
   try {
-    const data = await apiFetch(`/standings?league=${LEAGUE_ID}&season=${SEASON}`)
+    const data = await apiFetch('/standings', { league: LEAGUE_ID, season: SEASON })
     if (!data) return []
     const allStandings = data.response?.[0]?.league?.standings || []
     if (!group) return allStandings.flat()
@@ -62,7 +55,7 @@ export async function getStandings(group) {
 
 export async function getTopScorers() {
   try {
-    const data = await apiFetch(`/players/topscorers?league=${LEAGUE_ID}&season=${SEASON}`)
+    const data = await apiFetch('/players/topscorers', { league: LEAGUE_ID, season: SEASON })
     if (!data) return []
     return (data.response || []).slice(0, 10).map(entry => ({
       name:   entry.player.name,

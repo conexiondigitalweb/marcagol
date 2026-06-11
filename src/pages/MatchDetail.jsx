@@ -17,7 +17,6 @@ const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
-const API_KEY = '217e3ccfd4e714fba62caf18ed3ef01d'
 
 function toLocal(date, timeET) {
   if (!timeET) return { time: '--:--', tz: '' }
@@ -226,10 +225,10 @@ function useExternalMatchData(fixtureId, enabled) {
     const done = () => !alive || STOP.has(statusRef.current)
 
     async function apiFetch(path) {
-      const r = await fetch(`https://v3.football.api-sports.io${path}`, {
-        headers: { 'x-apisports-key': API_KEY },
-        signal: AbortSignal.timeout(8000),
-      })
+      const [endpoint, qs] = path.split('?')
+      const params = Object.fromEntries(new URLSearchParams(qs || ''))
+      const proxyQs = new URLSearchParams({ endpoint, ...params }).toString()
+      const r = await fetch(`/api/football?${proxyQs}`, { signal: AbortSignal.timeout(8000) })
       const data = await r.json()
       return data.response ?? []
     }
@@ -779,8 +778,8 @@ export default function MatchDetail() {
       setFixturePlayersLoading(true)
       try {
         const r = await fetch(
-          `https://v3.football.api-sports.io/fixtures/players?fixture=${fixtureId}`,
-          { headers: { 'x-apisports-key': API_KEY }, signal: AbortSignal.timeout(10000) }
+          `/api/football?endpoint=/fixtures/players&fixture=${fixtureId}`,
+          { signal: AbortSignal.timeout(10000) }
         )
         const data = await r.json()
         setFixturePlayersData(data.response || [])

@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Parámetros inválidos' })
   }
 
-  const key = process.env.VITE_API_FOOTBALL_KEY
+  const key = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
   if (!key) return res.status(503).json({ error: 'API no configurada' })
 
   const url = `https://v3.football.api-sports.io/players?search=${encodeURIComponent(name)}&team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(season)}`
