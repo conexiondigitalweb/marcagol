@@ -9,6 +9,7 @@ import LiveIndicator from '../components/ui/LiveIndicator'
 import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
+import { usePredictions } from '../context/PredictionsContext'
 
 const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
 
@@ -230,8 +231,9 @@ export default function Dashboard() {
     return startLivePolling(matches => setApiLiveMatches(matches))
   }, [])
 
-  const upcoming  = getUpcomingMatches(6)
+  const upcoming   = getUpcomingMatches(6)
   const hasApiLive = apiLiveMatches.length > 0
+  const { totalPoints, predictedCount } = usePredictions()
 
   return (
     <div className="space-y-10 animate-slide-up">
@@ -313,6 +315,39 @@ export default function Dashboard() {
           <StatCard icon="🏟️" value="16"  label="Sedes"        sub="3 países sede"     />
           <StatCard icon="⚽" value="104" label="Partidos"      sub="72 fase de grupos" />
           <StatCard icon="🏆" value="32"  label="Días"         sub="Jun 11 – Jul 27"   />
+        </div>
+      </section>
+
+      {/* ── Mis Predicciones ─────────────────────────────────────────── */}
+      <section>
+        <div
+          className="rounded-xl border border-slate-700/50 p-5 flex items-center justify-between gap-4 flex-wrap"
+          style={{ background: '#1E293B' }}
+        >
+          {predictedCount === 0 ? (
+            <div>
+              <p className="text-sm font-semibold text-white">
+                🎯 ¿Cuánto quedará México vs Sudáfrica?
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5">Haz tu primera predicción del Mundial</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-black text-amber-400 tabular-nums">{totalPoints}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Puntos</div>
+              </div>
+              <div className="h-8 w-px bg-slate-700" />
+              <div className="text-center">
+                <div className="text-2xl font-black text-sky-400 tabular-nums">{predictedCount}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Predicciones</div>
+              </div>
+              <p className="text-sm text-slate-400 hidden md:block">¡Sigue prediciendo para subir!</p>
+            </div>
+          )}
+          <Link to="/predicciones" className="btn-outline text-xs flex-shrink-0">
+            Ver mis predicciones →
+          </Link>
         </div>
       </section>
 

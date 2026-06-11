@@ -1,18 +1,14 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { MATCHES } from '../data/matches'
 import { calculatePredictionPoints } from '../utils/helpers'
+import { getResult } from '../data/matchResults'
 
 const PredictionsContext = createContext(null)
-
 const STORAGE_KEY = 'marcagol_predictions'
 
 export function PredictionsProvider({ children }) {
   const [predictions, setPredictions] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}
-    } catch {
-      return {}
-    }
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {} }
+    catch { return {} }
   })
 
   useEffect(() => {
@@ -22,42 +18,34 @@ export function PredictionsProvider({ children }) {
   const savePrediction = (matchId, home, away) => {
     setPredictions(prev => ({
       ...prev,
-      [matchId]: { home: Number(home), away: Number(away), savedAt: Date.now() },
+      [matchId]: { home: Number(home), away: Number(away), savedAt: new Date().toISOString(), points: null },
     }))
   }
 
-  const getPrediction = (matchId) => predictions[matchId] || null
-
+  const getPrediction  = (matchId) => predictions[matchId] || null
   const clearPrediction = (matchId) => {
-    setPredictions(prev => {
-      const next = { ...prev }
-      delete next[matchId]
-      return next
-    })
+    setPredictions(prev => { const n = { ...prev }; delete n[matchId]; return n })
   }
 
+  // Compute stats from getResult() — the only source of truth for finished scores
   const totalPoints = Object.entries(predictions).reduce((sum, [id, pred]) => {
-    const match = MATCHES.find(m => m.id === Number(id))
-    if (!match || match.status !== 'finished') return sum
-    return sum + (calculatePredictionPoints(pred, match.homeScore, match.awayScore) || 0)
+    const result = getResult(Number(id))
+    if (!result) return sum
+    return sum + (calculatePredictionPoints(pred, result.homeScore, result.awayScore) || 0)
   }, 0)
 
-  const predictedCount  = Object.keys(predictions).length
-  const finishedPreds   = MATCHES.filter(m => m.status === 'finished' && predictions[m.id])
-  const correctResults  = finishedPreds.filter(m => {
-    const p = predictions[m.id]
-    return calculatePredictionPoints(p, m.homeScore, m.awayScore) > 0
+  const predictedCount = Object.keys(predictions).length
+
+  const correctResults = Object.entries(predictions).filter(([id, pred]) => {
+    const result = getResult(Number(id))
+    if (!result) return false
+    return calculatePredictionPoints(pred, result.homeScore, result.awayScore) > 0
   }).length
 
   return (
     <PredictionsContext.Provider value={{
-      predictions,
-      savePrediction,
-      getPrediction,
-      clearPrediction,
-      totalPoints,
-      predictedCount,
-      correctResults,
+      predictions, savePrediction, getPrediction, clearPrediction,
+      totalPoints, predictedCount, correctResults,
     }}>
       {children}
     </PredictionsContext.Provider>

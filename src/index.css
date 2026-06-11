@@ -114,9 +114,9 @@
     @apply bg-sky-500/10 text-sky-400 font-semibold;
   }
 
-  /* Prediction card */
+  /* Prediction score input */
   .prediction-input {
-    @apply w-12 text-center bg-slate-700 border border-slate-600 rounded-lg py-1.5 text-white font-bold text-lg focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500;
+    @apply w-10 h-10 text-center bg-slate-900 border-2 border-slate-600 rounded-lg text-white font-black text-xl focus:outline-none focus:border-sky-400 transition-colors;
   }
 }
 
