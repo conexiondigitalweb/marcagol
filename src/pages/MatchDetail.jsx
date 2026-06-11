@@ -926,8 +926,9 @@ export default function MatchDetail() {
                   <p>
                     {extStarted
                       ? 'Alineaciones no disponibles para este partido.'
-                      : 'Cargando alineaciones...'}
+                      : 'Las alineaciones se publicarán próximamente'}
                   </p>
+                  {!extStarted && <p className="text-xs mt-2 text-slate-600">Se actualizan automáticamente cuando estén disponibles</p>}
                 </div>
               ) : extLineups.map((team, i) => (
                 <LineupTeamCard
@@ -1039,8 +1040,9 @@ export default function MatchDetail() {
                   <p>
                     {wcStarted
                       ? 'Alineaciones no disponibles para este partido.'
-                      : 'Cargando alineaciones...'}
+                      : 'Las alineaciones se publicarán próximamente'}
                   </p>
+                  {!wcStarted && <p className="text-xs mt-2 text-slate-600">Se actualizan automáticamente cuando estén disponibles</p>}
                 </div>
               ) : lineups.map((team, i) => (
                 <LineupTeamCard
