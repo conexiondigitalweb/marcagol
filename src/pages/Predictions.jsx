@@ -289,19 +289,19 @@ export default function Predictions() {
       <MotivationBanner predictedCount={predictedCount} totalPoints={totalPoints} />
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="card p-5 text-center">
-          <div className="text-3xl font-black text-amber-400 tabular-nums">{totalPoints}</div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Puntos totales</div>
-        </div>
-        <div className="card p-5 text-center">
-          <div className="text-3xl font-black text-sky-400 tabular-nums">{predictedCount}</div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Predicciones</div>
-        </div>
-        <div className="card p-5 text-center">
-          <div className="text-3xl font-black text-orange-400 tabular-nums">{correctResults}</div>
-          <div className="text-xs text-slate-400 uppercase tracking-wider mt-1">Resultados correctos</div>
-        </div>
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+        {[
+          { value: totalPoints,    label: 'Puntos totales',       color: 'text-amber-400' },
+          { value: predictedCount, label: 'Predicciones',         color: 'text-sky-400'   },
+          { value: correctResults, label: 'Resultados correctos', color: 'text-orange-400'},
+        ].map(({ value, label, color }) => (
+          <div key={label} className="card p-3 sm:p-5 text-center">
+            <div className={`text-2xl sm:text-3xl font-black tabular-nums ${color}`}>{value}</div>
+            <div className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-normal sm:tracking-wider leading-tight mt-1">
+              {label}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Scoring system */}
