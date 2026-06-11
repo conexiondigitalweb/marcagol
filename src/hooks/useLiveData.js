@@ -201,9 +201,9 @@ export function useMatchDetail(fixtureId, isFinished = false) {
     if (!fixtureId) return
     try {
       const data = await getMatchDetail(fixtureId)
-      if (data.events)  setEvents(data.events)
-      if (data.stats)   setStats(data.stats)
-      if (data.lineups) setLineups(data.lineups)
+      if (data.events?.length)  setEvents(data.events)
+      if (data.stats?.length)   setStats(data.stats)
+      if (data.lineups?.length) setLineups(data.lineups)
       setError(null)
     } catch (e) {
       setError(e.message)

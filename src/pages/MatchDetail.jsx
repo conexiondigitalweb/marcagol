@@ -926,7 +926,7 @@ export default function MatchDetail() {
                   <p>
                     {extStarted
                       ? 'Alineaciones no disponibles para este partido.'
-                      : 'Las alineaciones se publican 1 hora antes del partido.'}
+                      : 'Cargando alineaciones...'}
                   </p>
                 </div>
               ) : extLineups.map((team, i) => (
@@ -1039,7 +1039,7 @@ export default function MatchDetail() {
                   <p>
                     {wcStarted
                       ? 'Alineaciones no disponibles para este partido.'
-                      : 'Las alineaciones se publican 1 hora antes del partido.'}
+                      : 'Cargando alineaciones...'}
                   </p>
                 </div>
               ) : lineups.map((team, i) => (
