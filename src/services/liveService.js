@@ -29,7 +29,7 @@ async function fetchLive() {
 }
 
 export function startLivePolling(onUpdate) {
-  const wcStart = new Date('2026-06-11T18:00:00Z')
+  const wcStart = new Date('2026-06-11T19:00:00+00:00')
   if (Date.now() < wcStart.getTime()) return () => {}
 
   fetchLive().then(onUpdate)
