@@ -95,10 +95,16 @@ function NewsCard({ item }) {
         </div>
       ) : (
         <div
-          className="bg-slate-800 flex items-center justify-center text-3xl text-slate-600 flex-shrink-0"
-          style={{ height: '120px', borderRadius: '10px 10px 0 0' }}
+          className="flex items-center justify-center flex-shrink-0 px-4"
+          style={{
+            height: '120px',
+            borderRadius: '10px 10px 0 0',
+            background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+          }}
         >
-          ⚽
+          <span className="text-xs font-semibold text-slate-500 text-center line-clamp-2">
+            {item.source}
+          </span>
         </div>
       )}
 
@@ -140,15 +146,23 @@ export default function News() {
       const data = await res.json()
 
       if (data.articles && data.articles.length > 0) {
-        const mapped = data.articles.map((a, i) => ({
-          id:          `gnews-${i}`,
-          source:      a.source?.name || 'Noticias',
-          title:       a.title,
-          link:        a.url,
-          pubDate:     a.publishedAt,
-          image:       a.image,
-          description: a.description,
-        }))
+        const seen = new Set()
+        const mapped = data.articles
+          .filter(a => {
+            const key = (a.title || '').toLowerCase().trim()
+            if (seen.has(key)) return false
+            seen.add(key)
+            return true
+          })
+          .map((a, i) => ({
+            id:          `gnews-${i}`,
+            source:      a.source?.name || 'Noticias',
+            title:       a.title,
+            link:        a.url,
+            pubDate:     a.publishedAt,
+            image:       a.image,
+            description: a.description,
+          }))
         setArticles(mapped)
         setUsingLive(true)
       } else {
