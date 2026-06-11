@@ -215,7 +215,7 @@ export function useMatchDetail(fixtureId, isFinished = false) {
   useEffect(() => {
     fetch()
     if (!isFinished) {
-      intervalRef.current = setInterval(fetch, 30_000)
+      intervalRef.current = setInterval(fetch, 10_000)
     }
     return () => clearInterval(intervalRef.current)
   }, [fetch, isFinished])

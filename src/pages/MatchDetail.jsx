@@ -250,7 +250,7 @@ function useExternalMatchData(fixtureId, enabled) {
         const data = await apiFetch(`/fixtures/events?fixture=${fixtureId}`)
         if (alive && data.length) setEvents(data)
       } catch {}
-      if (!done()) setTimeout(pollEvents, 20000)
+      if (!done()) setTimeout(pollEvents, 10000)
     }
 
     async function pollStats() {
