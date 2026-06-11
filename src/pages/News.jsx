@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
-const GNEWS_KEY = 'dad91be8058a385432883cdbf417196d'
-const GNEWS_URL = `https://gnews.io/api/v4/search?q=Mundial+2026+FIFA&lang=es&max=20&apikey=${GNEWS_KEY}`
+const NEWS_URL = '/api/news?endpoint=/search&q=Mundial+2026+FIFA&lang=es&max=20'
 
 const STATIC_ARTICLES = [
   {
@@ -136,7 +135,7 @@ export default function News() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(GNEWS_URL)
+      const res = await fetch(NEWS_URL)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
 
