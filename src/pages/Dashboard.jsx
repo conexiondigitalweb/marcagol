@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
-import { getUpcomingMatches, getLiveMatches as getStaticLiveMatches } from '../data/matches'
+import { getUpcomingMatches } from '../data/matches'
 import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl, getKickoffCountdown } from '../utils/helpers'
 import { getResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
@@ -216,9 +216,8 @@ function StatCard({ icon, value, label, sub }) {
 }
 
 export default function Dashboard() {
-  const [countdown, setCountdown]         = useState(getCountdown(WORLD_CUP_START))
+  const [countdown, setCountdown]           = useState(getCountdown(WORLD_CUP_START))
   const [apiLiveMatches, setApiLiveMatches] = useState([])
-  const staticLive = getStaticLiveMatches()
 
   // Countdown ticker
   useEffect(() => {
@@ -231,9 +230,8 @@ export default function Dashboard() {
     return startLivePolling(matches => setApiLiveMatches(matches))
   }, [])
 
-  const upcoming   = getUpcomingMatches(6)
-  const liveMatches = apiLiveMatches.length > 0 ? null : staticLive  // prefer API
-  const hasApiLive  = apiLiveMatches.length > 0
+  const upcoming  = getUpcomingMatches(6)
+  const hasApiLive = apiLiveMatches.length > 0
 
   return (
     <div className="space-y-10 animate-slide-up">
@@ -318,34 +316,29 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── API Live Matches (real-time, top priority) ─────────────── */}
-      {hasApiLive && (
+      {/* ── Live Matches ─────────────────────────────────────────────── */}
+      {!countdown && (
         <section>
           <div className="flex items-center gap-3 mb-4">
             <LiveIndicator size="lg" />
             <h2 className="section-title">Partidos en Vivo</h2>
-            <span className="text-xs text-sky-400 ml-auto">Actualización en tiempo real</span>
+            {hasApiLive && (
+              <span className="text-xs text-sky-400 ml-auto">Actualización en tiempo real</span>
+            )}
           </div>
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {apiLiveMatches.map(m => (
-              <Link key={m.id} to={`/partido/${m.id}`} className="block">
-                <ApiMatchCard match={m} />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Static Live Matches (fallback when API has none) ─────────── */}
-      {!hasApiLive && staticLive.length > 0 && (
-        <section>
-          <div className="flex items-center gap-3 mb-4">
-            <LiveIndicator size="lg" />
-            <h2 className="section-title">Partidos en Vivo</h2>
-          </div>
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {staticLive.map(m => <MatchCard key={m.id} match={m} />)}
-          </div>
+          {hasApiLive ? (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {apiLiveMatches.map(m => (
+                <Link key={m.id} to={`/partido/${m.id}`} className="block">
+                  <ApiMatchCard match={m} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="card p-8 text-center text-slate-500">
+              No hay partidos en vivo en este momento
+            </div>
+          )}
         </section>
       )}
 
