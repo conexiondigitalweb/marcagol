@@ -10,7 +10,7 @@ import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 
-const WORLD_CUP_START = '2026-06-11T18:00:00Z'
+const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
 
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
