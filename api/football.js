@@ -37,6 +37,11 @@ function ttlFor(endpoint, params) {
     return null // sentinel: compute after fetch
   }
 
+  if (endpoint === '/fixtures/lineups') {
+    // TTL decided after fetch: 0 if empty (no cache), 30s once data arrives
+    return null
+  }
+
   if (endpoint === '/standings') {
     return hasActiveLive() ? 60_000 : 5 * 60_000
   }
@@ -100,13 +105,17 @@ export default async function handler(req, res) {
       lastLiveTs = Date.now()
     }
 
-    // Compute final TTL (fixtures/id depends on match status from response)
+    // Compute final TTL (fixtures/id and lineups depend on response content)
     let ttl = ttlFor(endpoint, params)
     if (ttl === null) {
-      const status = data?.response?.[0]?.fixture?.status?.short
-      if (LIVE_STATUSES.has(status))     ttl = 25_000
-      else if (FINISHED_STATUSES.has(status)) ttl = 24 * 3600_000
-      else                               ttl = 60_000
+      if (endpoint === '/fixtures/lineups') {
+        ttl = (data?.response?.length > 0) ? 30_000 : 0
+      } else {
+        const status = data?.response?.[0]?.fixture?.status?.short
+        if (LIVE_STATUSES.has(status))          ttl = 25_000
+        else if (FINISHED_STATUSES.has(status)) ttl = 24 * 3600_000
+        else                                    ttl = 60_000
+      }
     }
 
     cache.set(cacheKey, { data, ts: Date.now(), ttl })
