@@ -14,6 +14,7 @@ function normalizeFixtureForHeader(f) {
     homeScore: f.goals?.home ?? null,
     awayScore: f.goals?.away ?? null,
     minute:    f.fixture?.status?.elapsed ?? null,
+    extra:     f.fixture?.status?.extra ?? null,
     status:    f.fixture?.status?.short ?? null,
     referee:   f.fixture?.referee ?? null,
   }

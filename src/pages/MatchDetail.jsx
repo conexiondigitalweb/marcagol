@@ -12,6 +12,9 @@ import { getKickoffDate, getKickoffCountdown } from '../utils/helpers'
 import { saveResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
+import { TEAM_IDS } from '../data/teamIds'
+
+const MD_CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -144,8 +147,14 @@ function MatchHeader({ match, liveData }) {
                 <div className={`text-3xl sm:text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
                   {liveData.homeScore ?? 0} – {liveData.awayScore ?? 0}
                 </div>
-                {isLive && liveData.minute && (
-                  <div className="text-red-400 text-sm font-bold mt-1">{liveData.minute}'</div>
+                {isLive && (
+                  liveData.status === 'HT'
+                    ? <div className="text-orange-400 text-sm font-bold mt-1">Descanso</div>
+                    : liveData.minute != null && (
+                        <div className="text-red-400 text-sm font-bold mt-1">
+                          {liveData.minute}{liveData.extra ? `+${liveData.extra}` : ''}'
+                        </div>
+                      )
                 )}
                 {isFinished && <div className="text-slate-500 text-xs mt-1">Final</div>}
               </div>
@@ -302,7 +311,9 @@ function ExternalMatchHeader({ f }) {
           {isLive && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 flex-shrink-0">
               <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"/>
-              <span className="text-xs font-bold text-red-400">EN VIVO · {fixture.status.elapsed}'</span>
+              <span className="text-xs font-bold text-red-400">
+                EN VIVO · {fixture.status.short === 'HT' ? 'Descanso' : `${fixture.status.elapsed}${fixture.status.extra ? `+${fixture.status.extra}` : ''}'`}
+              </span>
             </span>
           )}
           {isFinished && (
@@ -437,9 +448,10 @@ function fmtMin(time) {
   return `${time?.elapsed ?? ''}${time?.extra ? `+${time.extra}` : ''}`
 }
 
-function buildSubstMap(events) {
+function buildSubstMap(events, teamId = null) {
   const entered = {}, exited = {}, expelled = {}
   for (const e of events || []) {
+    if (teamId !== null && e.team?.id !== teamId) continue
     if (e.type === 'subst') {
       const label = fmtMin(e.time)
       if (e.assist?.name) entered[e.assist.name] = label   // assist = entra
@@ -827,7 +839,7 @@ export default function MatchDetail() {
     const extStatus     = externalFixture?.fixture?.status?.short
     const extStarted    = extStatus && extStatus !== 'NS'
     const extFinished   = ['FT', 'AET', 'PEN'].includes(extStatus)
-    const extSubstMap   = buildSubstMap(extEvents)
+    // extSubstMap eliminado: se pasa buildSubstMap(extEvents, team.team?.id) por equipo en el render
     const extEventsProc = markDisallowedGoals(extEvents, externalFixture)
     const visibleExtEvents = extFinished
       ? extEventsProc.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
@@ -942,7 +954,7 @@ export default function MatchDetail() {
                 <LineupTeamCard
                   key={i}
                   team={team}
-                  substMap={extSubstMap}
+                  substMap={buildSubstMap(extEvents, team.team?.id)}
                   onPlayerClick={openPlayerModal}
                   teamCode={null}
                 />
@@ -955,8 +967,8 @@ export default function MatchDetail() {
   }
 
   // ── Partido del Mundial ──────────────────────────────────────────────────────
-  const wcStarted      = events.length > 0 || homeStats.length > 0
-  const wcSubstMap     = buildSubstMap(events)
+  const wcStarted       = events.length > 0 || homeStats.length > 0
+  const homeTeamApiId   = TEAM_IDS[MD_CODE_ALIAS[homeCode] ?? homeCode] ?? null
   const visibleWcEvents = isFinished
     ? events.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
     : events
@@ -1013,7 +1025,7 @@ export default function MatchDetail() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
-                  {[...visibleWcEvents].reverse().map((e, i) => <EventRow key={i} event={e} />)}
+                  {[...visibleWcEvents].reverse().map((e, i) => <EventRow key={i} event={e} homeId={homeTeamApiId} />)}
                 </div>
               )}
             </div>
@@ -1059,7 +1071,7 @@ export default function MatchDetail() {
                 <LineupTeamCard
                   key={i}
                   team={team}
-                  substMap={wcSubstMap}
+                  substMap={buildSubstMap(events, team.team?.id)}
                   onPlayerClick={openPlayerModal}
                   teamCode={i === 0 ? homeCode : awayCode}
                 />

@@ -13,7 +13,9 @@ const ALL_TEAMS = Object.fromEntries(
 const LOCKED_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'live', 'FT', 'AET', 'finished'])
 
 function isLocked(match) {
-  return LOCKED_STATUSES.has(match.status) || !!getResult(match.id)
+  if (LOCKED_STATUSES.has(match.status) || !!getResult(match.id)) return true
+  const kickoff = getKickoffDate(match.date, match.time)
+  return kickoff ? Date.now() >= kickoff.getTime() : false
 }
 
 function timeUntil(match) {
@@ -258,6 +260,11 @@ function PredictionCard({ match }) {
             Tu predicción:{' '}
             <span className="text-slate-300 font-bold">{pred.home}–{pred.away}</span>
             <span className="text-slate-600 ml-2">· esperando resultado</span>
+          </span>
+        ) : locked ? (
+          <span className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
+            <span>🔒</span>
+            <span>Partido en curso · predicciones cerradas</span>
           </span>
         ) : null}
       </div>

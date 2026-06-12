@@ -2,9 +2,34 @@ import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
 import { sortTeams, getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
+import { getMatchesByGroup } from '../data/matches'
+import { getResult } from '../data/matchResults'
+
+function computeGroupStandings(teams, matches) {
+  const stats = {}
+  teams.forEach(t => {
+    stats[t.code] = { ...t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 }
+  })
+  for (const m of matches) {
+    const score = getResult(m.id)
+    if (!score) continue
+    const h = stats[m.homeTeam]
+    const a = stats[m.awayTeam]
+    if (!h || !a) continue
+    h.played++; a.played++
+    h.gf += score.homeScore; h.ga += score.awayScore
+    a.gf += score.awayScore; a.ga += score.homeScore
+    h.gd = h.gf - h.ga; a.gd = a.gf - a.ga
+    if (score.homeScore > score.awayScore)        { h.won++;   h.points += 3; a.lost++ }
+    else if (score.homeScore === score.awayScore) { h.drawn++; h.points++;    a.drawn++; a.points++ }
+    else                                          { h.lost++;  a.won++;       a.points += 3 }
+  }
+  return teams.map(t => stats[t.code])
+}
 
 function GroupTable({ group }) {
-  const sorted = sortTeams(group.teams)
+  const groupMatches = getMatchesByGroup(group.id)
+  const sorted = sortTeams(computeGroupStandings(group.teams, groupMatches))
 
   return (
     <Link to={`/grupos/${group.id}`} className="card-hover block">

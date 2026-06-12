@@ -1,12 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getGroupById } from '../data/groups'
 import { sortTeams, formatDayOfWeek, capitalizeFirst, toLocalTime } from '../utils/helpers'
 import { getMatchesByGroup } from '../data/matches'
 import Flag from '../components/ui/Flag'
 import { StatusBadge, ConfederationBadge } from '../components/ui/Badge'
-import { getResult } from '../data/matchResults'
+import { getResult, saveResult } from '../data/matchResults'
 import { useLiveMatches } from '../hooks/useLiveData'
+import { getFixture } from '../data/liveData'
+import { getFixtureMap } from '../data/fixtureMap'
 import { TEAM_IDS } from '../data/teamIds'
 
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'PEN'])
@@ -206,6 +208,7 @@ export default function GroupDetail() {
 
   // Hooks deben llamarse antes de cualquier return condicional
   const { matches: apiLiveMatches } = useLiveMatches()
+  const [resultsVersion, setResultsVersion] = useState(0)
 
   const groupMatches = useMemo(
     () => (group ? getMatchesByGroup(group.id) : []),
@@ -217,6 +220,31 @@ export default function GroupDetail() {
     () => buildLiveScores(apiLiveMatches, groupMatches),
     [apiLiveMatches, groupMatches]
   )
+
+  // Al montar, cargar resultados de partidos finalizados que aún no estén guardados
+  useEffect(() => {
+    const missing = groupMatches.filter(m => !getResult(m.id))
+    if (!missing.length) return
+    let live = true
+    getFixtureMap().then(async map => {
+      if (!live) return
+      let changed = false
+      await Promise.all(missing.map(async m => {
+        const fid = map[m.id]
+        if (!fid) return
+        try {
+          const f = await getFixture(fid)
+          if (!f) return
+          if (['FT', 'AET', 'PEN'].includes(f.fixture?.status?.short) && f.goals?.home != null) {
+            saveResult(m.id, f.goals.home, f.goals.away)
+            changed = true
+          }
+        } catch {}
+      }))
+      if (changed && live) setResultsVersion(v => v + 1)
+    })
+    return () => { live = false }
+  }, [groupMatches, resultsVersion])
 
   if (!group) {
     return (
