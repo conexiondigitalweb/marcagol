@@ -454,16 +454,21 @@ function buildSubstMap(events, teamId = null) {
     if (teamId !== null && e.team?.id !== teamId) continue
     if (e.type === 'subst') {
       const label = fmtMin(e.time)
-      if (e.assist?.name) entered[e.assist.name] = label   // assist = entra
-      if (e.player?.name) exited[e.player.name]  = label   // player = sale
+      // OUT: número de camiseta — campo consistente entre /lineups y /events
+      if (e.player?.number != null) exited[e.player.number] = label
+      else if (e.player?.name)      exited[e.player.name]   = label  // fallback nombre
+      // IN: player.id del suplente (más fiable que nombre abreviado)
+      if (e.assist?.id != null)  entered[e.assist.id]   = label
+      else if (e.assist?.name)   entered[e.assist.name] = label      // fallback nombre
     }
     if (e.type === 'Card') {
       const d = e.detail || ''
       if (d.includes('Red Card') || d.includes('Second Yellow') || d.includes('Yellow Red')) {
         const label = fmtMin(e.time)
-        // Keyed by player.id — reliable match with lineups; name kept as fallback
-        if (e.player?.id != null) expelled[e.player.id] = label
-        else if (e.player?.name) expelled[e.player.name] = label
+        // Número de camiseta primero, luego id, luego nombre
+        if (e.player?.number != null) expelled[e.player.number] = label
+        else if (e.player?.id != null) expelled[e.player.id]    = label
+        else if (e.player?.name)       expelled[e.player.name]  = label
       }
     }
   }
@@ -649,22 +654,16 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const { entered, exited, expelled } = substMap
   const { goals: goalsMap = {}, assists: assistsMap = {} } = statsMap ?? {}
 
-  const isExpelledById = (p) =>
-    (p.player?.id != null && expelled[p.player.id]) ||
-    lookupSubst(p.player?.name, expelled)
+  // Número de camiseta → más consistente entre /lineups y /events que el nombre
+  const getExited   = (p) => exited[p.player?.number]   ?? lookupSubst(p.player?.name, exited)
+  const getExpelled = (p) => expelled[p.player?.number] ?? expelled[p.player?.id]    ?? lookupSubst(p.player?.name, expelled)
+  const getEntered  = (p) => (p.player?.id != null ? entered[p.player.id] : undefined) ?? lookupSubst(p.player?.name, entered)
 
-  const startXIOut = (team.startXI ?? []).filter(p =>
-    lookupSubst(p.player?.name, exited) || isExpelledById(p)
-  ).length
-  const subsIn = (team.substitutes ?? []).filter(p =>
-    lookupSubst(p.player?.name, entered)
-  ).length
-  // Suplentes que entraron Y fueron expulsados no cuentan como activos
-  const subsExpelled = (team.substitutes ?? []).filter(p =>
-    lookupSubst(p.player?.name, entered) && isExpelledById(p)
-  ).length
-  const activeCount = (team.startXI?.length ?? 0) - startXIOut + subsIn - subsExpelled
-  const matchingOk = activeCount <= 11
+  const startXIOut   = (team.startXI ?? []).filter(p => getExited(p) || getExpelled(p)).length
+  const subsIn       = (team.substitutes ?? []).filter(p => getEntered(p)).length
+  const subsExpelled = (team.substitutes ?? []).filter(p => getEntered(p) && getExpelled(p)).length
+  const activeCount  = (team.startXI?.length ?? 0) - startXIOut + subsIn - subsExpelled
+  const matchingOk   = activeCount <= 11
   if (!matchingOk) {
     console.error(`[LineupTeamCard] ${team.team?.name}: ${activeCount} activos (esperado ≤ 11), omitiendo indicadores`)
   }
@@ -691,8 +690,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
 
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
-          const exitMin  = matchingOk && lookupSubst(p.player?.name, exited)
-          const expelMin = matchingOk && isExpelledById(p)
+          const exitMin  = matchingOk && getExited(p)
+          const expelMin = matchingOk && getExpelled(p)
           const isOut    = exitMin || expelMin
           return (
             <button
@@ -722,8 +721,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
         <>
           <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
           {team.substitutes.map((p, j) => {
-            const enterMin = matchingOk && lookupSubst(p.player?.name, entered)
-            const expelMin = matchingOk && isExpelledById(p)
+            const enterMin = matchingOk && getEntered(p)
+            const expelMin = matchingOk && getExpelled(p)
             const isOut    = expelMin
             return (
               <button
