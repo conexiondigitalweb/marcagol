@@ -455,21 +455,18 @@ function buildSubstMap(events, teamId = null) {
     if (teamId !== null && e.team?.id !== teamId) continue
     if (e.type === 'subst') {
       const label = fmtMin(e.time)
-      // OUT: número de camiseta — campo consistente entre /lineups y /events
-      if (e.player?.number != null) exited[e.player.number] = label
-      else if (e.player?.name)      exited[e.player.name]   = label  // fallback nombre
-      // IN: player.id del suplente (más fiable que nombre abreviado)
-      if (e.assist?.id != null)  entered[e.assist.id]   = label
-      else if (e.assist?.name)   entered[e.assist.name] = label      // fallback nombre
+      // player.number es null en /fixtures/events — player.id es el campo confiable
+      if (e.player?.id != null) exited[e.player.id]   = label
+      else if (e.player?.name)  exited[e.player.name] = label
+      if (e.assist?.id != null) entered[e.assist.id]   = label
+      else if (e.assist?.name)  entered[e.assist.name] = label
     }
     if (e.type === 'Card') {
       const d = e.detail || ''
       if (d.includes('Red Card') || d.includes('Second Yellow') || d.includes('Yellow Red')) {
         const label = fmtMin(e.time)
-        // Número de camiseta primero, luego id, luego nombre
-        if (e.player?.number != null) expelled[e.player.number] = label
-        else if (e.player?.id != null) expelled[e.player.id]    = label
-        else if (e.player?.name)       expelled[e.player.name]  = label
+        if (e.player?.id != null) expelled[e.player.id]   = label
+        else if (e.player?.name)  expelled[e.player.name] = label
       }
     }
   }
@@ -656,8 +653,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const { goals: goalsMap = {}, assists: assistsMap = {} } = statsMap ?? {}
 
   // Número de camiseta → más consistente entre /lineups y /events que el nombre
-  const getExited   = (p) => exited[p.player?.number]   ?? lookupSubst(p.player?.name, exited)
-  const getExpelled = (p) => expelled[p.player?.number] ?? expelled[p.player?.id]    ?? lookupSubst(p.player?.name, expelled)
+  const getExited   = (p) => exited[p.player?.id]   ?? lookupSubst(p.player?.name, exited)
+  const getExpelled = (p) => expelled[p.player?.id] ?? lookupSubst(p.player?.name, expelled)
   const getEntered  = (p) => (p.player?.id != null ? entered[p.player.id] : undefined) ?? lookupSubst(p.player?.name, entered)
 
   const startXIOut   = (team.startXI ?? []).filter(p => getExited(p) || getExpelled(p)).length
