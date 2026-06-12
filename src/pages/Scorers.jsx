@@ -1,6 +1,7 @@
 import { useTopStats } from '../hooks/useLiveData'
 import { GROUPS } from '../data/groups'
 import { TEAM_IDS } from '../data/teamIds'
+import { esTeamName } from '../data/teamNames'
 import Flag from '../components/ui/Flag'
 
 // Alias inverso: claves TEAM_IDS → códigos de GROUPS
@@ -54,7 +55,7 @@ function PlayerRow({ item, rank, type }) {
         <p className="font-semibold text-white text-sm truncate">{player?.name}</p>
         <div className="flex items-center gap-1.5 mt-0.5">
           {iso2 && <Flag iso2={iso2} size="xs" />}
-          <span className="text-xs text-slate-500 truncate">{stat?.team?.name}</span>
+          <span className="text-xs text-slate-500 truncate">{esTeamName(stat?.team)}</span>
         </div>
       </div>
 
@@ -77,7 +78,7 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
         <div className="px-4 py-2.5 border-b border-slate-700/50 flex justify-between items-center"
           style={{ backgroundColor: '#162032' }}>
           <span className="text-xs text-slate-500 uppercase tracking-wider">{title} del torneo</span>
-          <span className="text-xs text-slate-600">{loading ? '…' : `${Math.min(data.length, 20)} jugadores`}</span>
+          <span className="text-xs text-slate-600">{loading ? '…' : `${data.length} jugadores`}</span>
         </div>
 
         {loading ? (
@@ -96,7 +97,7 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
               <span className="flex-1">Jugador</span>
               <span className="min-w-[2.5rem] text-right">{type === 'scorers' ? 'Goles' : 'Asist.'}</span>
             </div>
-            {data.slice(0, 20).map((item, i) => (
+            {data.map((item, i) => (
               <PlayerRow key={item.player?.id ?? i} item={item} rank={i + 1} type={type} />
             ))}
           </div>
@@ -108,7 +109,28 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
 
 export default function Scorers() {
   const { scorers, assists, loading, refetch } = useTopStats()
-  const empty = 'Los datos estarán disponibles desde el primer partido.'
+
+  const filteredScorers = [...(scorers ?? [])]
+    .filter(item => (item.statistics?.[0]?.goals?.total ?? 0) > 0)
+    .sort((a, b) => {
+      const ga = a.statistics?.[0]?.goals?.total ?? 0
+      const gb = b.statistics?.[0]?.goals?.total ?? 0
+      if (gb !== ga) return gb - ga
+      const aa = a.statistics?.[0]?.goals?.assists ?? 0
+      const ab = b.statistics?.[0]?.goals?.assists ?? 0
+      return ab - aa
+    })
+
+  const filteredAssists = [...(assists ?? [])]
+    .filter(item => (item.statistics?.[0]?.goals?.assists ?? 0) > 0)
+    .sort((a, b) => {
+      const aa = a.statistics?.[0]?.goals?.assists ?? 0
+      const ab = b.statistics?.[0]?.goals?.assists ?? 0
+      if (ab !== aa) return ab - aa
+      const ga = a.statistics?.[0]?.goals?.total ?? 0
+      const gb = b.statistics?.[0]?.goals?.total ?? 0
+      return gb - ga
+    })
 
   return (
     <div className="animate-slide-up space-y-8">
@@ -123,21 +145,21 @@ export default function Scorers() {
       </div>
 
       <StatsSection
-        data={scorers}
+        data={filteredScorers}
         type="scorers"
         loading={loading}
         title="Goleadores"
         icon="⚽"
-        emptyMsg={empty}
+        emptyMsg="Aún no hay goleadores registrados"
       />
 
       <StatsSection
-        data={assists}
+        data={filteredAssists}
         type="assists"
         loading={loading}
         title="Asistidores"
         icon="🎯"
-        emptyMsg={empty}
+        emptyMsg="Aún no hay asistidores registrados"
       />
     </div>
   )
