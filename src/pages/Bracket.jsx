@@ -181,7 +181,7 @@ export default function Bracket() {
                   <td className="py-2.5 text-center text-slate-500">0</td>
                   <td className="py-2.5 text-center">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
-                      ✓ Clasifica
+                      {i < 8 ? '✓ Clasifica' : 'Eliminado'}
                     </span>
                   </td>
                 </tr>
