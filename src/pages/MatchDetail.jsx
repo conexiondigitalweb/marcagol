@@ -13,6 +13,7 @@ import { saveResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
 import { TEAM_IDS } from '../data/teamIds'
+import { esTeamName } from '../data/teamNames'
 
 const MD_CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
 
@@ -327,7 +328,7 @@ function ExternalMatchHeader({ f }) {
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img src={teams.home.logo} alt={teams.home.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{teams.home.name}</span>
+            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{esTeamName(teams.home)}</span>
           </div>
           <div className="text-center flex-shrink-0">
             {(isLive || isFinished) ? (
@@ -343,7 +344,7 @@ function ExternalMatchHeader({ f }) {
           </div>
           <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
             <img src={teams.away.logo} alt={teams.away.name} className="w-12 h-12 sm:w-16 sm:h-16 object-contain" />
-            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{teams.away.name}</span>
+            <span className="text-white font-black text-center text-sm sm:text-base leading-tight">{esTeamName(teams.away)}</span>
           </div>
         </div>
       </div>
@@ -684,7 +685,7 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
     <div className="card overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-700/50 flex items-center gap-3" style={{ backgroundColor: '#162032' }}>
         <img src={team.team?.logo} alt="" width={24} height={24} className="object-contain" />
-        <span className="font-bold text-white text-sm">{team.team?.name}</span>
+        <span className="font-bold text-white text-sm">{esTeamName(team.team)}</span>
         <span className="text-xs text-slate-500 ml-auto">{team.formation}</span>
       </div>
 

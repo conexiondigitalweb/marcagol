@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveMatches, useTodayMatches } from '../../hooks/useLiveData'
 import { toLocalTime, getMatchStatus, getEventIcon } from '../../data/liveData'
+import { esTeamName } from '../../data/teamNames'
 import Flag from './Flag'
 
 function LiveBadge() {
@@ -57,7 +58,7 @@ function MatchCard({ fixture, isLive }) {
           <span className={`text-sm font-semibold truncate ${
             goals?.home > goals?.away ? 'text-white' : 'text-slate-400'
           }`}>
-            {home?.name}
+            {esTeamName(home)}
           </span>
           {home?.logo ? (
             <img src={home.logo} alt="" width={24} height={24} className="object-contain" />
@@ -87,7 +88,7 @@ function MatchCard({ fixture, isLive }) {
           <span className={`text-sm font-semibold truncate ${
             goals?.away > goals?.home ? 'text-white' : 'text-slate-400'
           }`}>
-            {away?.name}
+            {esTeamName(away)}
           </span>
         </div>
       </div>

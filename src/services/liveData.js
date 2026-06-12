@@ -5,20 +5,22 @@ const LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN'])
 
 function normalizeFixture(f) {
   return {
-    id:        f.fixture.id,
-    homeTeam:  f.teams.home.name,
-    awayTeam:  f.teams.away.name,
-    homeLogo:  f.teams.home.logo,
-    awayLogo:  f.teams.away.logo,
-    homeScore: f.goals.home,
-    awayScore: f.goals.away,
-    minute:    f.fixture.status.elapsed,
-    status:    f.fixture.status.short,
-    venue:     f.fixture.venue?.name || '',
-    city:      f.fixture.venue?.city || '',
-    date:      f.fixture.date,
-    group:     null,
-    matchday:  null,
+    id:          f.fixture.id,
+    homeTeam:    f.teams.home.name,
+    awayTeam:    f.teams.away.name,
+    homeTeamId:  f.teams.home.id,
+    awayTeamId:  f.teams.away.id,
+    homeLogo:    f.teams.home.logo,
+    awayLogo:    f.teams.away.logo,
+    homeScore:   f.goals.home,
+    awayScore:   f.goals.away,
+    minute:      f.fixture.status.elapsed,
+    status:      f.fixture.status.short,
+    venue:       f.fixture.venue?.name || '',
+    city:        f.fixture.venue?.city || '',
+    date:        f.fixture.date,
+    group:       null,
+    matchday:    null,
   }
 }
 

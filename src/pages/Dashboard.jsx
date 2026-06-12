@@ -11,6 +11,7 @@ import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 import { usePredictions } from '../context/PredictionsContext'
 import { useLiveScoresMap } from '../hooks/useLiveData'
+import { esTeamName } from '../data/teamNames'
 
 const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
 
@@ -42,7 +43,7 @@ function ApiMatchCard({ match }) {
       </div>
       <div className="flex items-center gap-3">
         <div className="flex-1 flex items-center gap-2 justify-end">
-          <span className="text-sm font-semibold text-white text-right">{match.homeTeam}</span>
+          <span className="text-sm font-semibold text-white text-right">{esTeamName({ id: match.homeTeamId, name: match.homeTeam })}</span>
           {match.homeLogo && (
             <img src={match.homeLogo} alt={match.homeTeam} width={28} height={28}
                  className="object-contain" loading="lazy" />
@@ -59,7 +60,7 @@ function ApiMatchCard({ match }) {
             <img src={match.awayLogo} alt={match.awayTeam} width={28} height={28}
                  className="object-contain" loading="lazy" />
           )}
-          <span className="text-sm font-semibold text-white">{match.awayTeam}</span>
+          <span className="text-sm font-semibold text-white">{esTeamName({ id: match.awayTeamId, name: match.awayTeam })}</span>
         </div>
       </div>
       {(match.venue || match.city) && (
