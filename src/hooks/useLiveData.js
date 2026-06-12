@@ -1,11 +1,38 @@
 // useLiveData.js — Hook React para datos en vivo
 // Maneja polling automático y estados de carga
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   getLiveMatches, getTodayMatches, getStandings,
   getTopScorers, getTopAssists, getMatchDetail, getFixture
 } from '../data/liveData'
+import { TEAM_IDS } from '../data/teamIds'
+
+// ─── Utilidad compartida: raw API live → { [appMatchId]: liveScore } ─────────
+const _LIVE_SET = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'PEN'])
+const _ALIAS    = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
+function _tid(code) { return TEAM_IDS[_ALIAS[code] ?? code] ?? null }
+
+export function buildLiveScoresMap(liveApiMatches, appMatches) {
+  const scores = {}
+  for (const m of appMatches) {
+    const hId = _tid(m.homeTeam)
+    const aId = _tid(m.awayTeam)
+    if (!hId || !aId) continue
+    const live = (liveApiMatches || []).find(
+      lm => lm.teams?.home?.id === hId && lm.teams?.away?.id === aId
+    )
+    if (live && _LIVE_SET.has(live.fixture?.status?.short)) {
+      scores[m.id] = {
+        homeScore: live.goals?.home ?? 0,
+        awayScore: live.goals?.away ?? 0,
+        status:    live.fixture?.status?.short,
+        minute:    live.fixture?.status?.elapsed,
+      }
+    }
+  }
+  return scores
+}
 
 // ─── Normalización de fixture API → shape compatible con MatchHeader ──────────
 function normalizeFixtureForHeader(f) {
@@ -101,6 +128,12 @@ export function useLiveMatches() {
   }, [fetch])
 
   return { matches, loading, error, refetch: fetch }
+}
+
+// ─── Hook: Mapa { appMatchId → liveScore } para un array de matches estáticos ──
+export function useLiveScoresMap(appMatches) {
+  const { matches } = useLiveMatches()
+  return useMemo(() => buildLiveScoresMap(matches, appMatches), [matches, appMatches])
 }
 
 // ─── Hook: Partidos del día (polling cada 5min) ───────────────────────────────

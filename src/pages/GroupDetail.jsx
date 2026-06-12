@@ -6,39 +6,11 @@ import { getMatchesByGroup } from '../data/matches'
 import Flag from '../components/ui/Flag'
 import { StatusBadge, ConfederationBadge } from '../components/ui/Badge'
 import { getResult, saveResult } from '../data/matchResults'
-import { useLiveMatches } from '../hooks/useLiveData'
+import { useLiveMatches, buildLiveScoresMap } from '../hooks/useLiveData'
 import { getFixture } from '../data/liveData'
 import { getFixtureMap } from '../data/fixtureMap'
-import { TEAM_IDS } from '../data/teamIds'
 
 const LIVE_STATUSES = new Set(['1H', 'HT', '2H', 'ET', 'BT', 'PEN'])
-const CODE_ALIAS    = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
-
-function resolveTeamId(code) {
-  return TEAM_IDS[CODE_ALIAS[code] ?? code] ?? null
-}
-
-// Builds { matchId: { homeScore, awayScore, status, minute } } for live group matches
-function buildLiveScores(liveMatches, groupMatches) {
-  const scores = {}
-  for (const m of groupMatches) {
-    const hId = resolveTeamId(m.homeTeam)
-    const aId = resolveTeamId(m.awayTeam)
-    if (!hId || !aId) continue
-    const live = liveMatches.find(lm =>
-      lm.teams?.home?.id === hId && lm.teams?.away?.id === aId
-    )
-    if (live && LIVE_STATUSES.has(live.fixture?.status?.short)) {
-      scores[m.id] = {
-        homeScore: live.goals?.home ?? 0,
-        awayScore: live.goals?.away ?? 0,
-        status:    live.fixture?.status?.short,
-        minute:    live.fixture?.status?.elapsed,
-      }
-    }
-  }
-  return scores
-}
 
 function computeGroupStandings(teams, matches, liveScores = {}) {
   const stats = {}
@@ -131,18 +103,17 @@ function TeamRow({ team, rank, posChange }) {
   )
 }
 
-function MatchRow({ match }) {
+function MatchRow({ match, liveData }) {
   const allTeams  = getGroupById(match.group)?.teams || []
   const homeTeam  = allTeams.find(t => t.code === match.homeTeam) || { name: match.homeTeam, iso2: 'un' }
   const awayTeam  = allTeams.find(t => t.code === match.awayTeam) || { name: match.awayTeam, iso2: 'un' }
   const result    = getResult(match.id)
-  const isLive    = LIVE_STATUSES.has(match.status)
   const isFinished = !!result
+  const isLive    = !isFinished && !!liveData
   const { time, label } = toLocalTime(match.date, match.time)
 
-  const displayScore = result ?? (
-    match.homeScore !== null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null
-  )
+  const displayScore = result
+    ?? (liveData ? { homeScore: liveData.homeScore, awayScore: liveData.awayScore } : null)
 
   return (
     <Link
@@ -153,6 +124,10 @@ function MatchRow({ match }) {
         <div className="text-slate-500">JOR {match.matchday}</div>
         {isFinished ? (
           <div className="text-slate-500 font-semibold">Final</div>
+        ) : isLive ? (
+          <div className="text-red-400 font-bold">
+            {liveData.status === 'HT' ? 'Descanso' : `${liveData.minute ?? ''}′`}
+          </div>
         ) : (
           <div className="text-slate-600">{time} <span className="text-slate-700">{label}</span></div>
         )}
@@ -189,7 +164,8 @@ function MatchRow({ match }) {
           <span className="badge-finished">Finalizado</span>
         ) : isLive ? (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />EN VIVO
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+            {liveData.status === 'HT' ? 'Descanso' : 'EN VIVO'}
           </span>
         ) : (
           <StatusBadge status={match.status} />
@@ -217,7 +193,7 @@ export default function GroupDetail() {
   )
 
   const liveScores = useMemo(
-    () => buildLiveScores(apiLiveMatches, groupMatches),
+    () => buildLiveScoresMap(apiLiveMatches, groupMatches),
     [apiLiveMatches, groupMatches]
   )
 
@@ -352,7 +328,7 @@ export default function GroupDetail() {
             </div>
             {mdMatches.map((match, i) => (
               <div key={match.id} className={i < mdMatches.length - 1 ? 'border-b border-slate-700/20' : ''}>
-                <MatchRow match={match} />
+                <MatchRow match={match} liveData={liveScores[match.id]} />
               </div>
             ))}
           </div>

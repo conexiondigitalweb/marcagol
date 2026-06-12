@@ -8,6 +8,7 @@ import { getResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
+import { useLiveScoresMap } from '../hooks/useLiveData'
 
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -52,12 +53,12 @@ function VenuePhoto({ venueName }) {
   )
 }
 
-function MatchRow({ match }) {
+function MatchRow({ match, liveData }) {
   const home = ALL_TEAMS_MAP[match.homeTeam]
   const away = ALL_TEAMS_MAP[match.awayTeam]
   const result     = getResult(match.id)
-  const isLive     = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
   const isFinished = !!result
+  const isLive     = !isFinished && !!liveData
 
   const [countdown, setCountdown] = useState(() =>
     (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
@@ -86,7 +87,8 @@ function MatchRow({ match }) {
     return `${cd.ss}s`
   }
 
-  const displayScore = result ?? (match.homeScore !== null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null)
+  const displayScore = result
+    ?? (liveData ? { homeScore: liveData.homeScore, awayScore: liveData.awayScore } : null)
 
   return (
     <Link
@@ -97,8 +99,12 @@ function MatchRow({ match }) {
       <div className="sm:w-24 flex sm:flex-col items-center sm:items-start gap-1">
         {isFinished ? (
           <span className="text-sm font-bold text-slate-400">Final</span>
+        ) : isLive ? (
+          <span className="text-sm font-bold text-red-400">
+            {liveData.status === 'HT' ? 'Descanso' : `${liveData.minute ?? ''}′`}
+          </span>
         ) : (
-          <span className={`text-sm font-mono font-bold ${isLive ? 'text-sky-400' : 'text-orange-400'}`}>
+          <span className="text-sm font-mono font-bold text-orange-400">
             {toLocal(match.date, match.time)}
           </span>
         )}
@@ -160,6 +166,11 @@ function MatchRow({ match }) {
       <div className="sm:w-48 flex sm:flex-col items-center sm:items-end gap-2">
         {isFinished ? (
           <span className="badge-finished">Finalizado</span>
+        ) : isLive ? (
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+            {liveData.status === 'HT' ? 'Descanso' : 'EN VIVO'}
+          </span>
         ) : (
           <StatusBadge status={match.status} />
         )}
@@ -179,6 +190,8 @@ export default function Schedule() {
   const [mdFilter, setMdFilter]       = useState('Todos')
   const [countryFilter, setCountryFilter] = useState('Todos')
   const [search, setSearch]           = useState('')
+
+  const liveScoresMap = useLiveScoresMap(MATCHES)
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
@@ -314,7 +327,7 @@ export default function Schedule() {
                 </h3>
                 <span className="text-xs text-slate-500">{matches.length} partido{matches.length !== 1 ? 's' : ''}</span>
               </div>
-              {matches.map(m => <MatchRow key={m.id} match={m} />)}
+              {matches.map(m => <MatchRow key={m.id} match={m} liveData={liveScoresMap[m.id]} />)}
             </div>
           ))}
         </div>

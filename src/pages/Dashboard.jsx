@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
-import { getUpcomingMatches } from '../data/matches'
+import { MATCHES, getUpcomingMatches } from '../data/matches'
 import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl, getKickoffCountdown } from '../utils/helpers'
 import { getResult } from '../data/matchResults'
 import Flag from '../components/ui/Flag'
@@ -10,6 +10,7 @@ import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 import { usePredictions } from '../context/PredictionsContext'
+import { useLiveScoresMap } from '../hooks/useLiveData'
 
 const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
 
@@ -81,12 +82,12 @@ function toLocalTime(date, timeET) {
   } catch { return { time: timeET?.slice(0, 5) ?? '--:--', label: 'ET' } }
 }
 
-function MatchCard({ match, compact = false }) {
-  const isLive     = ['live','1H','HT','2H','ET','PEN'].includes(match.status)
+function MatchCard({ match, liveData, compact = false }) {
   const home       = ALL_TEAMS_MAP[match.homeTeam]
   const away       = ALL_TEAMS_MAP[match.awayTeam]
   const result     = getResult(match.id)
   const isFinished = !!result
+  const isLive     = !isFinished && !!liveData
 
   const [countdown, setCountdown] = useState(() =>
     (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
@@ -102,7 +103,8 @@ function MatchCard({ match, compact = false }) {
   const COUNTRY_FLAGS = { USA: '🇺🇸', CAN: '🇨🇦', MEX: '🇲🇽' }
   const COUNTRY_NAMES = { USA: 'Estados Unidos', CAN: 'Canadá', MEX: 'México' }
 
-  const displayScore = result ?? (match.homeScore != null ? { homeScore: match.homeScore, awayScore: match.awayScore } : null)
+  const displayScore = result
+    ?? (liveData ? { homeScore: liveData.homeScore, awayScore: liveData.awayScore } : null)
   const { time: localTime, label: tzLabel } = toLocalTime(match.date, match.time)
 
   function fmtCountdown(cd) {
@@ -123,7 +125,15 @@ function MatchCard({ match, compact = false }) {
           {match.matchday ? ` · J${match.matchday}` : ''}
         </span>
         {isLive ? (
-          <LiveIndicator minute={match.minute} />
+          <span className="flex items-center gap-1.5">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <span className="text-xs text-red-400 font-bold uppercase tracking-wider">
+              {liveData.status === 'HT' ? 'Descanso' : 'EN VIVO'}
+            </span>
+          </span>
         ) : isFinished ? (
           <span className="badge-finished">Finalizado</span>
         ) : (
@@ -157,7 +167,9 @@ function MatchCard({ match, compact = false }) {
               <div className={`text-xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
                 {displayScore.homeScore}–{displayScore.awayScore}
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">{isFinished ? 'Final' : 'ET'}</div>
+              <div className="text-xs text-slate-500 mt-0.5">
+                {isFinished ? 'Final' : isLive ? (liveData.status === 'HT' ? 'Descanso' : `${liveData.minute ?? ''}′`) : ''}
+              </div>
             </>
           ) : countdown ? (
             <>
@@ -231,8 +243,9 @@ export default function Dashboard() {
     return startLivePolling(matches => setApiLiveMatches(matches))
   }, [])
 
-  const upcoming   = getUpcomingMatches(6)
-  const hasApiLive = apiLiveMatches.length > 0
+  const upcoming       = getUpcomingMatches(6)
+  const hasApiLive     = apiLiveMatches.length > 0
+  const liveScoresMap  = useLiveScoresMap(MATCHES)
   const { totalPoints, predictedCount } = usePredictions()
 
   return (
@@ -396,7 +409,7 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500 px-1 uppercase tracking-wider">
                   {capitalizeFirst(formatDayOfWeek(m.date))}
                 </p>
-                <MatchCard match={m} />
+                <MatchCard match={m} liveData={liveScoresMap[m.id]} />
               </Link>
             ))}
           </div>

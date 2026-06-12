@@ -2,16 +2,19 @@ import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
 import { sortTeams, getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
-import { getMatchesByGroup } from '../data/matches'
+import { MATCHES, getMatchesByGroup } from '../data/matches'
 import { getResult } from '../data/matchResults'
+import { useLiveScoresMap } from '../hooks/useLiveData'
 
-function computeGroupStandings(teams, matches) {
+function computeGroupStandings(teams, matches, liveScoresMap = {}) {
   const stats = {}
   teams.forEach(t => {
-    stats[t.code] = { ...t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 }
+    stats[t.code] = { ...t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0, isLive: false }
   })
   for (const m of matches) {
-    const score = getResult(m.id)
+    const finished = getResult(m.id)
+    const live     = liveScoresMap[m.id]
+    const score    = finished ?? live
     if (!score) continue
     const h = stats[m.homeTeam]
     const a = stats[m.awayTeam]
@@ -23,13 +26,15 @@ function computeGroupStandings(teams, matches) {
     if (score.homeScore > score.awayScore)        { h.won++;   h.points += 3; a.lost++ }
     else if (score.homeScore === score.awayScore) { h.drawn++; h.points++;    a.drawn++; a.points++ }
     else                                          { h.lost++;  a.won++;       a.points += 3 }
+    if (live && !finished) { h.isLive = true; a.isLive = true }
   }
   return teams.map(t => stats[t.code])
 }
 
-function GroupTable({ group }) {
+function GroupTable({ group, liveScoresMap }) {
   const groupMatches = getMatchesByGroup(group.id)
-  const sorted = sortTeams(computeGroupStandings(group.teams, groupMatches))
+  const sorted = sortTeams(computeGroupStandings(group.teams, groupMatches, liveScoresMap))
+  const hasLive = groupMatches.some(m => liveScoresMap[m.id])
 
   return (
     <Link to={`/grupos/${group.id}`} className="card-hover block">
@@ -38,6 +43,12 @@ function GroupTable({ group }) {
         style={{ backgroundColor: '#162032' }}>
         <span className="badge-group">{group.id}</span>
         <h3 className="font-bold text-white">Grupo {group.id}</h3>
+        {hasLive && (
+          <span className="flex items-center gap-1 ml-auto text-xs font-bold text-red-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+            EN VIVO
+          </span>
+        )}
       </div>
 
       {/* Table */}
@@ -76,6 +87,9 @@ function GroupTable({ group }) {
                       <span className={`font-medium truncate max-w-[100px] ${qualified ? 'text-white' : 'text-slate-400'}`}>
                         {team.name}
                       </span>
+                      {team.isLive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse shrink-0" />
+                      )}
                     </div>
                   </td>
                   <td className="py-2.5 text-center text-slate-400">{team.played}</td>
@@ -109,6 +123,8 @@ function GroupTable({ group }) {
 }
 
 export default function Groups() {
+  const liveScoresMap = useLiveScoresMap(MATCHES)
+
   return (
     <div className="animate-slide-up">
       {/* Page header */}
@@ -123,7 +139,7 @@ export default function Groups() {
       {/* Groups grid */}
       <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
         {GROUPS.map(group => (
-          <GroupTable key={group.id} group={group} />
+          <GroupTable key={group.id} group={group} liveScoresMap={liveScoresMap} />
         ))}
       </div>
 
