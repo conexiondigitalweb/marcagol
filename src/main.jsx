@@ -6,6 +6,12 @@ import { AppProvider } from './context/AppContext.jsx'
 import { PredictionsProvider } from './context/PredictionsContext.jsx'
 import './index.css'
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload()
+  })
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { Component, lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Header        from './components/layout/Header'
 import Footer        from './components/layout/Footer'
@@ -20,8 +20,36 @@ const Scorers     = lazy(() => import('./pages/Scorers'))
 const MatchDetail    = lazy(() => import('./pages/MatchDetail'))
 const PlayerProfile  = lazy(() => import('./pages/PlayerProfile'))
 
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 p-6 text-center">
+          <p className="text-slate-400 text-sm">Algo salió mal al cargar la página.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2.5 rounded-lg font-semibold text-white text-sm"
+            style={{ background: '#F97316' }}
+          >
+            Recargar
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 export default function App() {
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-slate-950 flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl animate-fade-in">
@@ -47,5 +75,6 @@ export default function App() {
       <Footer />
       <InstallPrompt />
     </div>
+    </ErrorBoundary>
   )
 }
