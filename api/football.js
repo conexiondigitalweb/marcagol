@@ -48,6 +48,10 @@ function ttlFor(endpoint, params) {
     return hasActiveLive() ? 60_000 : 5 * 60_000
   }
 
+  if (endpoint === '/players/topscorers' || endpoint === '/players/topassists') {
+    return 10 * 60_000
+  }
+
   return 5 * 60_000
 }
 

@@ -470,6 +470,19 @@ function buildSubstMap(events, teamId = null) {
   return { entered, exited, expelled }
 }
 
+// Goles y asistencias por player.id — para indicadores en alineaciones
+function buildStatsMap(events) {
+  const goals = {}, assists = {}
+  for (const e of events || []) {
+    if (e.type !== 'Goal' || e.detail === 'Missed Penalty') continue
+    if (e.player?.id != null) goals[e.player.id] = (goals[e.player.id] || 0) + 1
+    if (e.detail !== 'Own Goal' && e.assist?.id != null) {
+      assists[e.assist.id] = (assists[e.assist.id] || 0) + 1
+    }
+  }
+  return { goals, assists }
+}
+
 // Busca un nombre en el mapa con matching robusto y detección de ambigüedad.
 // Estrategias en orden de confianza; las dos primeras retornan inmediatamente.
 // Las demás acumulan un score y el ganador único se devuelve al final.
@@ -632,23 +645,40 @@ function PlayerModal({ player, team, teamCode, fixturePlayersData, loading, onCl
 }
 
 // ─── Tarjeta de alineación con sustituciones y clic en jugador ────────────────
-function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
+function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const { entered, exited, expelled } = substMap
+  const { goals: goalsMap = {}, assists: assistsMap = {} } = statsMap ?? {}
 
-  // Validación: jugadores activos en cancha no pueden superar 11.
-  // Si superan 11 hay un falso positivo en el matching → no mostrar indicadores.
-  const startXIOut = (team.startXI ?? []).filter(p =>
-    lookupSubst(p.player?.name, exited) ||
+  const isExpelledById = (p) =>
     (p.player?.id != null && expelled[p.player.id]) ||
     lookupSubst(p.player?.name, expelled)
+
+  const startXIOut = (team.startXI ?? []).filter(p =>
+    lookupSubst(p.player?.name, exited) || isExpelledById(p)
   ).length
   const subsIn = (team.substitutes ?? []).filter(p =>
     lookupSubst(p.player?.name, entered)
   ).length
-  const activeCount = (team.startXI?.length ?? 0) - startXIOut + subsIn
+  // Suplentes que entraron Y fueron expulsados no cuentan como activos
+  const subsExpelled = (team.substitutes ?? []).filter(p =>
+    lookupSubst(p.player?.name, entered) && isExpelledById(p)
+  ).length
+  const activeCount = (team.startXI?.length ?? 0) - startXIOut + subsIn - subsExpelled
   const matchingOk = activeCount <= 11
   if (!matchingOk) {
     console.error(`[LineupTeamCard] ${team.team?.name}: ${activeCount} activos (esperado ≤ 11), omitiendo indicadores`)
+  }
+
+  const PlayerIcons = ({ p }) => {
+    const g = goalsMap[p.player?.id] ?? 0
+    const a = assistsMap[p.player?.id] ?? 0
+    if (!g && !a) return null
+    return (
+      <span className="flex items-center gap-0.5 flex-shrink-0">
+        {g > 0 && <span className="text-[10px] leading-none">{'⚽'.repeat(Math.min(g, 3))}</span>}
+        {a > 0 && <span className="text-[10px] leading-none">{'👟'.repeat(Math.min(a, 2))}</span>}
+      </span>
+    )
   }
 
   return (
@@ -662,10 +692,7 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
           const exitMin  = matchingOk && lookupSubst(p.player?.name, exited)
-          const expelMin = matchingOk && (
-            (p.player?.id != null && expelled[p.player.id]) ||
-            lookupSubst(p.player?.name, expelled)
-          )
+          const expelMin = matchingOk && isExpelledById(p)
           const isOut    = exitMin || expelMin
           return (
             <button
@@ -674,9 +701,12 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-slate-700/20 transition-colors ${isOut ? 'opacity-50' : ''}`}
             >
               <span className="w-6 text-center text-xs font-bold text-sky-400 flex-shrink-0">{p.player?.number}</span>
-              <span className={`text-sm flex-1 min-w-0 truncate ${expelMin ? 'line-through text-slate-500' : exitMin ? 'text-slate-500' : 'text-white'}`}>
-                {p.player?.name}
-              </span>
+              <div className="flex-1 min-w-0 flex items-center gap-1 overflow-hidden">
+                <span className={`text-sm truncate ${expelMin ? 'line-through text-slate-500' : exitMin ? 'text-slate-500' : 'text-white'}`}>
+                  {p.player?.name}
+                </span>
+                <PlayerIcons p={p} />
+              </div>
               {expelMin
                 ? <span className="text-xs text-red-500 flex-shrink-0">🟥 {expelMin}'</span>
                 : exitMin
@@ -693,17 +723,26 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
           <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
           {team.substitutes.map((p, j) => {
             const enterMin = matchingOk && lookupSubst(p.player?.name, entered)
+            const expelMin = matchingOk && isExpelledById(p)
+            const isOut    = expelMin
             return (
               <button
                 key={j}
                 onClick={() => onPlayerClick(p, team.team, teamCode ?? null)}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-700/20 transition-colors ${!enterMin ? 'opacity-60' : ''}`}
+                className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-700/20 transition-colors ${isOut ? 'opacity-50' : !enterMin ? 'opacity-60' : ''}`}
               >
                 <span className="w-6 text-center text-xs font-bold text-slate-500 flex-shrink-0">{p.player?.number}</span>
-                <span className={`text-sm flex-1 min-w-0 truncate ${enterMin ? 'text-green-400 font-semibold' : 'text-slate-400'}`}>{p.player?.name}</span>
-                {enterMin
-                  ? <span className="text-xs text-green-400 flex-shrink-0">🟢 {enterMin}'</span>
-                  : <span className="text-xs text-slate-600 flex-shrink-0">{p.player?.pos}</span>
+                <div className="flex-1 min-w-0 flex items-center gap-1 overflow-hidden">
+                  <span className={`text-sm truncate ${expelMin ? 'line-through text-slate-500' : enterMin ? 'text-green-400 font-semibold' : 'text-slate-400'}`}>
+                    {p.player?.name}
+                  </span>
+                  {enterMin && <PlayerIcons p={p} />}
+                </div>
+                {expelMin
+                  ? <span className="text-xs text-red-500 flex-shrink-0">🟥 {expelMin}'</span>
+                  : enterMin
+                    ? <span className="text-xs text-green-400 flex-shrink-0">🟢 {enterMin}'</span>
+                    : <span className="text-xs text-slate-600 flex-shrink-0">{p.player?.pos}</span>
                 }
               </button>
             )
@@ -847,6 +886,7 @@ export default function MatchDetail() {
     const extStarted    = extStatus && extStatus !== 'NS'
     const extFinished   = ['FT', 'AET', 'PEN'].includes(extStatus)
     // extSubstMap eliminado: se pasa buildSubstMap(extEvents, team.team?.id) por equipo en el render
+    const extStatsMap   = buildStatsMap(extEvents)
     const extEventsProc = markDisallowedGoals(extEvents, externalFixture)
     const visibleExtEvents = extFinished
       ? extEventsProc.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
@@ -962,6 +1002,7 @@ export default function MatchDetail() {
                   key={i}
                   team={team}
                   substMap={buildSubstMap(extEvents, team.team?.id)}
+                  statsMap={extStatsMap}
                   onPlayerClick={openPlayerModal}
                   teamCode={null}
                 />
@@ -976,6 +1017,7 @@ export default function MatchDetail() {
   // ── Partido del Mundial ──────────────────────────────────────────────────────
   const wcStarted       = events.length > 0 || homeStats.length > 0
   const homeTeamApiId   = TEAM_IDS[MD_CODE_ALIAS[homeCode] ?? homeCode] ?? null
+  const wcStatsMap      = buildStatsMap(events)
   const visibleWcEvents = isFinished
     ? events.filter(e => ALWAYS_SHOW_TYPES.has(e.type))
     : events
@@ -1079,6 +1121,7 @@ export default function MatchDetail() {
                   key={i}
                   team={team}
                   substMap={buildSubstMap(events, team.team?.id)}
+                  statsMap={wcStatsMap}
                   onPlayerClick={openPlayerModal}
                   teamCode={i === 0 ? homeCode : awayCode}
                 />
