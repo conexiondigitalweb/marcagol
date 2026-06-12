@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
+// matches.js es la fuente canónica de sede/fecha/hora para todos los partidos
+import { MATCHES } from '../data/matches'
+
+const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
+
+function fmtDate(iso) {
+  if (!iso) return ''
+  const p = iso.split('-')
+  const m = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  return `${parseInt(p[2])} ${m[parseInt(p[1])] ?? p[1]}`
+}
 
 // ─── Fases oficiales Mundial 2026 ─────────────────────────────────────────────
-// Dieciseisavos: 28 jun – 3 jul (32 equipos → 16)
-// Octavos:        4 jul – 7 jul (16 → 8)
-// Cuartos:        9 jul – 11 jul (8 → 4)
-// Semifinales:   14 jul – 15 jul (4 → 2)
-// 3er Lugar:     18 jul
-// Final:         19 jul
-
 const PHASES = [
   { label: 'Dieciseisavos', date: '28 jun–3 jul',  color: 'text-cyan-400   border-cyan-500/30   bg-cyan-500/10'   },
   { label: 'Octavos',       date: '4–7 jul',        color: 'text-blue-400   border-blue-500/30   bg-blue-500/10'   },
@@ -19,57 +23,75 @@ const PHASES = [
   { label: 'Final',         date: '19 jul',         color: 'text-amber-400  border-amber-500/30  bg-amber-500/10'  },
 ]
 
-// Dieciseisavos: 16 partidos
-// Los 24 primeros/segundos (2 por grupo × 12 grupos) + 8 mejores terceros
-const R16_MATCHES = [
-  { id:'d16-1',  home:'1° Grupo A', away:'2° Grupo B',      date:'28 jun' },
-  { id:'d16-2',  home:'1° Grupo C', away:'2° Grupo D',      date:'28 jun' },
-  { id:'d16-3',  home:'1° Grupo E', away:'2° Grupo F',      date:'29 jun' },
-  { id:'d16-4',  home:'1° Grupo G', away:'2° Grupo H',      date:'29 jun' },
-  { id:'d16-5',  home:'1° Grupo I', away:'2° Grupo J',      date:'30 jun' },
-  { id:'d16-6',  home:'1° Grupo K', away:'2° Grupo L',      date:'30 jun' },
-  { id:'d16-7',  home:'1° Grupo B', away:'Mejor 3° (1)',    date:'1 jul'  },
-  { id:'d16-8',  home:'1° Grupo D', away:'Mejor 3° (2)',    date:'1 jul'  },
-  { id:'d16-9',  home:'2° Grupo E', away:'1° Grupo F',      date:'2 jul'  },
-  { id:'d16-10', home:'2° Grupo G', away:'1° Grupo H',      date:'2 jul'  },
-  { id:'d16-11', home:'2° Grupo I', away:'1° Grupo J',      date:'3 jul'  },
-  { id:'d16-12', home:'2° Grupo K', away:'1° Grupo L',      date:'3 jul'  },
-  { id:'d16-13', home:'1° Grupo A', away:'Mejor 3° (3)',    date:'3 jul'  },
-  { id:'d16-14', home:'1° Grupo C', away:'Mejor 3° (4)',    date:'3 jul'  },
-  { id:'d16-15', home:'Mejor 3° (5)', away:'1° Grupo E',   date:'3 jul'  },
-  { id:'d16-16', home:'Mejor 3° (6)', away:'1° Grupo G',   date:'3 jul'  },
+// ─── Dieciseisavos — sorteo oficial FIFA 5-dic-2025 ───────────────────────────
+// Los "Mejor 3º" se asignan mediante tabla FIFA de 495 combinaciones al cierre
+// de la fase de grupos — nunca intentar calcularlos en el cliente.
+const R32_MATCHES = [
+  { id: 'd32-1',  matchId: 73, home: '2º Grupo A',           away: '2º Grupo B'             },
+  { id: 'd32-2',  matchId: 74, home: '1º Grupo E',           away: 'Mejor 3º (A/B/C/D/F)'  },
+  { id: 'd32-3',  matchId: 75, home: '1º Grupo F',           away: '2º Grupo C'             },
+  { id: 'd32-4',  matchId: 76, home: '1º Grupo C',           away: '2º Grupo F'             },
+  { id: 'd32-5',  matchId: 77, home: '1º Grupo I',           away: 'Mejor 3º (C/D/F/G/H)'  },
+  { id: 'd32-6',  matchId: 78, home: '2º Grupo E',           away: '2º Grupo I'             },
+  { id: 'd32-7',  matchId: 79, home: '1º Grupo A',           away: 'Mejor 3º (C/E/F/H/I)'  },
+  { id: 'd32-8',  matchId: 80, home: '1º Grupo L',           away: 'Mejor 3º (E/H/I/J/K)'  },
+  { id: 'd32-9',  matchId: 81, home: '1º Grupo D',           away: 'Mejor 3º (B/E/F/I/J)'  },
+  { id: 'd32-10', matchId: 82, home: '1º Grupo G',           away: 'Mejor 3º (A/E/H/I/J)'  },
+  { id: 'd32-11', matchId: 83, home: '2º Grupo K',           away: '2º Grupo L'             },
+  { id: 'd32-12', matchId: 84, home: '1º Grupo H',           away: '2º Grupo J'             },
+  { id: 'd32-13', matchId: 85, home: '1º Grupo B',           away: 'Mejor 3º (E/F/G/I/J)'  },
+  { id: 'd32-14', matchId: 86, home: '1º Grupo J',           away: '2º Grupo H'             },
+  { id: 'd32-15', matchId: 87, home: '1º Grupo K',           away: 'Mejor 3º (D/E/I/J/L)'  },
+  { id: 'd32-16', matchId: 88, home: '2º Grupo D',           away: '2º Grupo G'             },
 ]
 
-const R8_MATCHES = Array.from({ length: 8 }, (_, i) => ({
-  id: `r8-${i+1}`,
-  home: `Gan. D16-${2*i+1}`,
-  away: `Gan. D16-${2*i+2}`,
-  date: ['4 jul','4 jul','5 jul','5 jul','6 jul','6 jul','7 jul','7 jul'][i],
-}))
+// ─── Octavos — W = ganador del partido de dieciseisavos ───────────────────────
+const R8_MATCHES = [
+  { id: 'r8-1', matchId: 89, home: 'W74', away: 'W77' },
+  { id: 'r8-2', matchId: 90, home: 'W73', away: 'W75' },
+  { id: 'r8-3', matchId: 91, home: 'W76', away: 'W78' },
+  { id: 'r8-4', matchId: 92, home: 'W79', away: 'W80' },
+  { id: 'r8-5', matchId: 93, home: 'W83', away: 'W84' },
+  { id: 'r8-6', matchId: 94, home: 'W81', away: 'W82' },
+  { id: 'r8-7', matchId: 95, home: 'W86', away: 'W88' },
+  { id: 'r8-8', matchId: 96, home: 'W85', away: 'W87' },
+]
 
-const QF_MATCHES = Array.from({ length: 4 }, (_, i) => ({
-  id: `qf-${i+1}`,
-  home: `Gan. R8-${2*i+1}`,
-  away: `Gan. R8-${2*i+2}`,
-  date: ['9 jul','9 jul','10 jul','11 jul'][i],
-}))
+const QF_MATCHES = [
+  { id: 'qf-1', matchId: 97,  home: 'W89', away: 'W90' },
+  { id: 'qf-2', matchId: 98,  home: 'W91', away: 'W92' },
+  { id: 'qf-3', matchId: 99,  home: 'W93', away: 'W94' },
+  { id: 'qf-4', matchId: 100, home: 'W95', away: 'W96' },
+]
 
 const SF_MATCHES = [
-  { id:'sf-1', home:'Gan. QF-1', away:'Gan. QF-2', date:'14 jul' },
-  { id:'sf-2', home:'Gan. QF-3', away:'Gan. QF-4', date:'15 jul' },
+  { id: 'sf-1', matchId: 101, home: 'W97',  away: 'W98'  },
+  { id: 'sf-2', matchId: 102, home: 'W99',  away: 'W100' },
 ]
 
-const FINAL = { id:'final', home:'Gan. SF-1', away:'Gan. SF-2', date:'19 jul' }
-const THIRD = { id:'third', home:'Per. SF-1', away:'Per. SF-2', date:'18 jul' }
+const FINAL = { id: 'final', matchId: 104, home: 'W101', away: 'W102' }
+const THIRD = { id: 'third', matchId: 103, home: 'Per. SF-1', away: 'Per. SF-2' }
 
 function MatchSlot({ match, highlight = false }) {
+  const appMatch = match.matchId ? MATCH_BY_ID[match.matchId] : null
+  const date     = appMatch ? fmtDate(appMatch.date) : (match.date ?? '')
+  const venue    = appMatch?.venue ?? ''
+  const city     = appMatch?.city ?? ''
+
   return (
-    <div className={`w-48 rounded-lg overflow-hidden border transition-all ${
+    <div className={`w-52 rounded-lg overflow-hidden border transition-all ${
       highlight ? 'border-amber-400/60 bg-slate-800' : 'border-slate-700 bg-slate-800'
     }`}>
-      <div className="bg-slate-700/40 px-2.5 py-1 flex items-center justify-between">
-        <span className="text-xs text-slate-500 truncate">{match.id.toUpperCase()}</span>
-        <span className="text-xs text-slate-600 flex-shrink-0 ml-1">{match.date}</span>
+      <div className="bg-slate-700/40 px-2.5 py-1.5">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-xs text-slate-500 truncate font-medium">
+            {match.matchId ? `#${match.matchId}` : match.id.toUpperCase()}
+          </span>
+          <span className="text-xs text-slate-600 flex-shrink-0">{date}</span>
+        </div>
+        {venue && (
+          <div className="text-[10px] text-slate-600 truncate mt-0.5">{venue} · {city}</div>
+        )}
       </div>
       {[match.home, match.away].map((team, idx) => (
         <div key={idx} className="flex items-center gap-2 px-3 py-2 text-xs border-t border-slate-700/50 text-slate-400">
@@ -82,14 +104,14 @@ function MatchSlot({ match, highlight = false }) {
 }
 
 export default function Bracket() {
-  const [activePhase, setActivePhase] = useState('d16')
+  const [activePhase, setActivePhase] = useState('d32')
 
   const phases = [
-    { id:'d16', label:'Dieciseisavos', matches: R16_MATCHES, cols: 2 },
-    { id:'r8',  label:'Octavos',       matches: R8_MATCHES,  cols: 2 },
-    { id:'qf',  label:'Cuartos',       matches: QF_MATCHES,  cols: 2 },
-    { id:'sf',  label:'Semifinales',   matches: SF_MATCHES,  cols: 1 },
-    { id:'final', label:'Final + 3°',  matches: [FINAL, THIRD], cols: 1 },
+    { id: 'd32',   label: 'Dieciseisavos', matches: R32_MATCHES,       cols: 2 },
+    { id: 'r8',    label: 'Octavos',       matches: R8_MATCHES,        cols: 2 },
+    { id: 'qf',    label: 'Cuartos',       matches: QF_MATCHES,        cols: 2 },
+    { id: 'sf',    label: 'Semifinales',   matches: SF_MATCHES,        cols: 1 },
+    { id: 'final', label: 'Final + 3°',    matches: [FINAL, THIRD],    cols: 1 },
   ]
 
   const current = phases.find(p => p.id === activePhase)
@@ -159,7 +181,7 @@ export default function Bracket() {
                   <td className="py-2.5 text-center text-slate-500">0</td>
                   <td className="py-2.5 text-center">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
-                      {i < 8 ? '✓ Clasifica' : 'Eliminado'}
+                      ✓ Clasifica
                     </span>
                   </td>
                 </tr>
