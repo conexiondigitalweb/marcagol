@@ -461,7 +461,9 @@ function buildSubstMap(events, teamId = null) {
       const d = e.detail || ''
       if (d.includes('Red Card') || d.includes('Second Yellow') || d.includes('Yellow Red')) {
         const label = fmtMin(e.time)
-        if (e.player?.name) expelled[e.player.name] = label
+        // Keyed by player.id — reliable match with lineups; name kept as fallback
+        if (e.player?.id != null) expelled[e.player.id] = label
+        else if (e.player?.name) expelled[e.player.name] = label
       }
     }
   }
@@ -636,7 +638,9 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
   // Validación: jugadores activos en cancha no pueden superar 11.
   // Si superan 11 hay un falso positivo en el matching → no mostrar indicadores.
   const startXIOut = (team.startXI ?? []).filter(p =>
-    lookupSubst(p.player?.name, exited) || lookupSubst(p.player?.name, expelled)
+    lookupSubst(p.player?.name, exited) ||
+    (p.player?.id != null && expelled[p.player.id]) ||
+    lookupSubst(p.player?.name, expelled)
   ).length
   const subsIn = (team.substitutes ?? []).filter(p =>
     lookupSubst(p.player?.name, entered)
@@ -658,7 +662,10 @@ function LineupTeamCard({ team, substMap, onPlayerClick, teamCode }) {
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
           const exitMin  = matchingOk && lookupSubst(p.player?.name, exited)
-          const expelMin = matchingOk && lookupSubst(p.player?.name, expelled)
+          const expelMin = matchingOk && (
+            (p.player?.id != null && expelled[p.player.id]) ||
+            lookupSubst(p.player?.name, expelled)
+          )
           const isOut    = exitMin || expelMin
           return (
             <button
