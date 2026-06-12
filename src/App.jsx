@@ -4,6 +4,7 @@ import Header        from './components/layout/Header'
 import Footer        from './components/layout/Footer'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import InstallPrompt from './components/InstallPrompt'
+import { Analytics } from '@vercel/analytics/react'
 
 const Dashboard   = lazy(() => import('./pages/Dashboard'))
 const Groups      = lazy(() => import('./pages/Groups'))
@@ -75,6 +76,7 @@ export default function App() {
       <Footer />
       <InstallPrompt />
     </div>
+    <Analytics />
     </ErrorBoundary>
   )
 }
