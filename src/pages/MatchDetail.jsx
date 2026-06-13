@@ -498,7 +498,7 @@ function buildSubstMap(events, teamId = null) {
   const entered = {}, exited = {}, expelled = {}, yellowed = {}
   const secondYellows = new Set()
   for (const e of events || []) {
-    if (teamId !== null && e.team?.id !== teamId) continue
+    if (teamId !== null && Number(e.team?.id) !== Number(teamId)) continue
     if (e.type === 'subst') {
       const label = fmtMin(e.time)
       // player.number es null en /fixtures/events — player.id es el campo confiable
