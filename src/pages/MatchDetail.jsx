@@ -450,7 +450,8 @@ function fmtMin(time) {
 }
 
 function buildSubstMap(events, teamId = null) {
-  const entered = {}, exited = {}, expelled = {}
+  const entered = {}, exited = {}, expelled = {}, yellowed = {}
+  const secondYellows = new Set()
   for (const e of events || []) {
     if (teamId !== null && e.team?.id !== teamId) continue
     if (e.type === 'subst') {
@@ -465,12 +466,20 @@ function buildSubstMap(events, teamId = null) {
       const d = e.detail || ''
       if (d.includes('Red Card') || d.includes('Second Yellow') || d.includes('Yellow Red')) {
         const label = fmtMin(e.time)
-        if (e.player?.id != null) expelled[e.player.id]   = label
-        else if (e.player?.name)  expelled[e.player.name] = label
+        if (e.player?.id != null) {
+          expelled[e.player.id] = label
+          if (d.includes('Second Yellow') || d.includes('Yellow Red')) secondYellows.add(e.player.id)
+        } else if (e.player?.name) {
+          expelled[e.player.name] = label
+          if (d.includes('Second Yellow') || d.includes('Yellow Red')) secondYellows.add(e.player.name)
+        }
+      } else if (d === 'Yellow Card') {
+        if (e.player?.id != null) yellowed[e.player.id] = (yellowed[e.player.id] || 0) + 1
+        else if (e.player?.name)  yellowed[e.player.name] = (yellowed[e.player.name] || 0) + 1
       }
     }
   }
-  return { entered, exited, expelled }
+  return { entered, exited, expelled, yellowed, secondYellows }
 }
 
 // Goles y asistencias por player.id — para indicadores en alineaciones
@@ -649,13 +658,18 @@ function PlayerModal({ player, team, teamCode, fixturePlayersData, loading, onCl
 
 // ─── Tarjeta de alineación con sustituciones y clic en jugador ────────────────
 function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
-  const { entered, exited, expelled } = substMap
+  const { entered, exited, expelled, yellowed = {}, secondYellows = new Set() } = substMap
   const { goals: goalsMap = {}, assists: assistsMap = {} } = statsMap ?? {}
 
   // Número de camiseta → más consistente entre /lineups y /events que el nombre
-  const getExited   = (p) => exited[p.player?.id]   ?? lookupSubst(p.player?.name, exited)
-  const getExpelled = (p) => expelled[p.player?.id] ?? lookupSubst(p.player?.name, expelled)
-  const getEntered  = (p) => (p.player?.id != null ? entered[p.player.id] : undefined) ?? lookupSubst(p.player?.name, entered)
+  const getExited         = (p) => exited[p.player?.id]   ?? lookupSubst(p.player?.name, exited)
+  const getExpelled       = (p) => expelled[p.player?.id] ?? lookupSubst(p.player?.name, expelled)
+  const getEntered        = (p) => (p.player?.id != null ? entered[p.player.id] : undefined) ?? lookupSubst(p.player?.name, entered)
+  const getYellowed       = (p) => yellowed[p.player?.id] ?? lookupSubst(p.player?.name, yellowed) ?? 0
+  const checkSecondYellow = (p) => {
+    const id = p.player?.id
+    return id != null ? secondYellows.has(id) : (p.player?.name ? secondYellows.has(p.player.name) : false)
+  }
 
   const startXIOut   = (team.startXI ?? []).filter(p => getExited(p) || getExpelled(p)).length
   const subsIn       = (team.substitutes ?? []).filter(p => getEntered(p)).length
@@ -669,11 +683,14 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const PlayerIcons = ({ p }) => {
     const g = goalsMap[p.player?.id] ?? 0
     const a = assistsMap[p.player?.id] ?? 0
-    if (!g && !a) return null
+    const expelMin = matchingOk && getExpelled(p)
+    const yCount = (!expelMin && matchingOk) ? getYellowed(p) : 0
+    if (!g && !a && !yCount) return null
     return (
       <span className="flex items-center gap-0.5 flex-shrink-0">
         {g > 0 && <span className="text-[10px] leading-none">{'⚽'.repeat(Math.min(g, 3))}</span>}
         {a > 0 && <span className="text-[10px] leading-none">{'👟'.repeat(Math.min(a, 2))}</span>}
+        {yCount > 0 && <span className="text-[10px] leading-none">{'🟨'.repeat(Math.min(yCount, 2))}</span>}
       </span>
     )
   }
@@ -705,7 +722,7 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
                 <PlayerIcons p={p} />
               </div>
               {expelMin
-                ? <span className="text-xs text-red-500 flex-shrink-0">🟥 {expelMin}'</span>
+                ? <span className="text-xs text-red-500 flex-shrink-0">{checkSecondYellow(p) ? '🟨🟥' : '🟥'} {expelMin}'</span>
                 : exitMin
                   ? <span className="text-xs text-red-400 flex-shrink-0">🔴 {exitMin}'</span>
                   : <span className="text-xs text-slate-500 flex-shrink-0">{p.player?.pos}</span>
@@ -736,7 +753,7 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
                   {enterMin && <PlayerIcons p={p} />}
                 </div>
                 {expelMin
-                  ? <span className="text-xs text-red-500 flex-shrink-0">🟥 {expelMin}'</span>
+                  ? <span className="text-xs text-red-500 flex-shrink-0">{checkSecondYellow(p) ? '🟨🟥' : '🟥'} {expelMin}'</span>
                   : enterMin
                     ? <span className="text-xs text-green-400 flex-shrink-0">🟢 {enterMin}'</span>
                     : <span className="text-xs text-slate-600 flex-shrink-0">{p.player?.pos}</span>
