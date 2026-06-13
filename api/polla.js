@@ -32,7 +32,9 @@ async function sbPatch(table, filter, body) {
     headers: sbHeaders({ 'Prefer': 'return=representation' }),
     body: JSON.stringify(body),
   })
-  return { ok: r.ok }
+  let data = null
+  try { data = await r.json() } catch {}
+  return { ok: r.ok, data, status: r.status }
 }
 
 async function sbDelete(table, filter) {
@@ -157,23 +159,43 @@ export default async function handler(req, res) {
       // ── reclamar admin (para pollas antiguas sin token) ───────────────────
       if (action === 'reclamar') {
         const { polla_id, creador_nombre } = body
+        console.log('[reclamar] payload:', { polla_id, creador_nombre })
+
         if (!polla_id || !creador_nombre)
           return res.status(400).json({ error: 'polla_id y creador_nombre requeridos' })
 
-        const { data: pollas } = await sbGet(`/pollas?id=eq.${polla_id}&limit=1`)
+        const { data: pollas, ok: getOk } = await sbGet(`/pollas?id=eq.${polla_id}&limit=1`)
+        console.log('[reclamar] get polla ok=%s data=%s', getOk, JSON.stringify(pollas))
+
         const polla = Array.isArray(pollas) ? pollas[0] : null
         if (!polla) return res.status(404).json({ error: 'Polla no encontrada' })
 
-        if (polla.creador_nombre?.toLowerCase() !== String(creador_nombre).trim().toLowerCase())
-          return res.status(403).json({ error: 'El nombre no coincide con el creador de la polla' })
+        const nombreDB  = (polla.creador_nombre || '').trim().toLowerCase()
+        const nombreReq = String(creador_nombre).trim().toLowerCase()
+        console.log('[reclamar] nombre check: db="%s" req="%s" match=%s', nombreDB, nombreReq, nombreDB === nombreReq)
+
+        if (nombreDB !== nombreReq)
+          return res.status(403).json({ error: `El nombre "${creador_nombre}" no coincide con el creador de la polla ("${polla.creador_nombre}")` })
 
         // Si ya tiene token (reclamada o nueva) → no revelar
-        if (polla.token_admin)
+        if (polla.token_admin) {
+          console.log('[reclamar] ya tiene token_admin, no se puede reclamar')
           return res.status(200).json({ reclamado: false })
+        }
 
         const token = crypto.randomUUID()
-        const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { token_admin: token })
-        if (!ok) return res.status(400).json({ error: 'Error al generar el token' })
+        const { ok, data: patchData, status: patchStatus } = await sbPatch(
+          'pollas', `id=eq.${polla_id}`, { token_admin: token }
+        )
+        console.log('[reclamar] patch ok=%s status=%s data=%s', ok, patchStatus, JSON.stringify(patchData))
+
+        if (!ok) {
+          const sbErr = patchData?.message || patchData?.hint || patchData?.details || JSON.stringify(patchData)
+          console.error('[reclamar] patch failed:', patchStatus, sbErr)
+          return res.status(400).json({
+            error: `Error al guardar el token (DB ${patchStatus}): ${sbErr}`,
+          })
+        }
 
         return res.status(200).json({ reclamado: true, token_admin: token })
       }
@@ -225,8 +247,8 @@ export default async function handler(req, res) {
         if (!polla_id) return res.status(400).json({ error: 'polla_id requerido' })
         const auth = await verificarToken(polla_id, token)
         if (!auth) return res.status(403).json({ error: 'No autorizado' })
-        const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: false })
-        if (!ok) return res.status(400).json({ error: 'Error al cerrar la polla' })
+        const { ok, data: pd } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: false })
+        if (!ok) return res.status(400).json({ error: pd?.message || 'Error al cerrar la polla' })
         return res.status(200).json({ ok: true })
       }
 
@@ -236,8 +258,8 @@ export default async function handler(req, res) {
         if (!polla_id) return res.status(400).json({ error: 'polla_id requerido' })
         const auth = await verificarToken(polla_id, token)
         if (!auth) return res.status(403).json({ error: 'No autorizado' })
-        const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: true })
-        if (!ok) return res.status(400).json({ error: 'Error al reabrir la polla' })
+        const { ok, data: pd } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: true })
+        if (!ok) return res.status(400).json({ error: pd?.message || 'Error al reabrir la polla' })
         return res.status(200).json({ ok: true })
       }
 

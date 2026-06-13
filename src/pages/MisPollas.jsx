@@ -186,19 +186,23 @@ export default function MisPollas() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reclamar', polla_id: pollaId, creador_nombre: nombre.trim() }),
       })
-      const data = await res.json()
-      if (!res.ok) { setReclamarMsg(`❌ ${data.error}`); return }
+      let data
+      try { data = await res.json() } catch { data = {} }
+
+      if (!res.ok) {
+        setReclamarMsg(`❌ ${data.error || `Error HTTP ${res.status}`}`)
+        return
+      }
 
       if (data.reclamado) {
         guardarToken(pollaId, data.token_admin)
         const newMap = { ...tokenMap, [pollaId]: data.token_admin }
         setTokenMap(newMap)
         setReclamarMsg('✅ ¡Admin reclamado! Ahora puedes gestionar esta polla.')
-        // Quitar puede_reclamar en resultados por nombre y recargar locales
         setPollasNombre(prev => prev?.map(p => p.id === pollaId ? { ...p, puede_reclamar: false } : p))
         cargarLocales(newMap)
       } else {
-        setReclamarMsg('ℹ️ Esta polla ya fue reclamada desde otro dispositivo.')
+        setReclamarMsg('ℹ️ Esta polla ya fue reclamada desde otro dispositivo. Si eres el creador, busca el token en el dispositivo original.')
       }
     } catch (err) {
       setReclamarMsg(`❌ Error de red: ${err.message}`)
