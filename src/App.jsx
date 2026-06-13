@@ -20,6 +20,8 @@ const History     = lazy(() => import('./pages/History'))
 const Scorers     = lazy(() => import('./pages/Scorers'))
 const MatchDetail    = lazy(() => import('./pages/MatchDetail'))
 const PlayerProfile  = lazy(() => import('./pages/PlayerProfile'))
+const CrearPolla     = lazy(() => import('./pages/CrearPolla'))
+const PollaDetalle   = lazy(() => import('./pages/PollaDetalle'))
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -70,6 +72,8 @@ export default function App() {
             <Route path="/goleadores"    element={<Scorers />}    />
             <Route path="/partido/:id"   element={<MatchDetail />}/>
             <Route path="/jugador/:team/:number" element={<PlayerProfile />}/>
+            <Route path="/crear-polla"   element={<CrearPolla />}  />
+            <Route path="/polla/:id"     element={<PollaDetalle />}/>
           </Routes>
         </Suspense>
       </main>

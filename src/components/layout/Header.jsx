@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/predicciones', label: 'Predicciones', icon: '🎯' },
   { to: '/calendario',   label: 'Calendario',   icon: '📅' },
   { to: '/noticias',     label: 'Noticias',     icon: '📰' },
+  { to: '/crear-polla',  label: 'Mi Polla',     icon: '🎰' },
 ]
 
 // Items solo en menú móvil y footer
