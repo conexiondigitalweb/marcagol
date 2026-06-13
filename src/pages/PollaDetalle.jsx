@@ -290,6 +290,8 @@ export default function PollaDetalle() {
         .sort((a, b) => (b.exacto ? 2 : b.resultadoOk ? 1 : 0) - (a.exacto ? 2 : a.resultadoOk ? 1 : 0))
     : votos
 
+  const ganadores = isFinished ? rankedVotos.filter(v => v.exacto) : []
+
   return (
     <div className="max-w-lg mx-auto animate-slide-up">
       <Link to="/mis-pollas" className="text-slate-400 hover:text-white text-sm mb-6 inline-block">
@@ -381,14 +383,43 @@ export default function PollaDetalle() {
         />
       )}
 
-      {/* Resultado final */}
+      {/* Resultado final — banner dorado + ganadores */}
       {isFinished && result && (
-        <div className="card p-5 mb-4 text-center" style={{ borderColor: 'rgba(56,189,248,0.3)', background: 'rgba(56,189,248,0.05)' }}>
-          <p className="text-xs text-sky-400 uppercase tracking-wider mb-2 font-bold">Resultado Final</p>
-          <div className="text-4xl font-black text-white tabular-nums mb-1">
-            {result.homeScore} – {result.awayScore}
+        <div className="mb-4 space-y-3">
+          {/* Banner dorado */}
+          <div className="card p-5 text-center" style={{ borderColor: 'rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.07)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'rgba(251,191,36,0.85)' }}>
+              ⚽ Resultado Final
+            </p>
+            <div className="text-3xl font-black text-white tabular-nums mb-1">
+              {result.homeScore} – {result.awayScore}
+            </div>
+            <p className="text-xs text-slate-400">{polla.equipo_local} vs {polla.equipo_visitante}</p>
           </div>
-          <p className="text-xs text-slate-400">{polla.equipo_local} · {polla.equipo_visitante}</p>
+
+          {/* Ganadores o nadie acertó */}
+          {ganadores.length > 0 ? (
+            <div className="card p-5" style={{ borderColor: 'rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.07)' }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'rgba(251,191,36,0.9)' }}>
+                🏆 ¡Ganador{ganadores.length !== 1 ? 'es' : ''} de la polla!
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ganadores.map((v, i) => (
+                  <span
+                    key={v.id ?? i}
+                    className="px-3 py-1.5 rounded-lg text-sm font-bold"
+                    style={{ background: 'rgba(251,191,36,0.15)', color: '#FBBF24' }}
+                  >
+                    {v.participante_nombre} · {v.goles_local}–{v.goles_visitante}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="card p-4 text-center" style={{ borderColor: 'rgba(148,163,184,0.2)' }}>
+              <p className="text-slate-400 text-sm">😅 ¡Nadie acertó el marcador exacto esta vez!</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -491,8 +522,8 @@ export default function PollaDetalle() {
                 <span className={`font-black tabular-nums text-sm ${v.exacto ? 'text-green-400' : v.resultadoOk ? 'text-sky-400' : 'text-slate-500'}`}>
                   {v.goles_local}–{v.goles_visitante}
                 </span>
-                {v.exacto && <span className="text-xs text-green-400 font-bold flex-shrink-0">¡Exacto!</span>}
-                {v.resultadoOk && !v.exacto && <span className="text-xs text-sky-400 flex-shrink-0">Resultado</span>}
+                {v.exacto && <span className="text-xs text-green-400 font-bold flex-shrink-0">¡Marcador exacto!</span>}
+                {v.resultadoOk && !v.exacto && <span className="text-xs text-sky-400 flex-shrink-0">Acertó el resultado</span>}
               </div>
             ))}
           </div>
