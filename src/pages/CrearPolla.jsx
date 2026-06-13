@@ -74,6 +74,19 @@ export default function CrearPolla() {
       }
       if (data.token_admin) {
         localStorage.setItem(`polla_token_${data.id}`, data.token_admin)
+        // Guardar en array de mis pollas para acceso rápido sin consultar la DB
+        const MIS_POLLAS_KEY = 'mis_pollas'
+        const prev = (() => { try { return JSON.parse(localStorage.getItem(MIS_POLLAS_KEY) || '[]') } catch { return [] } })()
+        const entry = {
+          id:               data.id,
+          equipo_local:     homeTeam?.name || selectedMatch?.homeTeam,
+          equipo_visitante: awayTeam?.name || selectedMatch?.awayTeam,
+          creador_nombre:   creadorNombre.trim(),
+          fecha_partido:    selectedMatch?.date,
+          timeCol:          selectedMatch?.timeCol,
+          createdAt:        new Date().toISOString(),
+        }
+        localStorage.setItem(MIS_POLLAS_KEY, JSON.stringify([entry, ...prev.filter(e => e.id !== data.id)]))
       }
       navigate(`/polla/${data.id}`, { state: { created: true } })
     } catch (err) {

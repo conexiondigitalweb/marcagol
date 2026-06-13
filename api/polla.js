@@ -43,13 +43,22 @@ async function sbDelete(table, filter) {
   return { ok: r.ok }
 }
 
-// Verifica token admin: retorna el objeto polla si el token es válido, null si no
+// Agrega conteo de participantes a un array de pollas
+async function withParticipantes(pollas) {
+  if (!pollas.length) return pollas
+  const ids = pollas.map(p => p.id).join(',')
+  const { data: votos } = await sbGet(`/votos?polla_id=in.(${ids})&select=polla_id`)
+  const cnt = {}
+  for (const v of votos || []) cnt[v.polla_id] = (cnt[v.polla_id] || 0) + 1
+  return pollas.map(p => ({ ...p, participantes: cnt[p.id] || 0 }))
+}
+
+// Verifica token admin contra BD — retorna polla si es válido, null si no
 async function verificarToken(polla_id, token) {
   if (!polla_id || !token) return null
   const { data, ok } = await sbGet(`/pollas?id=eq.${polla_id}&select=id,token_admin&limit=1`)
-  if (!ok || !Array.isArray(data) || data.length === 0) return null
-  const polla = data[0]
-  return polla.token_admin === token ? polla : null
+  if (!ok || !Array.isArray(data) || !data.length) return null
+  return data[0].token_admin === token ? data[0] : null
 }
 
 export default async function handler(req, res) {
@@ -61,44 +70,58 @@ export default async function handler(req, res) {
   try {
     // ── GET ───────────────────────────────────────────────────────────────────
     if (req.method === 'GET') {
-      const { id, action, ids } = req.query
+      const { id, action, ids, nombre } = req.query
 
-      // GET ?action=mis-pollas&ids=id1,id2,... — pollas por array de IDs (tokens en localStorage)
       if (action === 'mis-pollas') {
-        if (!ids) return res.status(200).json({ pollas: [] })
+        // ── Por tokens (dispositivo actual) ───────────────────────────────────
+        if (ids) {
+          const safeIds = ids.split(',')
+            .map(s => s.trim())
+            .filter(s => /^[0-9a-f-]+$/i.test(s) && s.length > 0)
+            .join(',')
+          if (!safeIds) return res.status(200).json({ pollas: [] })
 
-        // Sanitizar IDs: solo UUID chars (hex + guiones) o dígitos
-        const safeIds = ids.split(',')
-          .map(s => s.trim())
-          .filter(s => /^[0-9a-f-]+$/i.test(s) && s.length > 0)
-          .join(',')
+          const { data: raw, ok } = await sbGet(
+            `/pollas?id=in.(${safeIds})&order=created_at.desc`
+          )
+          if (!ok || !Array.isArray(raw) || !raw.length)
+            return res.status(200).json({ pollas: [] })
 
-        if (!safeIds) return res.status(200).json({ pollas: [] })
+          const pollas = await withParticipantes(raw)
+          return res.status(200).json({
+            // Nunca exponer token_admin al cliente
+            pollas: pollas.map(({ token_admin: _t, ...p }) => p),
+          })
+        }
 
-        const { data: pollas, ok } = await sbGet(
-          `/pollas?id=in.(${safeIds})&order=created_at.desc`
-        )
-        if (!ok || !Array.isArray(pollas) || pollas.length === 0)
-          return res.status(200).json({ pollas: [] })
+        // ── Por nombre del creador (fallback / otro dispositivo) ─────────────
+        if (nombre) {
+          const { data: raw, ok } = await sbGet(
+            `/pollas?creador_nombre=ilike.${encodeURIComponent(nombre)}&order=created_at.desc`
+          )
+          if (!ok || !Array.isArray(raw) || !raw.length)
+            return res.status(200).json({ pollas: [] })
 
-        // Conteo de participantes en batch
-        const { data: votos } = await sbGet(`/votos?polla_id=in.(${safeIds})&select=polla_id`)
-        const countMap = {}
-        for (const v of votos || []) countMap[v.polla_id] = (countMap[v.polla_id] || 0) + 1
+          const pollas = await withParticipantes(raw)
+          return res.status(200).json({
+            pollas: pollas.map(({ token_admin, ...p }) => ({
+              ...p,
+              // Solo indica si puede reclamarse (no tiene token aún)
+              puede_reclamar: !token_admin,
+            })),
+          })
+        }
 
-        return res.status(200).json({
-          pollas: pollas.map(p => ({ ...p, participantes: countMap[p.id] || 0 })),
-        })
+        return res.status(200).json({ pollas: [] })
       }
 
-      // GET ?id=xxx — polla + votos (sin exponer token_admin al cliente)
+      // GET ?id=xxx — polla + votos (sin exponer token_admin)
       if (!id) return res.status(400).json({ error: 'id requerido' })
       const { data: pollas, ok: pOk } = await sbGet(`/pollas?id=eq.${id}&limit=1`)
-      if (!pOk || !Array.isArray(pollas) || pollas.length === 0)
+      if (!pOk || !Array.isArray(pollas) || !pollas.length)
         return res.status(404).json({ error: 'Polla no encontrada' })
       const { data: votos } = await sbGet(`/votos?polla_id=eq.${id}&order=created_at.asc`)
 
-      // Nunca exponer token_admin al cliente
       const { token_admin: _omit, ...pollaPublica } = pollas[0]
       return res.status(200).json({ polla: pollaPublica, votos: votos || [] })
     }
@@ -131,6 +154,30 @@ export default async function handler(req, res) {
         return res.status(200).json({ id: data.id, token_admin: data.token_admin || token })
       }
 
+      // ── reclamar admin (para pollas antiguas sin token) ───────────────────
+      if (action === 'reclamar') {
+        const { polla_id, creador_nombre } = body
+        if (!polla_id || !creador_nombre)
+          return res.status(400).json({ error: 'polla_id y creador_nombre requeridos' })
+
+        const { data: pollas } = await sbGet(`/pollas?id=eq.${polla_id}&limit=1`)
+        const polla = Array.isArray(pollas) ? pollas[0] : null
+        if (!polla) return res.status(404).json({ error: 'Polla no encontrada' })
+
+        if (polla.creador_nombre?.toLowerCase() !== String(creador_nombre).trim().toLowerCase())
+          return res.status(403).json({ error: 'El nombre no coincide con el creador de la polla' })
+
+        // Si ya tiene token (reclamada o nueva) → no revelar
+        if (polla.token_admin)
+          return res.status(200).json({ reclamado: false })
+
+        const token = crypto.randomUUID()
+        const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { token_admin: token })
+        if (!ok) return res.status(400).json({ error: 'Error al generar el token' })
+
+        return res.status(200).json({ reclamado: true, token_admin: token })
+      }
+
       // ── votar ─────────────────────────────────────────────────────────────
       if (action === 'votar') {
         const { polla_id, participante_nombre, goles_local, goles_visitante } = body
@@ -142,14 +189,13 @@ export default async function handler(req, res) {
         if (!polla) return res.status(404).json({ error: 'Polla no encontrada' })
         if (!polla.activa) return res.status(400).json({ error: 'Esta polla está cerrada.' })
 
-        // Verificar que la fecha del partido no haya pasado (Colombia GMT-5, nivel día)
+        // Validación de fecha: el partido no debe haber pasado (Colombia GMT-5, nivel día)
         if (polla.fecha_partido) {
-          const nowCol = new Date(Date.now() - 5 * 3600 * 1000)
-          const todayCol = nowCol.toISOString().slice(0, 10)
+          const nowCol    = new Date(Date.now() - 5 * 3600 * 1000)
+          const todayCol  = nowCol.toISOString().slice(0, 10)
           const matchDate = String(polla.fecha_partido).slice(0, 10)
-          if (matchDate < todayCol) {
+          if (matchDate < todayCol)
             return res.status(400).json({ error: 'El partido ya finalizó. No se aceptan más predicciones.' })
-          }
         }
 
         if (!polla.permite_repetir || polla.max_repeticiones) {
