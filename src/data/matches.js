@@ -142,5 +142,8 @@ export const groupMatchesByDate = (matches) => {
   }, {});
 };
 
-export const getUpcomingMatches = (limit = 6) =>
-  MATCHES.filter(m => m.status === 'upcoming').slice(0, limit);
+export const getUpcomingMatches = (limit = 6) => {
+  // Fecha de hoy en Colombia (GMT-5 fijo, sin horario de verano)
+  const todayCol = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  return MATCHES.filter(m => m.date >= todayCol).slice(0, limit)
+}
