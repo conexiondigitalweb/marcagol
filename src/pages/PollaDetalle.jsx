@@ -8,8 +8,14 @@ const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
-const LS_KEY       = 'polla_nombre'
+const LS_KEY        = 'polla_nombre'
 const POLL_INTERVAL = 5000
+
+// Kickoff en milisegundos usando timeCol (GMT-5 fijo)
+function kickoffMs(match) {
+  if (!match?.date || !match?.timeCol) return null
+  return new Date(`${match.date}T${match.timeCol.slice(0, 5)}:00-05:00`).getTime()
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -271,10 +277,12 @@ export default function PollaDetalle() {
     </div>
   )
 
-  const match       = MATCHES.find(m => m.id === polla.partido_id)
-  const result      = match ? getResult(match.id) : null
-  const isFinished  = !!result
-  const isCreador   = miNombre && miNombre.toLowerCase() === polla.creador_nombre?.toLowerCase()
+  const match        = MATCHES.find(m => m.id === polla.partido_id)
+  const result       = match ? getResult(match.id) : null
+  const isFinished   = !!result
+  const ko           = kickoffMs(match)
+  const matchStarted = ko !== null && Date.now() >= ko
+  const isCreador    = miNombre && miNombre.toLowerCase() === polla.creador_nombre?.toLowerCase()
   isFinishedRef.current = isFinished
 
   const rankedVotos = isFinished
@@ -296,13 +304,24 @@ export default function PollaDetalle() {
         </div>
       )}
 
-      {/* Banner polla cerrada */}
-      {!polla.activa && (
+      {/* Banner polla cerrada manualmente */}
+      {!polla.activa && !matchStarted && (
         <div className="mb-4 flex items-center gap-3 p-4 rounded-xl border border-slate-600 bg-slate-800/50">
           <span className="text-slate-400 text-lg">🔒</span>
           <div>
             <p className="text-slate-300 font-bold text-sm">Polla cerrada</p>
             <p className="text-slate-500 text-xs mt-0.5">El creador ha cerrado esta polla. No se aceptan más predicciones.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner cierre automático al kickoff */}
+      {matchStarted && !isFinished && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-xl border border-orange-500/30 bg-orange-500/8">
+          <span className="text-orange-400 text-lg">⏱️</span>
+          <div>
+            <p className="text-orange-300 font-bold text-sm">El partido ya comenzó</p>
+            <p className="text-slate-500 text-xs mt-0.5">No se aceptan más predicciones.</p>
           </div>
         </div>
       )}
@@ -373,8 +392,8 @@ export default function PollaDetalle() {
         </div>
       )}
 
-      {/* Formulario de voto — solo si activa y no finalizado */}
-      {polla.activa && !isFinished && (
+      {/* Formulario de voto — solo si activa, no iniciado y no finalizado */}
+      {polla.activa && !matchStarted && !isFinished && (
         <div className="card p-5 mb-4">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Tu predicción</h2>
 
@@ -435,14 +454,20 @@ export default function PollaDetalle() {
             Predicciones
             {votos.length > 0 && <span className="text-slate-500 font-normal ml-1.5">({votos.length})</span>}
           </span>
-          {polla.activa && !isFinished && (
+          {polla.activa && !matchStarted && !isFinished && (
             <span className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse inline-block" />
               En vivo
             </span>
           )}
+          {matchStarted && !isFinished && (
+            <span className="flex items-center gap-1.5 text-xs text-orange-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse inline-block" />
+              En juego
+            </span>
+          )}
           {isFinished && <span className="text-xs text-slate-500">Partido finalizado</span>}
-          {!polla.activa && !isFinished && <span className="text-xs text-slate-500">🔒 Cerrada</span>}
+          {!polla.activa && !matchStarted && !isFinished && <span className="text-xs text-slate-500">🔒 Cerrada</span>}
         </div>
 
         {votos.length === 0 ? (

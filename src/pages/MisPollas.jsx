@@ -1,16 +1,42 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
+import { getResult } from '../data/matchResults'
 
 const LS_KEY = 'polla_nombre'
 
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  try {
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-CO', {
-      day: 'numeric', month: 'short', year: 'numeric',
-    })
-  } catch { return dateStr }
+// Extrae solo YYYY-MM-DD aunque Supabase devuelva timestamp completo
+function safeDate(dateStr) {
+  if (!dateStr) return null
+  const d = new Date(dateStr.slice(0, 10) + 'T12:00:00')
+  return isNaN(d.getTime()) ? null : d
+}
+
+function formatFecha(dateStr, timeCol) {
+  const d = safeDate(dateStr)
+  if (!d) return timeCol || ''
+  const parte = d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
+  return timeCol ? `${parte} · ${timeCol} COL` : parte
+}
+
+function kickoffMs(match) {
+  if (!match?.date || !match?.timeCol) return null
+  return new Date(`${match.date}T${match.timeCol.slice(0, 5)}:00-05:00`).getTime()
+}
+
+function getEstadoPolla(polla, match) {
+  if (!match) {
+    return polla.activa
+      ? { label: 'Activa', cls: 'bg-green-500/15 text-green-400' }
+      : { label: 'Cerrada', cls: 'bg-slate-700 text-slate-400' }
+  }
+  const result  = getResult(match.id)
+  const started = Date.now() >= (kickoffMs(match) ?? Infinity)
+
+  if (result)   return { label: 'Finalizada', cls: 'bg-slate-700 text-slate-400', pulse: false }
+  if (started)  return { label: 'En juego',   cls: 'bg-orange-500/20 text-orange-400', pulse: true }
+  if (!polla.activa) return { label: 'Cerrada', cls: 'bg-slate-700 text-slate-400', pulse: false }
+  return { label: 'Activa', cls: 'bg-green-500/15 text-green-400', pulse: false }
 }
 
 export default function MisPollas() {
@@ -113,7 +139,8 @@ export default function MisPollas() {
             {pollas.length} polla{pollas.length !== 1 ? 's' : ''} encontrada{pollas.length !== 1 ? 's' : ''}
           </p>
           {pollas.map(p => {
-            const match = MATCHES.find(m => m.id === p.partido_id)
+            const match  = MATCHES.find(m => m.id === p.partido_id)
+            const estado = getEstadoPolla(p, match)
             return (
               <div key={p.id} className="card p-4">
                 <div className="flex items-start justify-between gap-3 mb-3">
@@ -122,18 +149,14 @@ export default function MisPollas() {
                       {p.equipo_local} vs {p.equipo_visitante}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {formatDate(p.fecha_partido)}
-                      {match && ` · ${match.timeCol} COL`}
+                      {formatFecha(p.fecha_partido, match?.timeCol)}
                     </p>
                   </div>
-                  <span
-                    className={`flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
-                      p.activa
-                        ? 'bg-green-500/15 text-green-400'
-                        : 'bg-slate-700 text-slate-400'
-                    }`}
-                  >
-                    {p.activa ? 'Activa' : 'Cerrada'}
+                  <span className={`flex-shrink-0 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${estado.cls}`}>
+                    {estado.pulse && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse inline-block" />
+                    )}
+                    {estado.label}
                   </span>
                 </div>
 
