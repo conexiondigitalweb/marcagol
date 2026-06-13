@@ -25,7 +25,7 @@ export function PredictionsProvider({ children }) {
       if (getResult(id)) return false
       const m = MATCHES.find(m => m.id === id)
       if (!m) return false
-      const kickoff = getKickoffDate(m.date, m.time)
+      const kickoff = getKickoffDate(m.date, m.timeCol)
       return kickoff && Date.now() > kickoff.getTime()
     })
     if (!missing.length) return

@@ -110,7 +110,7 @@ function MatchRow({ match, liveData }) {
   const result    = getResult(match.id)
   const isFinished = !!result
   const isLive    = !isFinished && !!liveData
-  const { time, label } = toLocalTime(match.date, match.time)
+  const { time, label } = toLocalTime(match.date, match.timeCol)
 
   const displayScore = result
     ?? (liveData ? { homeScore: liveData.homeScore, awayScore: liveData.awayScore } : null)

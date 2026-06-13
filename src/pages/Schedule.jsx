@@ -61,15 +61,15 @@ function MatchRow({ match, liveData }) {
   const isLive     = !isFinished && !!liveData
 
   const [countdown, setCountdown] = useState(() =>
-    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
+    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.timeCol) : null
   )
   useEffect(() => {
     if (isLive || isFinished) return
-    const initial = getKickoffCountdown(match.date, match.time)
+    const initial = getKickoffCountdown(match.date, match.timeCol)
     if (!initial) return
-    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.time)), 1000)
+    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.timeCol)), 1000)
     return () => clearInterval(id)
-  }, [isLive, isFinished, match.date, match.time])
+  }, [isLive, isFinished, match.date, match.timeCol])
 
   function toLocal(date, timeET) {
     if (!timeET) return '--:--'

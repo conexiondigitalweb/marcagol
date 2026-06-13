@@ -15,12 +15,12 @@ const LOCKED_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'live', 'F
 
 function isLocked(match) {
   if (LOCKED_STATUSES.has(match.status) || !!getResult(match.id)) return true
-  const kickoff = getKickoffDate(match.date, match.time)
+  const kickoff = getKickoffDate(match.date, match.timeCol)
   return kickoff ? Date.now() >= kickoff.getTime() : false
 }
 
 function timeUntil(match) {
-  const kickoff = getKickoffDate(match.date, match.time)
+  const kickoff = getKickoffDate(match.date, match.timeCol)
   if (!kickoff) return ''
   const diff = kickoff - Date.now()
   if (diff <= 0) return 'ahora'
@@ -36,8 +36,8 @@ function nextUpcomingMatch() {
   return [...MATCHES]
     .filter(m => !isLocked(m))
     .sort((a, b) => {
-      const da = getKickoffDate(a.date, a.time) ?? new Date(8640000000000000)
-      const db = getKickoffDate(b.date, b.time) ?? new Date(8640000000000000)
+      const da = getKickoffDate(a.date, a.timeCol) ?? new Date(8640000000000000)
+      const db = getKickoffDate(b.date, b.timeCol) ?? new Date(8640000000000000)
       return da - db
     })[0] ?? null
 }

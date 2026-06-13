@@ -166,7 +166,7 @@ export default function TeamDetail() {
             const opponentCode = isHome ? match.awayTeam : match.homeTeam
             const opponent     = group.teams.find(t => t.code === opponentCode)
             const result       = getResult(match.id)
-            const { time, label } = toLocalTime(match.date, match.time)
+            const { time, label } = toLocalTime(match.date, match.timeCol)
             return (
               <Link key={match.id} to={`/partido/${match.id}`}
                 className="flex items-center gap-3 px-5 py-3 border-b border-slate-700/20 last:border-0 hover:bg-slate-700/20 transition-colors group">

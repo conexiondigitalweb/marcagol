@@ -72,15 +72,15 @@ function ApiMatchCard({ match }) {
   )
 }
 
-function toLocalTime(date, timeET) {
-  if (!timeET) return { time: '--:--', label: '' }
+function toLocalTime(date, timeCol) {
+  if (!timeCol) return { time: '--:--', label: '' }
   try {
-    const d = new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+    const d = new Date(`${date}T${timeCol.slice(0, 5)}:00-05:00`)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     const time  = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
     const label = d.toLocaleTimeString('en',    { timeZoneName: 'short', timeZone: tz }).split(' ').pop()
     return { time, label }
-  } catch { return { time: timeET?.slice(0, 5) ?? '--:--', label: 'ET' } }
+  } catch { return { time: timeCol?.slice(0, 5) ?? '--:--', label: 'COL' } }
 }
 
 function MatchCard({ match, liveData, compact = false }) {
@@ -91,22 +91,22 @@ function MatchCard({ match, liveData, compact = false }) {
   const isLive     = !isFinished && !!liveData
 
   const [countdown, setCountdown] = useState(() =>
-    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.time) : null
+    (!isLive && !isFinished) ? getKickoffCountdown(match.date, match.timeCol) : null
   )
   useEffect(() => {
     if (isLive || isFinished) return
-    const initial = getKickoffCountdown(match.date, match.time)
+    const initial = getKickoffCountdown(match.date, match.timeCol)
     if (!initial) return
-    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.time)), 1000)
+    const id = setInterval(() => setCountdown(getKickoffCountdown(match.date, match.timeCol)), 1000)
     return () => clearInterval(id)
-  }, [isLive, isFinished, match.date, match.time])
+  }, [isLive, isFinished, match.date, match.timeCol])
 
   const COUNTRY_FLAGS = { USA: '🇺🇸', CAN: '🇨🇦', MEX: '🇲🇽' }
   const COUNTRY_NAMES = { USA: 'Estados Unidos', CAN: 'Canadá', MEX: 'México' }
 
   const displayScore = result
     ?? (liveData ? { homeScore: liveData.homeScore, awayScore: liveData.awayScore } : null)
-  const { time: localTime, label: tzLabel } = toLocalTime(match.date, match.time)
+  const { time: localTime, label: tzLabel } = toLocalTime(match.date, match.timeCol)
 
   function fmtCountdown(cd) {
     if (!cd) return ''

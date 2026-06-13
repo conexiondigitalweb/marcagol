@@ -44,16 +44,16 @@ function formatDate(dateStr) {
 
 // ─── Banner countdown (≤3h antes del kickoff) ─────────────────────────────────
 function MatchCountdownBanner({ match, isStarted }) {
-  const [cd, setCd]           = useState(() => isStarted ? null : getKickoffCountdown(match.date, match.time))
+  const [cd, setCd]           = useState(() => isStarted ? null : getKickoffCountdown(match.date, match.timeCol))
   const [imminent, setImminent] = useState(false)
 
   useEffect(() => {
     if (isStarted) { setCd(null); setImminent(false); return }
     const id = setInterval(() => {
-      const newCd = getKickoffCountdown(match.date, match.time)
+      const newCd = getKickoffCountdown(match.date, match.timeCol)
       setCd(newCd)
       if (!newCd) {
-        const kickoff = getKickoffDate(match.date, match.time)
+        const kickoff = getKickoffDate(match.date, match.timeCol)
         const elapsed = kickoff ? Date.now() - kickoff.getTime() : -1
         setImminent(elapsed >= 0 && elapsed < 5 * 60_000)
       } else {
@@ -61,7 +61,7 @@ function MatchCountdownBanner({ match, isStarted }) {
       }
     }, 1000)
     return () => clearInterval(id)
-  }, [match.date, match.time, isStarted])
+  }, [match.date, match.timeCol, isStarted])
 
   if (isStarted) return null
 

@@ -12,15 +12,15 @@ export const formatDayOfWeek = (dateStr) =>
 
 export const capitalizeFirst = (str) => str.charAt(0).toUpperCase() + str.slice(1)
 
-export function toLocalTime(date, timeET) {
-  if (!date || !timeET) return { time: '--:--', label: '' }
+export function toLocalTime(date, timeCol) {
+  if (!date || !timeCol) return { time: '--:--', label: '' }
   try {
-    const d = new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+    const d = new Date(`${date}T${timeCol.slice(0, 5)}:00-05:00`)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
     const time  = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tz })
     const label = d.toLocaleTimeString('en',    { timeZoneName: 'short', timeZone: tz }).split(' ').pop()
     return { time, label }
-  } catch { return { time: timeET?.slice(0, 5) ?? '--:--', label: 'ET' } }
+  } catch { return { time: timeCol?.slice(0, 5) ?? '--:--', label: 'COL' } }
 }
 
 export const getStatusLabel = (status) => {
@@ -79,17 +79,17 @@ export const calculatePredictionPoints = (pred, homeScore, awayScore) => {
 export const flagUrl = (iso2, size = 40) =>
   `https://flagcdn.com/w${size}/${iso2.toLowerCase()}.png`
 
-// Returns the kickoff Date for a match (time stored in matches.js is ET = UTC-4 in summer)
-export function getKickoffDate(date, timeET) {
-  if (!date || !timeET) return null
+// Returns the kickoff Date for a match (timeCol is Colombia time = UTC-5, no DST)
+export function getKickoffDate(date, timeCol) {
+  if (!date || !timeCol) return null
   try {
-    return new Date(`${date}T${timeET.slice(0, 5)}:00-04:00`)
+    return new Date(`${date}T${timeCol.slice(0, 5)}:00-05:00`)
   } catch { return null }
 }
 
 // Returns { hh, mm, ss } if kickoff is within 3 hours and in the future, otherwise null
-export function getKickoffCountdown(date, timeET) {
-  const kickoff = getKickoffDate(date, timeET)
+export function getKickoffCountdown(date, timeCol) {
+  const kickoff = getKickoffDate(date, timeCol)
   if (!kickoff) return null
   const diff = kickoff.getTime() - Date.now()
   if (diff <= 0 || diff > 3 * 3_600_000) return null
