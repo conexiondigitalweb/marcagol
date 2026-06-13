@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
 import { getResult } from '../data/matchResults'
-import { supabase } from '../lib/supabase'
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
+
+const POLL_INTERVAL = 5000
 
 function formatDate(dateStr) {
   if (!dateStr) return ''
@@ -62,48 +63,38 @@ export default function PollaDetalle() {
   const [formSuccess, setFormSuccess] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  // Load polla + initial votes
-  useEffect(() => {
-    async function load() {
-      const { data: pollaData, error: pollaErr } = await supabase
-        .from('pollas')
-        .select('*')
-        .eq('id', id)
-        .single()
+  const isFinishedRef = useRef(false)
 
-      if (pollaErr || !pollaData) {
-        setPageError('Polla no encontrada')
-        setPageLoading(false)
+  // Carga desde el proxy serverless
+  const fetchDetalle = useCallback(async (isInitial = false) => {
+    try {
+      const res = await fetch(`/api/polla?id=${id}`)
+      if (!res.ok) {
+        if (isInitial) setPageError('Polla no encontrada')
         return
       }
-      setPolla(pollaData)
-
-      const { data: votosData } = await supabase
-        .from('votos')
-        .select('*')
-        .eq('polla_id', id)
-        .order('created_at', { ascending: true })
-      setVotos(votosData || [])
-      setPageLoading(false)
+      const { polla: p, votos: v } = await res.json()
+      if (isInitial) {
+        setPolla(p)
+        setPageLoading(false)
+      }
+      setVotos(v || [])
+    } catch (err) {
+      if (isInitial) setPageError(`Error de red: ${err.message}`)
     }
-    load()
   }, [id])
 
-  // Realtime subscription
+  // Carga inicial
   useEffect(() => {
-    const channel = supabase
-      .channel(`polla-votos-${id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'votos',
-        filter: `polla_id=eq.${id}`,
-      }, payload => {
-        setVotos(prev => [...prev, payload.new])
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [id])
+    fetchDetalle(true)
+  }, [fetchDetalle])
+
+  // Polling para actualizaciones en tiempo real (solo mientras el partido no haya terminado)
+  useEffect(() => {
+    if (isFinishedRef.current) return
+    const timer = setInterval(() => fetchDetalle(false), POLL_INTERVAL)
+    return () => clearInterval(timer)
+  }, [fetchDetalle])
 
   async function handleVote(e) {
     e.preventDefault()
@@ -114,12 +105,12 @@ export default function PollaDetalle() {
 
     const local = Number(golesLocal)
     const visit = Number(golesVisitante)
-
-    if (local < 0 || visit < 0 || !Number.isInteger(local) || !Number.isInteger(visit)) {
+    if (!Number.isInteger(local) || !Number.isInteger(visit) || local < 0 || visit < 0) {
       setFormError('El marcador debe ser un número entero positivo')
       return
     }
 
+    // Validación optimista en cliente (el servidor también valida)
     if (!polla.permite_repetir) {
       const taken = votos.some(v => v.goles_local === local && v.goles_visitante === visit)
       if (taken) { setFormError('Ese marcador ya fue tomado. Elige uno diferente.'); return }
@@ -132,19 +123,31 @@ export default function PollaDetalle() {
     }
 
     setSubmitting(true)
-    const { error: dbError } = await supabase.from('votos').insert({
-      polla_id: id,
-      participante_nombre: nombre.trim(),
-      goles_local: local,
-      goles_visitante: visit,
-    })
-    setSubmitting(false)
+    try {
+      const res = await fetch('/api/polla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action:              'votar',
+          polla_id:            id,
+          participante_nombre: nombre.trim(),
+          goles_local:         local,
+          goles_visitante:     visit,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setFormError(data.error || `Error ${res.status}`); return }
 
-    if (dbError) { setFormError('Error al enviar. Intenta de nuevo.'); return }
-    setFormSuccess(true)
-    setNombre('')
-    setGolesLocal('')
-    setGolesVisitante('')
+      setFormSuccess(true)
+      setNombre('')
+      setGolesLocal('')
+      setGolesVisitante('')
+      fetchDetalle(false) // refresco inmediato
+    } catch (err) {
+      setFormError(`Error de red: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   function handleCopy() {
@@ -170,6 +173,7 @@ export default function PollaDetalle() {
   const match = MATCHES.find(m => m.id === polla.partido_id)
   const result = match ? getResult(match.id) : null
   const isFinished = !!result
+  isFinishedRef.current = isFinished
 
   const rankedVotos = isFinished
     ? votos.map(v => rankVoto(v, result))
@@ -208,9 +212,9 @@ export default function PollaDetalle() {
             onClick={handleCopy}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
             style={{
-              background: copied ? 'rgba(34,197,94,0.1)' : '#1E293B',
-              borderColor: copied ? 'rgba(34,197,94,0.4)' : '#334155',
-              color: copied ? '#4ade80' : '#94a3b8',
+              background:   copied ? 'rgba(34,197,94,0.1)' : '#1E293B',
+              borderColor:  copied ? 'rgba(34,197,94,0.4)' : '#334155',
+              color:        copied ? '#4ade80' : '#94a3b8',
             }}
           >
             {copied ? '✓ Copiado' : '🔗 Compartir'}
@@ -229,7 +233,6 @@ export default function PollaDetalle() {
           </span>
         </div>
 
-        {/* Share box on creation */}
         {navState?.created && (
           <div className="mt-3 p-3 rounded-lg bg-slate-900/60 border border-slate-700">
             <p className="text-xs text-slate-500 mb-1.5">Link para compartir:</p>
@@ -259,10 +262,7 @@ export default function PollaDetalle() {
               <p className="text-3xl mb-2">🎯</p>
               <p className="text-green-400 font-bold mb-1">¡Predicción enviada!</p>
               <p className="text-slate-500 text-sm mb-3">Tu voto fue registrado correctamente.</p>
-              <button
-                onClick={() => setFormSuccess(false)}
-                className="text-sky-400 text-sm hover:underline"
-              >
+              <button onClick={() => setFormSuccess(false)} className="text-sky-400 text-sm hover:underline">
                 Enviar otra predicción
               </button>
             </div>
@@ -312,9 +312,7 @@ export default function PollaDetalle() {
         >
           <span className="font-semibold text-white text-sm">
             Predicciones
-            {votos.length > 0 && (
-              <span className="text-slate-500 font-normal ml-1.5">({votos.length})</span>
-            )}
+            {votos.length > 0 && <span className="text-slate-500 font-normal ml-1.5">({votos.length})</span>}
           </span>
           {!isFinished && (
             <span className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
@@ -335,29 +333,17 @@ export default function PollaDetalle() {
             {rankedVotos.map((v, i) => (
               <div
                 key={v.id ?? i}
-                className={`flex items-center gap-3 px-5 py-3.5 ${
-                  v.exacto ? 'bg-green-500/5' : v.resultadoOk ? 'bg-sky-500/5' : ''
-                }`}
+                className={`flex items-center gap-3 px-5 py-3.5 ${v.exacto ? 'bg-green-500/5' : v.resultadoOk ? 'bg-sky-500/5' : ''}`}
               >
                 <span className="text-lg flex-shrink-0 w-7 text-center">
                   {v.exacto ? '🏆' : v.resultadoOk ? '✅' : '❌'}
                 </span>
-                <span className="flex-1 text-sm font-semibold text-white truncate">
-                  {v.participante_nombre}
-                </span>
-                <span
-                  className={`font-black tabular-nums text-sm ${
-                    v.exacto ? 'text-green-400' : v.resultadoOk ? 'text-sky-400' : 'text-slate-500'
-                  }`}
-                >
+                <span className="flex-1 text-sm font-semibold text-white truncate">{v.participante_nombre}</span>
+                <span className={`font-black tabular-nums text-sm ${v.exacto ? 'text-green-400' : v.resultadoOk ? 'text-sky-400' : 'text-slate-500'}`}>
                   {v.goles_local}–{v.goles_visitante}
                 </span>
-                {v.exacto && (
-                  <span className="text-xs text-green-400 font-bold flex-shrink-0">¡Exacto!</span>
-                )}
-                {v.resultadoOk && !v.exacto && (
-                  <span className="text-xs text-sky-400 flex-shrink-0">Resultado</span>
-                )}
+                {v.exacto && <span className="text-xs text-green-400 font-bold flex-shrink-0">¡Exacto!</span>}
+                {v.resultadoOk && !v.exacto && <span className="text-xs text-sky-400 flex-shrink-0">Resultado</span>}
               </div>
             ))}
           </div>

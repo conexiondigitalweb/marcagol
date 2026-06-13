@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
-import { supabase, supabaseReady } from '../lib/supabase'
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -53,39 +52,32 @@ export default function CrearPolla() {
     setLoading(true)
     setError('')
 
-    if (!supabaseReady) {
+    try {
+      const res = await fetch('/api/polla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action:           'crear',
+          partido_id:       Number(partidoId),
+          equipo_local:     homeTeam?.name || selectedMatch?.homeTeam,
+          equipo_visitante: awayTeam?.name || selectedMatch?.awayTeam,
+          fecha_partido:    selectedMatch?.date,
+          creador_nombre:   creadorNombre.trim(),
+          permite_repetir:  permiteRepetir,
+          max_repeticiones: maxRepeticiones ? Number(maxRepeticiones) : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || `Error ${res.status}`)
+        return
+      }
+      navigate(`/polla/${data.id}`, { state: { created: true } })
+    } catch (err) {
+      setError(`Error de red: ${err.message}`)
+    } finally {
       setLoading(false)
-      setError('Error de configuración: VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY no están definidas en producción. Agrega estas variables en Vercel → Settings → Environment Variables.')
-      return
     }
-
-    const payload = {
-      partido_id:       Number(partidoId),
-      equipo_local:     homeTeam?.name || selectedMatch?.homeTeam,
-      equipo_visitante: awayTeam?.name || selectedMatch?.awayTeam,
-      fecha_partido:    selectedMatch?.date,
-      creador_nombre:   creadorNombre.trim(),
-      permite_repetir:  permiteRepetir,
-      max_repeticiones: maxRepeticiones ? Number(maxRepeticiones) : null,
-      activa:           true,
-    }
-    console.log('[CrearPolla] payload:', payload)
-    console.log('[CrearPolla] VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL)
-    console.log('[CrearPolla] VITE_SUPABASE_ANON_KEY set:', !!import.meta.env.VITE_SUPABASE_ANON_KEY)
-
-    const { data, error: dbError } = await supabase
-      .from('pollas')
-      .insert(payload)
-      .select()
-      .single()
-
-    setLoading(false)
-    if (dbError) {
-      console.error('[CrearPolla] Supabase error:', dbError)
-      setError(`Error Supabase: ${dbError.message} (código: ${dbError.code})`)
-      return
-    }
-    navigate(`/polla/${data.id}`, { state: { created: true } })
   }
 
   if (availableMatches.length === 0) {
@@ -100,10 +92,6 @@ export default function CrearPolla() {
 
   return (
     <div className="max-w-lg mx-auto animate-slide-up">
-      <div style={{background:'red', color:'white', padding:'10px', fontSize:'12px'}}>
-        URL: {import.meta.env.VITE_SUPABASE_URL || 'UNDEFINED'}
-        KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? 'EXISTS' : 'UNDEFINED'}
-      </div>
       <Link to="/" className="text-slate-400 hover:text-white text-sm mb-6 inline-block">← Volver</Link>
 
       <h1 className="text-2xl font-black text-white mb-1">Arma tu Polla</h1>
