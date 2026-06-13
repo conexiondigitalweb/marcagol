@@ -4,6 +4,7 @@ import { MATCHES } from '../data/matches'
 import { usePredictions } from '../context/PredictionsContext'
 import { formatDateShort, getKickoffDate } from '../utils/helpers'
 import { getResult } from '../data/matchResults'
+import { useLiveScoresMap } from '../hooks/useLiveData'
 import Flag from '../components/ui/Flag'
 
 const ALL_TEAMS = Object.fromEntries(
@@ -101,7 +102,7 @@ function ScoreInput({ value, onChange }) {
 }
 
 // ── Prediction card ───────────────────────────────────────────────────────────
-function PredictionCard({ match }) {
+function PredictionCard({ match, liveScore }) {
   const { getPrediction, savePrediction } = usePredictions()
   const pred   = getPrediction(match.id)
   const result = getResult(match.id)
@@ -114,8 +115,11 @@ function PredictionCard({ match }) {
   const homeTeam = ALL_TEAMS[match.homeTeam]
   const awayTeam = ALL_TEAMS[match.awayTeam]
 
-  // true while the user is actively entering a score
   const showInputs = !locked && (!pred || editing)
+
+  // Partido en vivo: hay datos de score en tiempo real
+  const isLive = !result && locked && !!liveScore &&
+    ['1H', '2H', 'HT', 'ET', 'BT', 'PEN'].includes(liveScore.status)
 
   // Points once match is finished
   let points = null
@@ -160,8 +164,12 @@ function PredictionCard({ match }) {
         </span>
         <div>
           {result ? (
-            <span className="text-[11px] text-slate-400 font-medium">
-              Final {result.homeScore}–{result.awayScore}
+            // El resultado real ahora es el centro — no se duplica aquí
+            null
+          ) : isLive ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+              <span className="badge-live text-[10px]">EN VIVO</span>
             </span>
           ) : locked ? (
             <span className="badge-live text-[10px]">En curso</span>
@@ -171,7 +179,7 @@ function PredictionCard({ match }) {
         </div>
       </div>
 
-      {/* Teams + inputs */}
+      {/* Teams + score */}
       <div className="flex items-center gap-3">
         {/* Home */}
         <div className="flex-1 flex items-center gap-2 justify-end">
@@ -182,7 +190,7 @@ function PredictionCard({ match }) {
           {homeTeam && <Flag iso2={homeTeam.iso2} size="sm" />}
         </div>
 
-        {/* Score area */}
+        {/* Score area — resultado real es el protagonista cuando existe */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           {showInputs ? (
             <>
@@ -190,10 +198,29 @@ function PredictionCard({ match }) {
               <span className="text-slate-500 font-bold text-lg select-none">–</span>
               <ScoreInput value={awayVal} onChange={setAwayVal} />
             </>
+          ) : result ? (
+            // ESTADO 3: partido finalizado — resultado real grande
+            <div className="text-center min-w-[64px]">
+              <div className="text-white font-black text-2xl tabular-nums">
+                {result.homeScore}–{result.awayScore}
+              </div>
+              <div className="text-slate-500 text-[10px] leading-none mt-0.5">Final</div>
+            </div>
+          ) : isLive ? (
+            // ESTADO 2: en vivo — marcador real grande con minuto
+            <div className="text-center min-w-[64px]">
+              <div className="text-red-400 font-black text-2xl tabular-nums">
+                {liveScore.homeScore ?? 0}–{liveScore.awayScore ?? 0}
+              </div>
+              <div className="text-[10px] leading-none mt-0.5 text-red-400/70">
+                {liveScore.status === 'HT' ? 'Descanso' : liveScore.minute ? `${liveScore.minute}'` : ''}
+              </div>
+            </div>
           ) : (
-            <div className="w-16 flex items-center justify-center">
+            // ESTADO 1: partido no iniciado o en curso sin datos vivos — predicción del usuario
+            <div className="min-w-[64px] flex items-center justify-center">
               {pred ? (
-                <span className="text-sky-300 font-black text-lg tabular-nums">
+                <span className="text-sky-300 font-black text-xl tabular-nums">
                   {pred.home}–{pred.away}
                 </span>
               ) : (
@@ -277,6 +304,7 @@ export default function Predictions() {
   const { totalPoints, predictedCount, correctResults } = usePredictions()
   const [selectedGroup, setSelectedGroup] = useState('Todos')
   const [selectedMD, setSelectedMD]       = useState('Todos')
+  const liveScoresMap = useLiveScoresMap(MATCHES)
 
   const filtered = MATCHES.filter(m => {
     if (selectedGroup !== 'Todos' && m.group !== selectedGroup) return false
@@ -377,7 +405,7 @@ export default function Predictions() {
       <div className="space-y-3">
         <p className="text-xs text-slate-500 uppercase tracking-wider">{filtered.length} partidos</p>
         {filtered.map(match => (
-          <PredictionCard key={match.id} match={match} />
+          <PredictionCard key={match.id} match={match} liveScore={liveScoresMap[match.id] ?? null} />
         ))}
       </div>
     </div>
