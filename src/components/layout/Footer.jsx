@@ -56,6 +56,9 @@ export default function Footer() {
                 className="text-sm text-slate-500 hover:text-sky-400 transition-colors mt-2">
                 Datos · api-football.com
               </a>
+              <Link to="/terminos" className="text-sm text-slate-500 hover:text-slate-300 transition-colors mt-1">
+                Términos y condiciones
+              </Link>
             </div>
           </div>
         </div>
