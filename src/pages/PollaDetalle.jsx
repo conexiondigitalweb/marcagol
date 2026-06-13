@@ -54,7 +54,7 @@ function rankVoto(v, result) {
 }
 
 // ── Panel de administración ───────────────────────────────────────────────────
-function AdminPanel({ polla, votos, onVotoEliminado, onEstadoCambiado }) {
+function AdminPanel({ polla, votos, adminToken, onVotoEliminado, onEstadoCambiado }) {
   const [toggling, setToggling]     = useState(false)
   const [deletingId, setDeletingId] = useState(null)
   const [adminError, setAdminError] = useState('')
@@ -67,7 +67,7 @@ function AdminPanel({ polla, votos, onVotoEliminado, onEstadoCambiado }) {
       const res = await fetch('/api/polla', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, polla_id: polla.id }),
+        body: JSON.stringify({ action, polla_id: polla.id, token: adminToken }),
       })
       const data = await res.json()
       if (!res.ok) { setAdminError(data.error || 'Error'); return }
@@ -86,7 +86,7 @@ function AdminPanel({ polla, votos, onVotoEliminado, onEstadoCambiado }) {
       const res = await fetch('/api/polla', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'eliminar-voto', voto_id }),
+        body: JSON.stringify({ action: 'eliminar-voto', voto_id, polla_id: polla.id, token: adminToken }),
       })
       const data = await res.json()
       if (!res.ok) { setAdminError(data.error || 'Error'); return }
@@ -159,7 +159,7 @@ export default function PollaDetalle() {
   const [pageLoading, setPageLoading] = useState(true)
   const [pageError, setPageError]   = useState('')
 
-  const [nombre, setNombre]               = useState('')
+  const [nombre, setNombre]               = useState(() => localStorage.getItem(LS_KEY) || '')
   const [golesLocal, setGolesLocal]       = useState('')
   const [golesVisitante, setGolesVisitante] = useState('')
   const [submitting, setSubmitting]       = useState(false)
@@ -168,8 +168,8 @@ export default function PollaDetalle() {
 
   const isFinishedRef = useRef(false)
 
-  // Nombre guardado en localStorage
-  const miNombre = localStorage.getItem(LS_KEY) || ''
+  // Token admin: solo quien creó la polla desde este dispositivo lo tiene
+  const adminToken = localStorage.getItem(`polla_token_${id}`) || null
 
   const fetchDetalle = useCallback(async (isInitial = false) => {
     try {
@@ -298,12 +298,12 @@ export default function PollaDetalle() {
     </div>
   )
 
-  const match        = MATCHES.find(m => m.id === polla.partido_id)
+  const match        = MATCHES.find(m => m.id === Number(polla.partido_id))
   const result       = match ? getResult(match.id) : null
   const isFinished   = !!result
   const ko           = kickoffMs(match)
   const matchStarted = ko !== null && Date.now() >= ko
-  const isCreador    = miNombre && miNombre.toLowerCase() === polla.creador_nombre?.toLowerCase()
+  const isCreador    = !!adminToken
   isFinishedRef.current = isFinished
 
   const rankedVotos = isFinished
@@ -398,6 +398,7 @@ export default function PollaDetalle() {
         <AdminPanel
           polla={polla}
           votos={votos}
+          adminToken={adminToken}
           onVotoEliminado={voto_id => setVotos(prev => prev.filter(v => v.id !== voto_id))}
           onEstadoCambiado={activa => setPolla(prev => ({ ...prev, activa }))}
         />

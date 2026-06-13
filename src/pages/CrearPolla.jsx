@@ -72,6 +72,9 @@ export default function CrearPolla() {
         setError(data.error || `Error ${res.status}`)
         return
       }
+      if (data.token_admin) {
+        localStorage.setItem(`polla_token_${data.id}`, data.token_admin)
+      }
       navigate(`/polla/${data.id}`, { state: { created: true } })
     } catch (err) {
       setError(`Error de red: ${err.message}`)

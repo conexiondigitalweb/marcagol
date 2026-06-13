@@ -43,6 +43,15 @@ async function sbDelete(table, filter) {
   return { ok: r.ok }
 }
 
+// Verifica token admin: retorna el objeto polla si el token es válido, null si no
+async function verificarToken(polla_id, token) {
+  if (!polla_id || !token) return null
+  const { data, ok } = await sbGet(`/pollas?id=eq.${polla_id}&select=id,token_admin&limit=1`)
+  if (!ok || !Array.isArray(data) || data.length === 0) return null
+  const polla = data[0]
+  return polla.token_admin === token ? polla : null
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -52,23 +61,28 @@ export default async function handler(req, res) {
   try {
     // ── GET ───────────────────────────────────────────────────────────────────
     if (req.method === 'GET') {
-      const { id, action, nombre } = req.query
+      const { id, action, ids } = req.query
 
-      // GET ?action=mis-pollas&nombre=xxx — pollas del creador con conteo
+      // GET ?action=mis-pollas&ids=id1,id2,... — pollas por array de IDs (tokens en localStorage)
       if (action === 'mis-pollas') {
-        if (!nombre) return res.status(400).json({ error: 'nombre requerido' })
-        const { data: pollas, ok } = await sbGet(
-          `/pollas?creador_nombre=ilike.${encodeURIComponent(nombre)}&order=created_at.desc`
-        )
-        if (!ok || !Array.isArray(pollas))
-          return res.status(200).json({ pollas: [] })
+        if (!ids) return res.status(200).json({ pollas: [] })
 
-        if (pollas.length === 0)
+        // Sanitizar IDs: solo UUID chars (hex + guiones) o dígitos
+        const safeIds = ids.split(',')
+          .map(s => s.trim())
+          .filter(s => /^[0-9a-f-]+$/i.test(s) && s.length > 0)
+          .join(',')
+
+        if (!safeIds) return res.status(200).json({ pollas: [] })
+
+        const { data: pollas, ok } = await sbGet(
+          `/pollas?id=in.(${safeIds})&order=created_at.desc`
+        )
+        if (!ok || !Array.isArray(pollas) || pollas.length === 0)
           return res.status(200).json({ pollas: [] })
 
         // Conteo de participantes en batch
-        const ids = pollas.map(p => p.id).join(',')
-        const { data: votos } = await sbGet(`/votos?polla_id=in.(${ids})&select=polla_id`)
+        const { data: votos } = await sbGet(`/votos?polla_id=in.(${safeIds})&select=polla_id`)
         const countMap = {}
         for (const v of votos || []) countMap[v.polla_id] = (countMap[v.polla_id] || 0) + 1
 
@@ -77,13 +91,16 @@ export default async function handler(req, res) {
         })
       }
 
-      // GET ?id=xxx — polla + votos (existente)
+      // GET ?id=xxx — polla + votos (sin exponer token_admin al cliente)
       if (!id) return res.status(400).json({ error: 'id requerido' })
       const { data: pollas, ok: pOk } = await sbGet(`/pollas?id=eq.${id}&limit=1`)
       if (!pOk || !Array.isArray(pollas) || pollas.length === 0)
         return res.status(404).json({ error: 'Polla no encontrada' })
       const { data: votos } = await sbGet(`/votos?polla_id=eq.${id}&order=created_at.asc`)
-      return res.status(200).json({ polla: pollas[0], votos: votos || [] })
+
+      // Nunca exponer token_admin al cliente
+      const { token_admin: _omit, ...pollaPublica } = pollas[0]
+      return res.status(200).json({ polla: pollaPublica, votos: votos || [] })
     }
 
     // ── POST ─────────────────────────────────────────────────────────────────
@@ -98,6 +115,7 @@ export default async function handler(req, res) {
         if (!partido_id || !equipo_local || !equipo_visitante || !fecha_partido || !creador_nombre)
           return res.status(400).json({ error: 'Faltan campos requeridos' })
 
+        const token = crypto.randomUUID()
         const { data, ok } = await sbInsert('pollas', {
           partido_id:       Number(partido_id),
           equipo_local,
@@ -107,9 +125,10 @@ export default async function handler(req, res) {
           permite_repetir:  !!permite_repetir,
           max_repeticiones: max_repeticiones ? Number(max_repeticiones) : null,
           activa:           true,
+          token_admin:      token,
         })
         if (!ok) return res.status(400).json({ error: data?.message || 'Error al crear la polla' })
-        return res.status(200).json({ id: data.id })
+        return res.status(200).json({ id: data.id, token_admin: data.token_admin || token })
       }
 
       // ── votar ─────────────────────────────────────────────────────────────
@@ -122,6 +141,16 @@ export default async function handler(req, res) {
         const polla = Array.isArray(pollas) ? pollas[0] : null
         if (!polla) return res.status(404).json({ error: 'Polla no encontrada' })
         if (!polla.activa) return res.status(400).json({ error: 'Esta polla está cerrada.' })
+
+        // Verificar que la fecha del partido no haya pasado (Colombia GMT-5, nivel día)
+        if (polla.fecha_partido) {
+          const nowCol = new Date(Date.now() - 5 * 3600 * 1000)
+          const todayCol = nowCol.toISOString().slice(0, 10)
+          const matchDate = String(polla.fecha_partido).slice(0, 10)
+          if (matchDate < todayCol) {
+            return res.status(400).json({ error: 'El partido ya finalizó. No se aceptan más predicciones.' })
+          }
+        }
 
         if (!polla.permite_repetir || polla.max_repeticiones) {
           const { data: existing } = await sbGet(
@@ -146,8 +175,10 @@ export default async function handler(req, res) {
 
       // ── cerrar polla ──────────────────────────────────────────────────────
       if (action === 'cerrar') {
-        const { polla_id } = body
+        const { polla_id, token } = body
         if (!polla_id) return res.status(400).json({ error: 'polla_id requerido' })
+        const auth = await verificarToken(polla_id, token)
+        if (!auth) return res.status(403).json({ error: 'No autorizado' })
         const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: false })
         if (!ok) return res.status(400).json({ error: 'Error al cerrar la polla' })
         return res.status(200).json({ ok: true })
@@ -155,8 +186,10 @@ export default async function handler(req, res) {
 
       // ── reabrir polla ─────────────────────────────────────────────────────
       if (action === 'reabrir') {
-        const { polla_id } = body
+        const { polla_id, token } = body
         if (!polla_id) return res.status(400).json({ error: 'polla_id requerido' })
+        const auth = await verificarToken(polla_id, token)
+        if (!auth) return res.status(403).json({ error: 'No autorizado' })
         const { ok } = await sbPatch('pollas', `id=eq.${polla_id}`, { activa: true })
         if (!ok) return res.status(400).json({ error: 'Error al reabrir la polla' })
         return res.status(200).json({ ok: true })
@@ -164,8 +197,10 @@ export default async function handler(req, res) {
 
       // ── eliminar voto ─────────────────────────────────────────────────────
       if (action === 'eliminar-voto') {
-        const { voto_id } = body
+        const { voto_id, polla_id, token } = body
         if (!voto_id) return res.status(400).json({ error: 'voto_id requerido' })
+        const auth = await verificarToken(polla_id, token)
+        if (!auth) return res.status(403).json({ error: 'No autorizado' })
         const { ok } = await sbDelete('votos', `id=eq.${voto_id}`)
         if (!ok) return res.status(400).json({ error: 'Error al eliminar el voto' })
         return res.status(200).json({ ok: true })
