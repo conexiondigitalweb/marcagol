@@ -198,15 +198,12 @@ function MatchHeader({ match, liveData }) {
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📺 Ver en Colombia</p>
           <div className="flex flex-wrap justify-center gap-1">
             {colChannels.map(ch => (
-              <a
+              <span
                 key={ch.name}
-                href={ch.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`text-xs px-2 py-0.5 rounded-full border inline-flex items-center gap-0.5 hover:opacity-80 transition-opacity ${ch.color}`}
+                className={`text-xs px-2 py-0.5 rounded-full border ${ch.color}`}
               >
-                {ch.name}<span className="text-[9px] opacity-60">↗</span>
-              </a>
+                {ch.name}
+              </span>
             ))}
             {abiertosPorConfirmar && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">

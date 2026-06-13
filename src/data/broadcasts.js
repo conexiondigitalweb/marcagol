@@ -2,6 +2,8 @@
 // Fuente: anuncios oficiales DSports/DirecTV, Caracol TV, RCN, Win Sports, Disney+
 // Actualizar cuando cada canal confirme parrilla de eliminatorias.
 
+// URLs conservadas como referencia; no se usan en la UI actual (badges informativos).
+// Para reactivar enlaces: convertir los <span> de MatchDetail en <a href={ch.url}>.
 export const CHANNELS = {
   dsports: {
     name: 'DSports',
