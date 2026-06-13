@@ -501,11 +501,11 @@ function buildSubstMap(events, teamId = null) {
     if (teamId !== null && Number(e.team?.id) !== Number(teamId)) continue
     if (e.type === 'subst') {
       const label = fmtMin(e.time)
-      // player.number es null en /fixtures/events — player.id es el campo confiable
+      // Guardar por ID Y nombre para cubrir discrepancias de ID entre /events y /lineups
       if (e.player?.id != null) exited[e.player.id]   = label
-      else if (e.player?.name)  exited[e.player.name] = label
+      if (e.player?.name)       exited[e.player.name] = label
       if (e.assist?.id != null) entered[e.assist.id]   = label
-      else if (e.assist?.name)  entered[e.assist.name] = label
+      if (e.assist?.name)       entered[e.assist.name] = label
     }
     if (e.type === 'Card') {
       const d = e.detail || ''
@@ -514,13 +514,14 @@ function buildSubstMap(events, teamId = null) {
         if (e.player?.id != null) {
           expelled[e.player.id] = label
           if (d.includes('Second Yellow') || d.includes('Yellow Red')) secondYellows.add(e.player.id)
-        } else if (e.player?.name) {
+        }
+        if (e.player?.name) {
           expelled[e.player.name] = label
           if (d.includes('Second Yellow') || d.includes('Yellow Red')) secondYellows.add(e.player.name)
         }
       } else if (d === 'Yellow Card') {
         if (e.player?.id != null) yellowed[e.player.id] = (yellowed[e.player.id] || 0) + 1
-        else if (e.player?.name)  yellowed[e.player.name] = (yellowed[e.player.name] || 0) + 1
+        if (e.player?.name)       yellowed[e.player.name] = (yellowed[e.player.name] || 0) + 1
       }
     }
   }
@@ -717,7 +718,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const getYellowed       = (p) => yellowed[p.player?.id] ?? lookupSubst(p.player?.name, yellowed) ?? 0
   const checkSecondYellow = (p) => {
     const id = p.player?.id
-    return id != null ? secondYellows.has(id) : (p.player?.name ? secondYellows.has(p.player.name) : false)
+    if (id != null && secondYellows.has(id)) return true
+    return p.player?.name ? secondYellows.has(p.player.name) : false
   }
 
   const startXIOut   = (team.startXI ?? []).filter(p => getExited(p) || getExpelled(p)).length

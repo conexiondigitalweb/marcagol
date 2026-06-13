@@ -58,7 +58,7 @@ export async function getAllFixtures() {
 // ─── 4. DETALLE DE UN PARTIDO (eventos, estadísticas, alineaciones) ───────────
 export async function getMatchDetail(fixtureId) {
   // Partidos finalizados: caché permanente en localStorage (sin TTL)
-  const FT_KEY = `wc2026_ft_detail_v2_${fixtureId}`
+  const FT_KEY = `wc2026_ft_detail_v3_${fixtureId}`
   try {
     const cached = localStorage.getItem(FT_KEY)
     if (cached) return JSON.parse(cached)

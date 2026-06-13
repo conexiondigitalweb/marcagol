@@ -72,7 +72,7 @@ export function useFixtureData(fixtureId) {
       if (f && FT_STATUSES.has(f.fixture?.status?.short)) {
         isFinishedRef.current = true
         setIsFinished(true)
-        try { localStorage.setItem(`wc2026_ft_fixture_v2_${fixtureId}`, JSON.stringify(f)) } catch {}
+        try { localStorage.setItem(`wc2026_ft_fixture_v3_${fixtureId}`, JSON.stringify(f)) } catch {}
       } else if (aliveRef.current) {
         timerRef.current = setTimeout(poll, 30_000)
       }
@@ -100,7 +100,7 @@ export function useFixtureData(fixtureId) {
 
     // Caché permanente de partidos FT
     try {
-      const cached = localStorage.getItem(`wc2026_ft_fixture_v2_${fixtureId}`)
+      const cached = localStorage.getItem(`wc2026_ft_fixture_v3_${fixtureId}`)
       if (cached) {
         const f = JSON.parse(cached)
         setData(normalizeFixtureForHeader(f))
@@ -279,7 +279,7 @@ export function useMatchDetail(fixtureId, isFinished = false) {
     if (events.length === 0 && lineups.length === 0) return
     ftSavedRef.current = true
     try {
-      const key = `wc2026_ft_detail_v2_${fixtureId}`
+      const key = `wc2026_ft_detail_v3_${fixtureId}`
       if (!localStorage.getItem(key)) {
         localStorage.setItem(key, JSON.stringify({ events, stats, lineups }))
       }
