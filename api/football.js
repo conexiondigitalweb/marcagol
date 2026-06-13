@@ -1,7 +1,9 @@
+import { kv } from '@vercel/kv'
 import { rateLimit, getClientIp } from './_rateLimit.js'
 
-const UPSTREAM      = 'https://v3.football.api-sports.io'
+const UPSTREAM       = 'https://v3.football.api-sports.io'
 const RATE_LIMIT_RPM = 30
+const KV_PREFIX      = 'fb:'   // namespace en KV para evitar colisiones
 
 const LIVE_STATUSES     = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN'])
 const FINISHED_STATUSES = new Set(['FT', 'AET', 'PEN'])
@@ -20,41 +22,63 @@ const ALLOWED_ENDPOINTS = new Set([
   '/teams/statistics',
 ])
 
-// In-memory cache: cacheKey -> { data, ts, ttl }
-const cache = new Map()
-// Timestamp of the last live fixtures response that contained active matches
-let lastLiveTs = 0
+// ── L1: caché en memoria (por instancia, sub-segundo) ────────────────────────
+const memCache  = new Map()
+let lastLiveTs  = 0
 
-function hasActiveLive() {
-  return Date.now() - lastLiveTs < 5 * 60_000
-}
+function hasActiveLive() { return Date.now() - lastLiveTs < 5 * 60_000 }
 
-function ttlFor(endpoint, params) {
-  if ('live' in params) return 25_000
+// KV disponible solo si las variables de entorno están presentes
+function kvReady() { return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) }
 
-  if (endpoint === '/fixtures' && params.id) {
-    // TTL decided after we have the data — see post-fetch logic below
-    return null // sentinel: compute after fetch
-  }
+// ── TTL en segundos (se usa para KV; ×1000 para memoria) ────────────────────
+function ttlSecondsFor(endpoint, params, data = null) {
+  // Fixtures en vivo (live=all)
+  if ('live' in params) return 20
 
+  // Eventos minuto a minuto: caché corta para máxima frescura
+  if (endpoint === '/fixtures/events') return 10
+
+  // Estadísticas del partido
+  if (endpoint === '/fixtures/statistics') return 60
+
+  // Alineaciones: sin datos → no cachear; con datos → 30s
   if (endpoint === '/fixtures/lineups') {
-    // TTL decided after fetch: 0 if empty (no cache), 30s once data arrives
-    return null
+    if (data === null) return 30          // pre-fetch: TTL conservador
+    return data?.response?.length > 0 ? 30 : 0
   }
 
-  if (endpoint === '/fixtures/events') return 0  // sin caché: máxima velocidad en vivo
-
-  if (endpoint === '/standings') {
-    return hasActiveLive() ? 60_000 : 5 * 60_000
+  // Partido individual: TTL según estado del fixture
+  if (endpoint === '/fixtures' && params.id) {
+    if (data === null) return 30
+    const status = data?.response?.[0]?.fixture?.status?.short
+    if (LIVE_STATUSES.has(status))          return 20
+    if (FINISHED_STATUSES.has(status))      return 86_400  // 24h — resultado inmutable
+    return 60
   }
 
-  if (endpoint === '/players/topscorers' || endpoint === '/players/topassists') {
-    return 10 * 60_000
-  }
+  // Standings: más frecuente si hay un partido en vivo
+  if (endpoint === '/standings') return hasActiveLive() ? 60 : 300
 
-  return 5 * 60_000
+  // Goleadores y asistidores cambian poco
+  if (endpoint === '/players/topscorers' || endpoint === '/players/topassists') return 600
+
+  // Default
+  return 300
 }
 
+// ── KV helpers ───────────────────────────────────────────────────────────────
+async function kvGet(key) {
+  if (!kvReady()) return null
+  try { return await kv.get(KV_PREFIX + key) } catch { return null }
+}
+
+async function kvSet(key, value, ttlSeconds) {
+  if (!kvReady() || ttlSeconds <= 0) return
+  try { await kv.set(KV_PREFIX + key, value, { ex: ttlSeconds }) } catch {}
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
@@ -79,18 +103,31 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Endpoint no permitido' })
   }
 
-  const qs        = new URLSearchParams(params).toString()
-  const cacheKey  = `${endpoint}?${qs}`
-  const now       = Date.now()
+  const qs       = new URLSearchParams(params).toString()
+  const cacheKey = `${endpoint}?${qs}`
+  const now      = Date.now()
 
-  const hit = cache.get(cacheKey)
-  if (hit && now - hit.ts < hit.ttl) {
-    const remainingTtl = Math.ceil((hit.ttl - (now - hit.ts)) / 1000)
-    res.setHeader('X-Cache', 'HIT')
-    res.setHeader('Cache-Control', `public, s-maxage=${remainingTtl}, stale-while-revalidate=10`)
-    return res.status(200).json(hit.data)
+  // ── L1 HIT: memoria ───────────────────────────────────────────────────────
+  const memHit = memCache.get(cacheKey)
+  if (memHit && now - memHit.ts < memHit.ttlMs) {
+    const remainingSecs = Math.ceil((memHit.ttlMs - (now - memHit.ts)) / 1000)
+    res.setHeader('X-Cache', 'HIT-MEM')
+    res.setHeader('Cache-Control', `public, s-maxage=${remainingSecs}, stale-while-revalidate=5`)
+    return res.status(200).json(memHit.data)
   }
 
+  // ── L2 HIT: KV ────────────────────────────────────────────────────────────
+  const kvHit = await kvGet(cacheKey)
+  if (kvHit) {
+    // Rellenar L1 con TTL corto (los datos vienen "calientes" desde KV)
+    const kvTtl = ttlSecondsFor(endpoint, params)   // aproximado, sin datos
+    memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: Math.min(kvTtl, 15) * 1000 })
+    res.setHeader('X-Cache', 'HIT-KV')
+    res.setHeader('Cache-Control', `public, s-maxage=${Math.min(kvTtl, 15)}, stale-while-revalidate=5`)
+    return res.status(200).json(kvHit)
+  }
+
+  // ── MISS: llamar a API-Football ───────────────────────────────────────────
   const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
   if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
 
@@ -106,31 +143,26 @@ export default async function handler(req, res) {
     }
     const data = await upstream.json()
 
-    // Track live matches for dynamic standings TTL
+    // Actualizar timestamp para standings dinámicos
     if ('live' in params && Array.isArray(data.response) && data.response.length > 0) {
       lastLiveTs = Date.now()
     }
 
-    // Compute final TTL (fixtures/id and lineups depend on response content)
-    let ttl = ttlFor(endpoint, params)
-    if (ttl === null) {
-      if (endpoint === '/fixtures/lineups') {
-        ttl = (data?.response?.length > 0) ? 30_000 : 0
-      } else {
-        const status = data?.response?.[0]?.fixture?.status?.short
-        if (LIVE_STATUSES.has(status))          ttl = 25_000
-        else if (FINISHED_STATUSES.has(status)) ttl = 24 * 3600_000
-        else                                    ttl = 60_000
-      }
-    }
+    // TTL final (conocemos el contenido de la respuesta)
+    const ttlSeconds = ttlSecondsFor(endpoint, params, data)
+    const ttlMs      = ttlSeconds * 1000
 
-    if (ttl > 0) cache.set(cacheKey, { data, ts: Date.now(), ttl })
+    // Guardar en L1 (memoria) y L2 (KV) en paralelo
+    if (ttlSeconds > 0) {
+      memCache.set(cacheKey, { data, ts: Date.now(), ttlMs })
+      kvSet(cacheKey, data, ttlSeconds)   // fire-and-forget, no bloquea la respuesta
+    }
 
     res.setHeader('X-Cache', 'MISS')
     res.setHeader(
       'Cache-Control',
-      ttl > 0
-        ? `public, s-maxage=${Math.floor(ttl / 1000)}, stale-while-revalidate=10`
+      ttlSeconds > 0
+        ? `public, s-maxage=${ttlSeconds}, stale-while-revalidate=5`
         : 'no-store'
     )
     return res.status(200).json(data)
