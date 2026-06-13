@@ -1,11 +1,12 @@
 // LiveScores.jsx — Componente de marcadores en vivo
 // Se usa en el Dashboard principal
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveMatches, useTodayMatches } from '../../hooks/useLiveData'
 import { toLocalTime, getMatchStatus, getEventIcon } from '../../data/liveData'
 import { esTeamName } from '../../data/teamNames'
+import { getFixtureMap, getAppMatchId } from '../../data/fixtureMap'
 import Flag from './Flag'
 
 function LiveBadge() {
@@ -26,9 +27,12 @@ function MatchCard({ fixture, isLive }) {
 
   const isActive = ['1H','HT','2H','ET','P','LIVE'].includes(status?.short)
 
+  const apiId   = fixture.fixture?.id
+  const matchId = getAppMatchId(apiId) ?? apiId
+
   return (
     <Link
-      to={`/partido/${fixture.fixture?.id}`}
+      to={`/partido/${matchId}`}
       className={`block p-4 rounded-xl border transition-all hover:border-sky-500/40 ${
         isActive
           ? 'bg-slate-800/80 border-red-500/30'
@@ -100,6 +104,11 @@ export default function LiveScores() {
   const { matches: liveMatches, loading: liveLoading } = useLiveMatches()
   const { matches: todayMatches, loading: todayLoading } = useTodayMatches()
   const [tab, setTab] = useState('today')
+
+  // Precargar el mapa de fixtures para que getAppMatchId resuelva correctamente
+  // cuando el usuario haga clic en una card. Sin esto, la primera carga podría
+  // devolver null y caer en el flujo externo.
+  useEffect(() => { getFixtureMap().catch(() => {}) }, [])
 
   const hasLive = liveMatches.length > 0
   const displayed = tab === 'live' ? liveMatches : todayMatches

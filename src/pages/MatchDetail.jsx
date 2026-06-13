@@ -1,12 +1,12 @@
 // MatchDetail.jsx — Página de detalle de un partido
 import { useState, useEffect, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { VENUES_BY_NAME } from '../data/venues'
 import { getBroadcasts } from '../data/broadcasts'
 import MatchAI from '../components/ui/MatchAI'
 import { useMatchDetail, useFixtureData } from '../hooks/useLiveData'
-import { useFixtureId } from '../data/fixtureMap'
+import { useFixtureId, getFixtureMap, getAppMatchId } from '../data/fixtureMap'
 import { getEventIcon } from '../data/liveData'
 import { getKickoffDate, getKickoffCountdown } from '../utils/helpers'
 import { saveResult } from '../data/matchResults'
@@ -837,7 +837,8 @@ function StatBar({ label, home, away }) {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 export default function MatchDetail() {
-  const { id } = useParams()
+  const { id }     = useParams()
+  const navigate   = useNavigate()
   const matchData  = MATCHES?.find(m => m.id === Number(id))
   const isExternal = !matchData
   const fixtureId  = useFixtureId(isExternal ? null : id)
@@ -877,6 +878,19 @@ export default function MatchDetail() {
     setSelectedTeam(null)
     setSelectedTeamCode(null)
   }
+
+  // Redirigir api fixture id → id interno (ej. /partido/1539000 → /partido/7)
+  // Cubre links viejos ya en circulación y el fallback de LiveScores cuando el
+  // mapa aún no estaba cargado en el momento del clic.
+  useEffect(() => {
+    if (!isExternal) return
+    getFixtureMap()
+      .then(() => {
+        const appId = getAppMatchId(Number(id))
+        if (appId) navigate(`/partido/${appId}`, { replace: true })
+      })
+      .catch(() => {})
+  }, [id, isExternal, navigate])
 
   // Guardar resultado final en caché permanente cuando se detecta FT
   useEffect(() => {

@@ -15,8 +15,9 @@ function resolveId(code) {
   return TEAM_IDS[CODE_ALIAS[code] ?? code] ?? null
 }
 
-let _map     = null
-let _promise = null
+let _map        = null
+let _inverseMap = null
+let _promise    = null
 
 async function fetchAndBuild() {
   // Cache localStorage (24h)
@@ -56,9 +57,23 @@ async function fetchAndBuild() {
 export function getFixtureMap() {
   if (_map) return Promise.resolve(_map)
   if (!_promise) {
-    _promise = fetchAndBuild().then(m => { _map = m; return m })
+    _promise = fetchAndBuild().then(m => { _map = m; _inverseMap = null; return m })
   }
   return _promise
+}
+
+// Lookup síncrono: apiFixtureId → appMatchId (1-104), o null si el mapa aún no
+// está cargado o el partido no pertenece al Mundial 2026.
+// El mapa inverso se construye una sola vez y se reutiliza.
+export function getAppMatchId(apiFixtureId) {
+  if (!_map) return null
+  if (!_inverseMap) {
+    _inverseMap = {}
+    for (const [appId, apiId] of Object.entries(_map)) {
+      _inverseMap[apiId] = Number(appId)
+    }
+  }
+  return _inverseMap[apiFixtureId] ?? null
 }
 
 // Hook React: devuelve el API fixture_id para un match app id (1-104)

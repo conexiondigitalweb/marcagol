@@ -1,26 +1,40 @@
+import { getFixtureMap, getAppMatchId } from '../data/fixtureMap'
+
 const LEAGUE_ID = 1   // FIFA World Cup 2026
 const SEASON    = 2026
 
 const LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN'])
 
-function normalizeFixture(f) {
+function buildInverseFromFwdMap(fwdMap) {
+  const inv = {}
+  for (const [appId, apiId] of Object.entries(fwdMap || {})) {
+    inv[apiId] = Number(appId)
+  }
+  return inv
+}
+
+// inverseMap puede ser null si el mapa aún no cargó; en ese caso fallback a apiId.
+function normalizeFixture(f, inverseMap) {
+  const apiFixtureId = f.fixture.id
+  const appMatchId   = inverseMap?.[apiFixtureId] ?? null
   return {
-    id:          f.fixture.id,
-    homeTeam:    f.teams.home.name,
-    awayTeam:    f.teams.away.name,
-    homeTeamId:  f.teams.home.id,
-    awayTeamId:  f.teams.away.id,
-    homeLogo:    f.teams.home.logo,
-    awayLogo:    f.teams.away.logo,
-    homeScore:   f.goals.home,
-    awayScore:   f.goals.away,
-    minute:      f.fixture.status.elapsed,
-    status:      f.fixture.status.short,
-    venue:       f.fixture.venue?.name || '',
-    city:        f.fixture.venue?.city || '',
-    date:        f.fixture.date,
-    group:       null,
-    matchday:    null,
+    id:           appMatchId ?? apiFixtureId,
+    apiFixtureId: apiFixtureId,
+    homeTeam:     f.teams.home.name,
+    awayTeam:     f.teams.away.name,
+    homeTeamId:   f.teams.home.id,
+    awayTeamId:   f.teams.away.id,
+    homeLogo:     f.teams.home.logo,
+    awayLogo:     f.teams.away.logo,
+    homeScore:    f.goals.home,
+    awayScore:    f.goals.away,
+    minute:       f.fixture.status.elapsed,
+    status:       f.fixture.status.short,
+    venue:        f.fixture.venue?.name || '',
+    city:         f.fixture.venue?.city || '',
+    date:         f.fixture.date,
+    group:        null,
+    matchday:     null,
   }
 }
 
@@ -33,10 +47,14 @@ async function apiFetch(endpoint, params = {}) {
 
 export async function getLiveMatches() {
   try {
-    const data = await apiFetch('/fixtures', { live: 'all', league: LEAGUE_ID, season: SEASON })
+    const [data, fwdMap] = await Promise.all([
+      apiFetch('/fixtures', { live: 'all', league: LEAGUE_ID, season: SEASON }),
+      getFixtureMap().catch(() => null),
+    ])
+    const inverseMap = buildInverseFromFwdMap(fwdMap)
     return (data?.response || [])
       .filter(f => LIVE_STATUSES.has(f.fixture.status.short))
-      .map(normalizeFixture)
+      .map(f => normalizeFixture(f, inverseMap))
   } catch {
     return []
   }
