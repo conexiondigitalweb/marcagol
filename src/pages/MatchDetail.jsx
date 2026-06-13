@@ -723,18 +723,12 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const startXIOut   = (team.startXI ?? []).filter(p => getExited(p) || getExpelled(p)).length
   const subsIn       = (team.substitutes ?? []).filter(p => getEntered(p)).length
   const subsExpelled = (team.substitutes ?? []).filter(p => getEntered(p) && getExpelled(p)).length
-  const activeCount  = (team.startXI?.length ?? 0) - startXIOut + subsIn - subsExpelled
-  const matchingOk   = activeCount <= 11
-  if (!matchingOk) {
-    console.error(`[LineupTeamCard] ${team.team?.name}: ${activeCount} activos (esperado ≤ 11), omitiendo indicadores`)
-  }
-
   const PlayerIcons = ({ p }) => {
     const g  = goalsMap[p.player?.id]    ?? 0
     const a  = assistsMap[p.player?.id]  ?? 0
     const og = ownGoalsMap[p.player?.id] ?? 0
-    const expelMin = matchingOk && getExpelled(p)
-    const yCount = (!expelMin && matchingOk) ? getYellowed(p) : 0
+    const expelMin = getExpelled(p)
+    const yCount = !expelMin ? getYellowed(p) : 0
     if (!g && !a && !yCount && !og) return null
     return (
       <span className="flex items-center gap-0.5 flex-shrink-0">
@@ -763,8 +757,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
 
       <div className="divide-y divide-slate-700/20">
         {team.startXI?.map((p, j) => {
-          const exitMin  = matchingOk && getExited(p)
-          const expelMin = matchingOk && getExpelled(p)
+          const exitMin  = getExited(p)
+          const expelMin = getExpelled(p)
           const isOut    = exitMin || expelMin
           return (
             <button
@@ -794,8 +788,8 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
         <>
           <div className="px-4 py-2 bg-slate-800/50 text-xs text-slate-500 uppercase tracking-wider">Suplentes</div>
           {team.substitutes.map((p, j) => {
-            const enterMin = matchingOk && getEntered(p)
-            const expelMin = matchingOk && getExpelled(p)
+            const enterMin = getEntered(p)
+            const expelMin = getExpelled(p)
             const isOut    = expelMin
             return (
               <button
