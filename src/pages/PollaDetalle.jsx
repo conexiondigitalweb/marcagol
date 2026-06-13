@@ -8,6 +8,7 @@ const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
+const LS_KEY       = 'polla_nombre'
 const POLL_INTERVAL = 5000
 
 function formatDate(dateStr) {
@@ -46,26 +47,125 @@ function rankVoto(v, result) {
   return { ...v, exacto, resultadoOk }
 }
 
+// ── Panel de administración ───────────────────────────────────────────────────
+function AdminPanel({ polla, votos, onVotoEliminado, onEstadoCambiado }) {
+  const [toggling, setToggling]     = useState(false)
+  const [deletingId, setDeletingId] = useState(null)
+  const [adminError, setAdminError] = useState('')
+
+  async function toggleActiva() {
+    setToggling(true)
+    setAdminError('')
+    const action = polla.activa ? 'cerrar' : 'reabrir'
+    try {
+      const res = await fetch('/api/polla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, polla_id: polla.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAdminError(data.error || 'Error'); return }
+      onEstadoCambiado(!polla.activa)
+    } catch (err) {
+      setAdminError(err.message)
+    } finally {
+      setToggling(false)
+    }
+  }
+
+  async function eliminarVoto(voto_id) {
+    setDeletingId(voto_id)
+    setAdminError('')
+    try {
+      const res = await fetch('/api/polla', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'eliminar-voto', voto_id }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAdminError(data.error || 'Error'); return }
+      onVotoEliminado(voto_id)
+    } catch (err) {
+      setAdminError(err.message)
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  return (
+    <div className="card overflow-hidden mb-4" style={{ borderColor: 'rgba(251,146,60,0.3)' }}>
+      <div
+        className="px-5 py-3 border-b border-slate-700/50 flex items-center justify-between"
+        style={{ backgroundColor: 'rgba(249,115,22,0.08)' }}
+      >
+        <span className="font-semibold text-orange-400 text-sm">⚙️ Administrar polla</span>
+        <button
+          onClick={toggleActiva}
+          disabled={toggling}
+          className={`text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-50 transition-colors ${
+            polla.activa
+              ? 'bg-slate-700 text-slate-300 hover:bg-red-500/20 hover:text-red-400'
+              : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+          }`}
+        >
+          {toggling ? '…' : polla.activa ? 'Cerrar polla' : 'Reabrir polla'}
+        </button>
+      </div>
+
+      {adminError && (
+        <p className="text-red-400 text-xs px-5 pt-3">{adminError}</p>
+      )}
+
+      {votos.length === 0 ? (
+        <p className="text-slate-500 text-sm text-center py-6">Sin votos aún</p>
+      ) : (
+        <div className="divide-y divide-slate-700/30">
+          {votos.map((v, i) => (
+            <div key={v.id ?? i} className="flex items-center gap-3 px-5 py-2.5">
+              <span className="w-5 text-xs text-slate-600 text-center flex-shrink-0">{i + 1}</span>
+              <span className="flex-1 text-sm text-white truncate">{v.participante_nombre}</span>
+              <span className="font-black tabular-nums text-orange-400 text-sm">
+                {v.goles_local}–{v.goles_visitante}
+              </span>
+              <button
+                onClick={() => eliminarVoto(v.id)}
+                disabled={deletingId === v.id}
+                className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-colors disabled:opacity-40 text-sm"
+                title="Eliminar voto"
+              >
+                {deletingId === v.id ? '…' : '🗑️'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 export default function PollaDetalle() {
   const { id } = useParams()
   const { state: navState } = useLocation()
 
-  const [polla, setPolla] = useState(null)
-  const [votos, setVotos] = useState([])
+  const [polla, setPolla]           = useState(null)
+  const [votos, setVotos]           = useState([])
   const [pageLoading, setPageLoading] = useState(true)
-  const [pageError, setPageError] = useState('')
+  const [pageError, setPageError]   = useState('')
 
-  const [nombre, setNombre] = useState('')
-  const [golesLocal, setGolesLocal] = useState('')
+  const [nombre, setNombre]               = useState('')
+  const [golesLocal, setGolesLocal]       = useState('')
   const [golesVisitante, setGolesVisitante] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [formSuccess, setFormSuccess] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [submitting, setSubmitting]       = useState(false)
+  const [formError, setFormError]         = useState('')
+  const [formSuccess, setFormSuccess]     = useState(false)
+  const [copied, setCopied]               = useState(false)
 
   const isFinishedRef = useRef(false)
 
-  // Carga desde el proxy serverless
+  // Nombre guardado en localStorage
+  const miNombre = localStorage.getItem(LS_KEY) || ''
+
   const fetchDetalle = useCallback(async (isInitial = false) => {
     try {
       const res = await fetch(`/api/polla?id=${id}`)
@@ -77,6 +177,9 @@ export default function PollaDetalle() {
       if (isInitial) {
         setPolla(p)
         setPageLoading(false)
+      } else {
+        // Actualización parcial: solo refrescar activa y votos
+        setPolla(prev => prev ? { ...prev, activa: p.activa } : p)
       }
       setVotos(v || [])
     } catch (err) {
@@ -84,12 +187,8 @@ export default function PollaDetalle() {
     }
   }, [id])
 
-  // Carga inicial
-  useEffect(() => {
-    fetchDetalle(true)
-  }, [fetchDetalle])
+  useEffect(() => { fetchDetalle(true) }, [fetchDetalle])
 
-  // Polling para actualizaciones en tiempo real (solo mientras el partido no haya terminado)
   useEffect(() => {
     if (isFinishedRef.current) return
     const timer = setInterval(() => fetchDetalle(false), POLL_INTERVAL)
@@ -110,7 +209,7 @@ export default function PollaDetalle() {
       return
     }
 
-    // Validación optimista en cliente (el servidor también valida)
+    // Validación optimista en cliente
     if (!polla.permite_repetir) {
       const taken = votos.some(v => v.goles_local === local && v.goles_visitante === visit)
       if (taken) { setFormError('Ese marcador ya fue tomado. Elige uno diferente.'); return }
@@ -138,11 +237,13 @@ export default function PollaDetalle() {
       const data = await res.json()
       if (!res.ok) { setFormError(data.error || `Error ${res.status}`); return }
 
+      // Guardar nombre en localStorage para futuros usos
+      localStorage.setItem(LS_KEY, nombre.trim())
       setFormSuccess(true)
       setNombre('')
       setGolesLocal('')
       setGolesVisitante('')
-      fetchDetalle(false) // refresco inmediato
+      fetchDetalle(false)
     } catch (err) {
       setFormError(`Error de red: ${err.message}`)
     } finally {
@@ -166,13 +267,14 @@ export default function PollaDetalle() {
     <div className="max-w-lg mx-auto animate-slide-up text-center py-20">
       <p className="text-4xl mb-4">🔍</p>
       <p className="text-slate-400 mb-4">{pageError}</p>
-      <Link to="/" className="text-sky-400 hover:underline text-sm">← Volver al inicio</Link>
+      <Link to="/mis-pollas" className="text-sky-400 hover:underline text-sm">← Mis pollas</Link>
     </div>
   )
 
-  const match = MATCHES.find(m => m.id === polla.partido_id)
-  const result = match ? getResult(match.id) : null
-  const isFinished = !!result
+  const match       = MATCHES.find(m => m.id === polla.partido_id)
+  const result      = match ? getResult(match.id) : null
+  const isFinished  = !!result
+  const isCreador   = miNombre && miNombre.toLowerCase() === polla.creador_nombre?.toLowerCase()
   isFinishedRef.current = isFinished
 
   const rankedVotos = isFinished
@@ -180,17 +282,28 @@ export default function PollaDetalle() {
         .sort((a, b) => (b.exacto ? 2 : b.resultadoOk ? 1 : 0) - (a.exacto ? 2 : a.resultadoOk ? 1 : 0))
     : votos
 
-  const pollaUrl = window.location.href
-
   return (
     <div className="max-w-lg mx-auto animate-slide-up">
-      <Link to="/" className="text-slate-400 hover:text-white text-sm mb-6 inline-block">← Volver</Link>
+      <Link to="/mis-pollas" className="text-slate-400 hover:text-white text-sm mb-6 inline-block">
+        ← Mis pollas
+      </Link>
 
       {/* Creada con éxito */}
       {navState?.created && (
         <div className="mb-4 p-4 rounded-xl bg-green-500/10 border border-green-500/30">
           <p className="text-green-400 font-bold text-sm">¡Polla creada!</p>
           <p className="text-slate-400 text-xs mt-0.5">Comparte el link con tus amigos para que participen.</p>
+        </div>
+      )}
+
+      {/* Banner polla cerrada */}
+      {!polla.activa && (
+        <div className="mb-4 flex items-center gap-3 p-4 rounded-xl border border-slate-600 bg-slate-800/50">
+          <span className="text-slate-400 text-lg">🔒</span>
+          <div>
+            <p className="text-slate-300 font-bold text-sm">Polla cerrada</p>
+            <p className="text-slate-500 text-xs mt-0.5">El creador ha cerrado esta polla. No se aceptan más predicciones.</p>
+          </div>
         </div>
       )}
 
@@ -212,9 +325,9 @@ export default function PollaDetalle() {
             onClick={handleCopy}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
             style={{
-              background:   copied ? 'rgba(34,197,94,0.1)' : '#1E293B',
-              borderColor:  copied ? 'rgba(34,197,94,0.4)' : '#334155',
-              color:        copied ? '#4ade80' : '#94a3b8',
+              background:  copied ? 'rgba(34,197,94,0.1)' : '#1E293B',
+              borderColor: copied ? 'rgba(34,197,94,0.4)' : '#334155',
+              color:       copied ? '#4ade80' : '#94a3b8',
             }}
           >
             {copied ? '✓ Copiado' : '🔗 Compartir'}
@@ -226,9 +339,7 @@ export default function PollaDetalle() {
           <span>·</span>
           <span>
             {polla.permite_repetir
-              ? polla.max_repeticiones
-                ? `Máx. ${polla.max_repeticiones} por marcador`
-                : 'Marcadores repetibles'
+              ? polla.max_repeticiones ? `Máx. ${polla.max_repeticiones} por marcador` : 'Marcadores repetibles'
               : 'Sin marcadores repetidos'}
           </span>
         </div>
@@ -236,10 +347,20 @@ export default function PollaDetalle() {
         {navState?.created && (
           <div className="mt-3 p-3 rounded-lg bg-slate-900/60 border border-slate-700">
             <p className="text-xs text-slate-500 mb-1.5">Link para compartir:</p>
-            <p className="text-xs text-sky-400 break-all font-mono">{pollaUrl}</p>
+            <p className="text-xs text-sky-400 break-all font-mono">{window.location.href}</p>
           </div>
         )}
       </div>
+
+      {/* Panel de administración */}
+      {isCreador && (
+        <AdminPanel
+          polla={polla}
+          votos={votos}
+          onVotoEliminado={voto_id => setVotos(prev => prev.filter(v => v.id !== voto_id))}
+          onEstadoCambiado={activa => setPolla(prev => ({ ...prev, activa }))}
+        />
+      )}
 
       {/* Resultado final */}
       {isFinished && result && (
@@ -252,8 +373,8 @@ export default function PollaDetalle() {
         </div>
       )}
 
-      {/* Formulario de voto */}
-      {!isFinished && (
+      {/* Formulario de voto — solo si activa y no finalizado */}
+      {polla.activa && !isFinished && (
         <div className="card p-5 mb-4">
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Tu predicción</h2>
 
@@ -314,19 +435,22 @@ export default function PollaDetalle() {
             Predicciones
             {votos.length > 0 && <span className="text-slate-500 font-normal ml-1.5">({votos.length})</span>}
           </span>
-          {!isFinished && (
+          {polla.activa && !isFinished && (
             <span className="flex items-center gap-1.5 text-xs text-sky-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse inline-block" />
               En vivo
             </span>
           )}
           {isFinished && <span className="text-xs text-slate-500">Partido finalizado</span>}
+          {!polla.activa && !isFinished && <span className="text-xs text-slate-500">🔒 Cerrada</span>}
         </div>
 
         {votos.length === 0 ? (
           <div className="py-14 text-center text-slate-500">
             <p className="text-3xl mb-3">🎯</p>
-            <p className="text-sm">Sé el primero en enviar tu predicción</p>
+            <p className="text-sm">
+              {polla.activa ? 'Sé el primero en enviar tu predicción' : 'Sin predicciones registradas'}
+            </p>
           </div>
         ) : isFinished ? (
           <div className="divide-y divide-slate-700/30">

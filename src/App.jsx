@@ -22,6 +22,7 @@ const MatchDetail    = lazy(() => import('./pages/MatchDetail'))
 const PlayerProfile  = lazy(() => import('./pages/PlayerProfile'))
 const CrearPolla     = lazy(() => import('./pages/CrearPolla'))
 const PollaDetalle   = lazy(() => import('./pages/PollaDetalle'))
+const MisPollas      = lazy(() => import('./pages/MisPollas'))
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/jugador/:team/:number" element={<PlayerProfile />}/>
             <Route path="/crear-polla"   element={<CrearPolla />}  />
             <Route path="/polla/:id"     element={<PollaDetalle />}/>
+            <Route path="/mis-pollas"    element={<MisPollas />}   />
           </Routes>
         </Suspense>
       </main>
