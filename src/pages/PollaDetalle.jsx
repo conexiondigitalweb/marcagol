@@ -165,7 +165,7 @@ export default function PollaDetalle() {
   const [submitting, setSubmitting]       = useState(false)
   const [formError, setFormError]         = useState('')
   const [formSuccess, setFormSuccess]     = useState(false)
-  const [copied, setCopied]               = useState(false)
+  const [shared, setShared]               = useState(false)
 
   const isFinishedRef = useRef(false)
 
@@ -257,10 +257,34 @@ export default function PollaDetalle() {
     }
   }
 
-  function handleCopy() {
-    navigator.clipboard.writeText(window.location.href).catch(() => {})
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  // Meta tags dinámicos para compartir la polla
+  useEffect(() => {
+    if (!polla) return
+    const title = `Polla: ${polla.equipo_local} vs ${polla.equipo_visitante} · Marcagol.live`
+    document.title = title
+    const setMeta = (prop, content) => {
+      let el = document.querySelector(`meta[property="${prop}"]`)
+      if (!el) { el = document.createElement('meta'); el.setAttribute('property', prop); document.head.appendChild(el) }
+      el.setAttribute('content', content)
+    }
+    const desc = `¡${polla.creador_nombre} te invita a su polla! Predice el marcador de ${polla.equipo_local} vs ${polla.equipo_visitante} y gana`
+    setMeta('og:title', title)
+    setMeta('og:description', desc)
+    setMeta('og:url', window.location.href)
+    return () => {
+      document.title = '● marcagol.live — Mundial 2026'
+      setMeta('og:title', 'Marcagol.live · Copa Mundial FIFA 2026')
+      setMeta('og:description', 'Sigue el Mundial en vivo: marcadores, alineaciones, estadísticas y arma tu polla con amigos')
+      setMeta('og:url', 'https://www.marcagol.live')
+    }
+  }, [polla])
+
+  function handleShareWhatsApp() {
+    const url = window.location.href
+    const text = `🎯 ¡Arma tu predicción! ${polla.creador_nombre} te invita a la polla de ${polla.equipo_local} vs ${polla.equipo_visitante} 🏆\n\nPredice el marcador y compite con tus amigos en:\n${url}\n\n¡Entra antes del kickoff! ⚽`
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+    setShared(true)
+    setTimeout(() => setShared(false), 3000)
   }
 
   if (pageLoading) return (
@@ -343,15 +367,15 @@ export default function PollaDetalle() {
             )}
           </div>
           <button
-            onClick={handleCopy}
+            onClick={handleShareWhatsApp}
             className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
             style={{
-              background:  copied ? 'rgba(34,197,94,0.1)' : '#1E293B',
-              borderColor: copied ? 'rgba(34,197,94,0.4)' : '#334155',
-              color:       copied ? '#4ade80' : '#94a3b8',
+              background:  shared ? 'rgba(34,197,94,0.1)' : '#1E293B',
+              borderColor: shared ? 'rgba(34,197,94,0.4)' : '#334155',
+              color:       shared ? '#4ade80' : '#94a3b8',
             }}
           >
-            {copied ? '✓ Copiado' : '🔗 Compartir'}
+            {shared ? '✓ Abierto' : '📲 WhatsApp'}
           </button>
         </div>
 

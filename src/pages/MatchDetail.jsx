@@ -1137,18 +1137,29 @@ export default function MatchDetail() {
       <MatchCountdownBanner match={matchData} isStarted={isMatchStarted} />
       <MatchHeader match={matchData} liveData={liveMatchData} />
 
-      {!isMatchStarted && (
-        <div className="mb-4">
+      <div className="mb-4 flex gap-2">
+        {!isMatchStarted && (
           <Link
             to={`/crear-polla?partido=${id}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white text-sm transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(90deg, #F97316, #fb923c)' }}
           >
             <span>🎯</span>
-            Arma tu Polla para este partido
+            Arma tu Polla
           </Link>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => {
+            const homeEs = esTeamName(matchData.homeTeam) || ALL_TEAMS[matchData.homeTeam]?.name || matchData.homeTeam
+            const awayEs = esTeamName(matchData.awayTeam) || ALL_TEAMS[matchData.awayTeam]?.name || matchData.awayTeam
+            const text = `⚽ ${homeEs} vs ${awayEs} · Mundial 2026\nSigue el partido en vivo en marcagol.live:\n${window.location.href}`
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+          }}
+          className={`flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl font-bold text-sm border border-slate-700 text-slate-300 hover:border-slate-600 hover:text-white transition-colors bg-slate-800 ${!isMatchStarted ? '' : 'w-full'}`}
+        >
+          📲 Compartir
+        </button>
+      </div>
 
       <div className="grid grid-cols-4 gap-1 mb-6 bg-slate-800 p-1 rounded-xl">
         {[
