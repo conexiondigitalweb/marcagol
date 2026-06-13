@@ -100,6 +100,10 @@ export default function CrearPolla() {
 
   return (
     <div className="max-w-lg mx-auto animate-slide-up">
+      <div style={{background:'red', color:'white', padding:'10px', fontSize:'12px'}}>
+        URL: {import.meta.env.VITE_SUPABASE_URL || 'UNDEFINED'}
+        KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? 'EXISTS' : 'UNDEFINED'}
+      </div>
       <Link to="/" className="text-slate-400 hover:text-white text-sm mb-6 inline-block">← Volver</Link>
 
       <h1 className="text-2xl font-black text-white mb-1">Arma tu Polla</h1>
