@@ -488,17 +488,21 @@ function buildSubstMap(events, teamId = null) {
   return { entered, exited, expelled, yellowed, secondYellows }
 }
 
-// Goles y asistencias por player.id — para indicadores en alineaciones
+// Goles, asistencias y autogoles por player.id — para indicadores en alineaciones.
+// Own Goal: e.team = equipo beneficiado; e.player pertenece al equipo CONTRARIO.
+// Se separa en ownGoals para no pintar ⚽ normal al autor del autogol.
 function buildStatsMap(events) {
-  const goals = {}, assists = {}
+  const goals = {}, assists = {}, ownGoals = {}
   for (const e of events || []) {
     if (e.type !== 'Goal' || e.detail === 'Missed Penalty') continue
-    if (e.player?.id != null) goals[e.player.id] = (goals[e.player.id] || 0) + 1
-    if (e.detail !== 'Own Goal' && e.assist?.id != null) {
-      assists[e.assist.id] = (assists[e.assist.id] || 0) + 1
+    if (e.detail === 'Own Goal') {
+      if (e.player?.id != null) ownGoals[e.player.id] = (ownGoals[e.player.id] || 0) + 1
+    } else {
+      if (e.player?.id != null) goals[e.player.id] = (goals[e.player.id] || 0) + 1
+      if (e.assist?.id != null) assists[e.assist.id] = (assists[e.assist.id] || 0) + 1
     }
   }
-  return { goals, assists }
+  return { goals, assists, ownGoals }
 }
 
 // Busca un nombre en el mapa con matching robusto y detección de ambigüedad.
@@ -665,7 +669,7 @@ function PlayerModal({ player, team, teamCode, fixturePlayersData, loading, onCl
 // ─── Tarjeta de alineación con sustituciones y clic en jugador ────────────────
 function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   const { entered, exited, expelled, yellowed = {}, secondYellows = new Set() } = substMap
-  const { goals: goalsMap = {}, assists: assistsMap = {} } = statsMap ?? {}
+  const { goals: goalsMap = {}, assists: assistsMap = {}, ownGoals: ownGoalsMap = {} } = statsMap ?? {}
 
   // Número de camiseta → más consistente entre /lineups y /events que el nombre
   const getExited         = (p) => exited[p.player?.id]   ?? lookupSubst(p.player?.name, exited)
@@ -687,14 +691,23 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
   }
 
   const PlayerIcons = ({ p }) => {
-    const g = goalsMap[p.player?.id] ?? 0
-    const a = assistsMap[p.player?.id] ?? 0
+    const g  = goalsMap[p.player?.id]    ?? 0
+    const a  = assistsMap[p.player?.id]  ?? 0
+    const og = ownGoalsMap[p.player?.id] ?? 0
     const expelMin = matchingOk && getExpelled(p)
     const yCount = (!expelMin && matchingOk) ? getYellowed(p) : 0
-    if (!g && !a && !yCount) return null
+    if (!g && !a && !yCount && !og) return null
     return (
       <span className="flex items-center gap-0.5 flex-shrink-0">
         {g > 0 && <span className="text-[10px] leading-none">{'⚽'.repeat(Math.min(g, 3))}</span>}
+        {og > 0 && (
+          <span className="flex items-center gap-0.5" title="Autogol">
+            <span className="text-[10px] leading-none" style={{ filter: 'sepia(1) saturate(5) hue-rotate(310deg)' }}>
+              {'⚽'.repeat(Math.min(og, 2))}
+            </span>
+            <span className="text-[8px] text-red-400 font-bold leading-none">AG</span>
+          </span>
+        )}
         {a > 0 && <span className="text-[10px] leading-none">{'👟'.repeat(Math.min(a, 2))}</span>}
         {yCount > 0 && <span className="text-[10px] leading-none">{'🟨'.repeat(Math.min(yCount, 2))}</span>}
       </span>
