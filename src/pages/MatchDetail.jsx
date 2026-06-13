@@ -224,18 +224,24 @@ function MatchHeader({ match, liveData }) {
 }
 
 // ─── Hook: todos los datos de un partido externo (no-WC) ─────────────────────
-// Polling diferenciado: marcador 30s · eventos 20s · stats 60s · lineups 5min
+// Polling diferenciado: marcador 30s · eventos 10s · stats 60s · lineups 5min
+// Si los eventos detectan un gol o anulación, el marcador se refresca de
+// inmediato (debounce 5s) sin alterar el ciclo base de 30s.
 function useExternalMatchData(fixtureId, enabled) {
   const [fixture, setFixture] = useState(null)
   const [events,  setEvents]  = useState([])
   const [stats,   setStats]   = useState([])
   const [lineups, setLineups] = useState([])
   const [loading, setLoading] = useState(enabled)
-  const statusRef = useRef(null)
+  const statusRef       = useRef(null)
+  const fixtureTimerRef = useRef(null)
+  const goalSigRef      = useRef(null)
+  const lastForcedRef   = useRef(0)
 
   useEffect(() => {
     if (!enabled || !fixtureId) return
     let alive = true
+    goalSigRef.current = null
 
     const STOP = new Set(['HT', 'FT', 'AET', 'PEN'])
     const done = () => !alive || STOP.has(statusRef.current)
@@ -249,7 +255,8 @@ function useExternalMatchData(fixtureId, enabled) {
       return data.response ?? []
     }
 
-    async function pollFixture() {
+    // Fetch puro del marcador sin lógica de rescheduling (reutilizable)
+    async function fetchFixtureData() {
       try {
         const data = await apiFetch(`/fixtures?id=${fixtureId}`)
         if (!alive) return
@@ -258,13 +265,31 @@ function useExternalMatchData(fixtureId, enabled) {
         setLoading(false)
         statusRef.current = f?.fixture?.status?.short ?? null
       } catch { if (alive) setLoading(false) }
-      if (!done()) setTimeout(pollFixture, 30000)
+    }
+
+    async function pollFixture() {
+      await fetchFixtureData()
+      if (!done()) fixtureTimerRef.current = setTimeout(pollFixture, 30000)
     }
 
     async function pollEvents() {
       try {
         const data = await apiFetch(`/fixtures/events?fixture=${fixtureId}`)
-        if (alive && data.length) setEvents(data)
+        if (alive && data.length) {
+          const sig = computeGoalSignature(data)
+          if (goalSigRef.current !== null && sig !== goalSigRef.current) {
+            const now = Date.now()
+            if (now - lastForcedRef.current >= 5_000) {
+              lastForcedRef.current = now
+              clearTimeout(fixtureTimerRef.current)
+              fetchFixtureData().then(() => {
+                if (!done()) fixtureTimerRef.current = setTimeout(pollFixture, 30000)
+              })
+            }
+          }
+          goalSigRef.current = sig
+          setEvents(data)
+        }
       } catch {}
       if (!done()) setTimeout(pollEvents, 10000)
     }
@@ -290,7 +315,7 @@ function useExternalMatchData(fixtureId, enabled) {
     pollStats()
     pollLineups()
 
-    return () => { alive = false }
+    return () => { alive = false; clearTimeout(fixtureTimerRef.current) }
   }, [fixtureId, enabled])
 
   return { fixture, events, stats, lineups, loading }
@@ -442,6 +467,20 @@ const shouldShowAssist = (event) =>
   event.type === 'Goal' &&
   !!event.assist?.name &&
   !NO_ASSIST_DETAILS.some(d => (event.detail || '').includes(d))
+
+// Firma de goles para detectar cambios en el feed de eventos.
+// Devuelve "N_goles:M_anulaciones" — si cambia, hay que refrescar el marcador.
+function computeGoalSignature(events) {
+  let goals = 0, disallowed = 0
+  for (const e of events || []) {
+    if (e.type === 'Goal' && e.detail !== 'Missed Penalty') goals++
+    if (e.type === 'Var') {
+      const d = (e.detail || '').toLowerCase()
+      if (d.includes('disallowed') || d.includes('cancelled') || d.includes('anulado')) disallowed++
+    }
+  }
+  return `${goals}:${disallowed}`
+}
 
 // ─── Sustituciones + expulsiones: cruzar eventos con alineaciones ────────────
 // API-Football: event.assist.name = quien entra · event.player.name = quien sale
@@ -852,9 +891,18 @@ export default function MatchDetail() {
   const matchData  = MATCHES?.find(m => m.id === Number(id))
   const isExternal = !matchData
   const fixtureId  = useFixtureId(isExternal ? null : id)
-  const { data: fixtureData, isFinished } = useFixtureData(fixtureId)
+  const { data: fixtureData, isFinished, forceRefetch: forceFixtureRefetch } = useFixtureData(fixtureId)
   const { events, stats, lineups, loading, error } = useMatchDetail(fixtureId, isFinished)
   const [tab, setTab] = useState('events')
+
+  // Refetch inmediato del marcador al detectar gol o anulación en el feed de eventos
+  const goalSigRef = useRef(null)
+  useEffect(() => {
+    if (!events.length) { goalSigRef.current = null; return }
+    const sig = computeGoalSignature(events)
+    if (goalSigRef.current !== null && sig !== goalSigRef.current) forceFixtureRefetch()
+    goalSigRef.current = sig
+  }, [events, forceFixtureRefetch])
 
   // Estado del modal de jugador
   const [selectedPlayer,   setSelectedPlayer]   = useState(null)

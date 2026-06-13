@@ -4,7 +4,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   getLiveMatches, getTodayMatches, getStandings,
-  getTopScorers, getTopAssists, getMatchDetail, getFixture
+  getTopScorers, getTopAssists, getMatchDetail, getFixture,
+  bustFixtureCache,
 } from '../data/liveData'
 import { TEAM_IDS } from '../data/teamIds'
 
@@ -50,56 +51,74 @@ function normalizeFixtureForHeader(f) {
 const FT_STATUSES = new Set(['FT', 'AET', 'PEN'])
 
 // ─── Hook: Datos de fixture individual (marcador en vivo + status) ────────────
-// Polling cada 30s mientras no esté finalizado.
-// Caché permanente en localStorage para partidos FT.
+// Polling base cada 30s. Expone forceRefetch() para refetch inmediato cuando
+// el feed de eventos detecta un gol o anulación (debounce mínimo 5s).
 export function useFixtureData(fixtureId) {
   const [data, setData]             = useState(null)
   const [loading, setLoading]       = useState(true)
   const [isFinished, setIsFinished] = useState(false)
-  const timerRef = useRef(null)
+  const timerRef       = useRef(null)
+  const aliveRef       = useRef(false)
+  const isFinishedRef  = useRef(false)
+  const lastForcedRef  = useRef(0)
+
+  const poll = useCallback(async () => {
+    if (!fixtureId || !aliveRef.current || isFinishedRef.current) return
+    try {
+      const f = await getFixture(fixtureId)
+      if (!aliveRef.current) return
+      setData(normalizeFixtureForHeader(f))
+      setLoading(false)
+      if (f && FT_STATUSES.has(f.fixture?.status?.short)) {
+        isFinishedRef.current = true
+        setIsFinished(true)
+        try { localStorage.setItem(`wc2026_ft_fixture_${fixtureId}`, JSON.stringify(f)) } catch {}
+      } else if (aliveRef.current) {
+        timerRef.current = setTimeout(poll, 30_000)
+      }
+    } catch {
+      if (aliveRef.current) { setLoading(false); timerRef.current = setTimeout(poll, 60_000) }
+    }
+  }, [fixtureId])
+
+  // Refetch inmediato: cancela el timer pendiente, invalida caché, re-fetchea,
+  // y el poll() reschedula el ciclo normal de 30s al terminar.
+  const forceRefetch = useCallback(() => {
+    const now = Date.now()
+    if (now - lastForcedRef.current < 5_000) return
+    if (isFinishedRef.current || !aliveRef.current) return
+    lastForcedRef.current = now
+    clearTimeout(timerRef.current)
+    bustFixtureCache(fixtureId)
+    poll()
+  }, [fixtureId, poll])
 
   useEffect(() => {
     if (!fixtureId) { setLoading(false); return }
-    let alive = true
+    aliveRef.current    = true
+    isFinishedRef.current = false
 
-    // Comprobar caché permanente de partidos FT
+    // Caché permanente de partidos FT
     try {
       const cached = localStorage.getItem(`wc2026_ft_fixture_${fixtureId}`)
       if (cached) {
         const f = JSON.parse(cached)
         setData(normalizeFixtureForHeader(f))
+        isFinishedRef.current = true
         setIsFinished(true)
         setLoading(false)
         return
       }
     } catch {}
 
-    async function poll() {
-      try {
-        const f = await getFixture(fixtureId)
-        if (!alive) return
-        setData(normalizeFixtureForHeader(f))
-        setLoading(false)
-        if (f && FT_STATUSES.has(f.fixture?.status?.short)) {
-          setIsFinished(true)
-          try { localStorage.setItem(`wc2026_ft_fixture_${fixtureId}`, JSON.stringify(f)) } catch {}
-        } else if (alive) {
-          timerRef.current = setTimeout(poll, 30_000)
-        }
-      } catch {
-        if (alive) setLoading(false)
-        if (alive) timerRef.current = setTimeout(poll, 60_000)  // retry más lento en error
-      }
-    }
-
     poll()
     return () => {
-      alive = false
+      aliveRef.current = false
       clearTimeout(timerRef.current)
     }
-  }, [fixtureId])
+  }, [fixtureId, poll])
 
-  return { data, loading, isFinished }
+  return { data, loading, isFinished, forceRefetch }
 }
 
 // ─── Hook: Partidos en vivo (polling cada 30s) ────────────────────────────────

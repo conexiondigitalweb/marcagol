@@ -195,3 +195,8 @@ export function getEventIcon(type, detail) {
 
 // Limpiar cache (llamar cuando se cambia de partido)
 export function clearCache() { cache.clear() }
+
+// Invalida solo la entrada de fixture individual (para refetch forzado tras gol)
+export function bustFixtureCache(fixtureId) {
+  cache.delete(`/fixtures?id=${fixtureId}`)
+}
