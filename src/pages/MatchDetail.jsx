@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { VENUES_BY_NAME } from '../data/venues'
-import { BROADCAST_BY_COUNTRY } from '../data/broadcast'
+import { getBroadcasts } from '../data/broadcasts'
 import MatchAI from '../components/ui/MatchAI'
 import { useMatchDetail, useFixtureData } from '../hooks/useLiveData'
 import { useFixtureId } from '../data/fixtureMap'
@@ -96,9 +96,7 @@ function MatchHeader({ match, liveData }) {
   const isLive = liveData && ['1H','HT','2H','ET','PEN','LIVE'].includes(liveData.status)
   const isFinished = liveData && ['FT','AET','PEN'].includes(liveData.status)
 
-  const colBroadcast = BROADCAST_BY_COUNTRY
-    .flatMap(r => r.countries)
-    .find(c => c.iso2 === 'co')
+  const { channels: colChannels, abiertosPorConfirmar } = getBroadcasts(match.id)
 
   return (
     <div className="card overflow-hidden mb-6">
@@ -199,11 +197,22 @@ function MatchHeader({ match, liveData }) {
         <div className="p-4 text-center">
           <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">📺 Ver en Colombia</p>
           <div className="flex flex-wrap justify-center gap-1">
-            {colBroadcast?.channels?.slice(0,2).map(ch => (
-              <span key={ch.name} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-400">
-                {ch.name}
+            {colChannels.map(ch => (
+              <a
+                key={ch.name}
+                href={ch.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`text-xs px-2 py-0.5 rounded-full border inline-flex items-center gap-0.5 hover:opacity-80 transition-opacity ${ch.color}`}
+              >
+                {ch.name}<span className="text-[9px] opacity-60">↗</span>
+              </a>
+            ))}
+            {abiertosPorConfirmar && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
+                Señal abierta por confirmar
               </span>
-            )) || <span className="text-xs text-slate-500">Por confirmar</span>}
+            )}
           </div>
         </div>
         <div className="p-4 text-center">
