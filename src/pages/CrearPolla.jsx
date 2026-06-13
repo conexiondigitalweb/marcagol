@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
-import { supabase } from '../lib/supabase'
+import { supabase, supabaseReady } from '../lib/supabase'
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -52,6 +52,12 @@ export default function CrearPolla() {
     }
     setLoading(true)
     setError('')
+
+    if (!supabaseReady) {
+      setLoading(false)
+      setError('Error de configuración: VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY no están definidas en producción. Agrega estas variables en Vercel → Settings → Environment Variables.')
+      return
+    }
 
     const payload = {
       partido_id:       Number(partidoId),
