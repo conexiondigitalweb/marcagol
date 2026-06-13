@@ -53,24 +53,30 @@ export default function CrearPolla() {
     setLoading(true)
     setError('')
 
+    const payload = {
+      partido_id:       Number(partidoId),
+      equipo_local:     homeTeam?.name || selectedMatch?.homeTeam,
+      equipo_visitante: awayTeam?.name || selectedMatch?.awayTeam,
+      fecha_partido:    selectedMatch?.date,
+      creador_nombre:   creadorNombre.trim(),
+      permite_repetir:  permiteRepetir,
+      max_repeticiones: maxRepeticiones ? Number(maxRepeticiones) : null,
+      activa:           true,
+    }
+    console.log('[CrearPolla] payload:', payload)
+    console.log('[CrearPolla] VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL)
+    console.log('[CrearPolla] VITE_SUPABASE_ANON_KEY set:', !!import.meta.env.VITE_SUPABASE_ANON_KEY)
+
     const { data, error: dbError } = await supabase
       .from('pollas')
-      .insert({
-        partido_id: Number(partidoId),
-        equipo_local: homeTeam?.name || selectedMatch?.homeTeam,
-        equipo_visitante: awayTeam?.name || selectedMatch?.awayTeam,
-        fecha_partido: selectedMatch?.date,
-        creador_nombre: creadorNombre.trim(),
-        permite_repetir: permiteRepetir,
-        max_repeticiones: maxRepeticiones ? Number(maxRepeticiones) : null,
-        activa: true,
-      })
+      .insert(payload)
       .select()
       .single()
 
     setLoading(false)
     if (dbError) {
-      setError('Error al crear la polla. Intenta de nuevo.')
+      console.error('[CrearPolla] Supabase error:', dbError)
+      setError(`Error Supabase: ${dbError.message} (código: ${dbError.code})`)
       return
     }
     navigate(`/polla/${data.id}`, { state: { created: true } })
