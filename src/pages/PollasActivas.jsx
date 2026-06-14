@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 
@@ -185,15 +186,17 @@ export default function PollasActivas() {
         </section>
       )}
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pt-8 bg-gradient-to-t from-[#0F172A] to-transparent">
-        <Link
-          to="/crear-polla"
-          className="w-full max-w-2xl mx-auto block bg-[#F97316] hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-center transition-colors"
-        >
-          + Crear tu polla
-        </Link>
-      </div>
+      {createPortal(
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pt-8 bg-gradient-to-t from-[#0F172A] to-transparent">
+          <Link
+            to="/crear-polla"
+            className="block w-full max-w-2xl mx-auto bg-[#F97316] hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-center"
+          >
+            + Crear tu polla
+          </Link>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }
