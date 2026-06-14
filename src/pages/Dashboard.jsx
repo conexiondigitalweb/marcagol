@@ -218,11 +218,11 @@ function MatchCard({ match, liveData, compact = false }) {
   )
 }
 
-function StatCard({ icon, value, label, sub }) {
+function StatCard({ icon, value, label, sub, valueClass }) {
   return (
     <div className="card p-5 text-center">
       <div className="text-3xl mb-2">{icon}</div>
-      <div className="text-3xl font-black text-white">{value}</div>
+      <div className={valueClass ?? 'text-3xl font-black text-white'}>{value}</div>
       <div className="text-sm font-semibold text-slate-300 mt-1">{label}</div>
       {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
     </div>
@@ -233,6 +233,8 @@ export default function Dashboard() {
   const [countdown, setCountdown]           = useState(getCountdown(WORLD_CUP_START))
   const [apiLiveMatches, setApiLiveMatches] = useState([])
   const [pollasActivas, setPollasActivas]   = useState(null)
+  const [statsWC, setStatsWC]               = useState(null)
+  const [statsLoading, setStatsLoading]     = useState(true)
 
   // Countdown ticker
   useEffect(() => {
@@ -251,6 +253,14 @@ export default function Dashboard() {
       .then(r => r.json())
       .then(d => setPollasActivas(d.pollas || []))
       .catch(() => setPollasActivas([]))
+  }, [])
+
+  // Estadísticas dinámicas del Mundial
+  useEffect(() => {
+    fetch('/api/football?action=estadisticas-mundial')
+      .then(r => r.json())
+      .then(d => { setStatsWC(d); setStatsLoading(false) })
+      .catch(() => setStatsLoading(false))
   }, [])
 
   const upcoming       = getUpcomingMatches(6)
@@ -331,14 +341,87 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* ── Stats ────────────────────────────────────────────────────── */}
+      {/* ── Stats dinámicas ─────────────────────────────────────────── */}
       <section>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon="🌍" value="48"  label="Selecciones"  sub="6 confederaciones" />
-          <StatCard icon="🏟️" value="16"  label="Sedes"        sub="3 países sede"     />
-          <StatCard icon="⚽" value="104" label="Partidos"      sub="72 fase de grupos" />
-          <StatCard icon="🏆" value="32"  label="Días"         sub="Jun 11 – Jul 27"   />
-        </div>
+        {statsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="card p-5 text-center animate-pulse">
+                <div className="h-8 w-8 rounded-full bg-slate-700 mx-auto mb-2" />
+                <div className="h-7 bg-slate-700 rounded mx-auto w-20 mb-2" />
+                <div className="h-3 bg-slate-700/60 rounded mx-auto w-24 mb-1" />
+                <div className="h-3 bg-slate-700/40 rounded mx-auto w-16" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Fila 1 — datos principales */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+              <StatCard
+                icon="⚽"
+                value={statsWC?.totalPartidos > 0 ? statsWC.totalGoles : '—'}
+                label="goles anotados"
+                sub={statsWC?.totalPartidos > 0 ? `en ${statsWC.totalPartidos} partidos` : 'sin partidos FT aún'}
+              />
+              <StatCard
+                icon="🎯"
+                value={statsWC?.totalPartidos > 0 ? statsWC.promedioPorPartido : '—'}
+                label="promedio por partido"
+                sub={statsWC?.totalPartidos > 0 ? `${statsWC.totalGoles} goles totales` : undefined}
+              />
+              <StatCard
+                icon="🏟️"
+                value={statsWC?.totalPartidos > 0 ? `${statsWC.totalPartidos}/104` : '—/104'}
+                label="partidos jugados"
+                sub={statsWC?.totalPartidos > 0 ? `${(statsWC.totalPartidos / 104 * 100).toFixed(0)}% del torneo` : 'aún no han comenzado'}
+              />
+              <StatCard
+                icon="🔇"
+                value={statsWC?.totalPartidos > 0 ? statsWC.partidosSinGoles : '—'}
+                label="partidos 0-0"
+                sub={statsWC?.totalPartidos > 0 ? 'terminaron sin goles' : undefined}
+              />
+            </div>
+
+            {/* Fila 2 — curiosidades */}
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Curiosidades del torneo</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon="🥇"
+                value={statsWC?.equipoMasGoleador
+                  ? esTeamName({ id: statsWC.equipoMasGoleador.id, name: statsWC.equipoMasGoleador.name })
+                  : '—'}
+                label="más goleador"
+                sub={statsWC?.equipoMasGoleador ? `${statsWC.equipoMasGoleador.goles} goles a favor` : undefined}
+                valueClass="text-lg font-black text-white leading-tight"
+              />
+              <StatCard
+                icon="🤕"
+                value={statsWC?.equipoMasGoleado
+                  ? esTeamName({ id: statsWC.equipoMasGoleado.id, name: statsWC.equipoMasGoleado.name })
+                  : '—'}
+                label="más goleado"
+                sub={statsWC?.equipoMasGoleado ? `${statsWC.equipoMasGoleado.goles} goles en contra` : undefined}
+                valueClass="text-lg font-black text-white leading-tight"
+              />
+              <StatCard
+                icon="🔁"
+                value={statsWC?.marcadorMasRepetido ? statsWC.marcadorMasRepetido.score : '—'}
+                label="marcador más repetido"
+                sub={statsWC?.marcadorMasRepetido
+                  ? `${statsWC.marcadorMasRepetido.veces} ${statsWC.marcadorMasRepetido.veces === 1 ? 'vez' : 'veces'}`
+                  : undefined}
+              />
+              <StatCard
+                icon="🤦"
+                value="—"
+                label="autogoles"
+                sub="próximamente"
+              />
+            </div>
+          </>
+        )}
       </section>
 
       {/* ── Mis Predicciones ─────────────────────────────────────────── */}

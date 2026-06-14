@@ -140,6 +140,106 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── action=estadisticas-mundial ────────────────────────────────────────────
+  if (req.query.action === 'estadisticas-mundial') {
+    const cacheKey = 'estadisticas-mundial:2026'
+    const now = Date.now()
+
+    const memHit = memCache.get(cacheKey)
+    if (memHit && now - memHit.ts < memHit.ttlMs) {
+      res.setHeader('X-Cache', 'HIT-MEM')
+      return res.status(200).json(memHit.data)
+    }
+    const kvHit = await kvGet(cacheKey)
+    if (kvHit) {
+      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 60_000 })
+      res.setHeader('X-Cache', 'HIT-KV')
+      return res.status(200).json(kvHit)
+    }
+
+    const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
+    if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
+
+    try {
+      const upstream = await fetch(`${UPSTREAM}/fixtures?league=1&season=2026&status=FT`, {
+        headers: { 'x-apisports-key': apiKey },
+        signal: AbortSignal.timeout(15_000),
+      })
+      if (!upstream.ok) return res.status(upstream.status).json({ error: `Error upstream: ${upstream.status}` })
+
+      const data = await upstream.json()
+      const fixtures = data.response || []
+      const totalPartidos = fixtures.length
+
+      const empty = {
+        totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
+        partidosSinGoles: 0, equipoMasGoleador: null, equipoMasGoleado: null,
+        marcadorMasRepetido: null,
+      }
+
+      if (totalPartidos === 0) {
+        memCache.set(cacheKey, { data: empty, ts: now, ttlMs: 60_000 })
+        kvSet(cacheKey, empty, 60)
+        return res.status(200).json(empty)
+      }
+
+      let totalGoles = 0, partidosSinGoles = 0
+      const golesFavor   = {}
+      const golesContra  = {}
+      const marcadores   = {}
+
+      for (const f of fixtures) {
+        const hg = f.goals?.home ?? 0
+        const ag = f.goals?.away ?? 0
+        totalGoles += hg + ag
+        if (hg === 0 && ag === 0) partidosSinGoles++
+
+        const score = `${hg}-${ag}`
+        marcadores[score] = (marcadores[score] || 0) + 1
+
+        const homeId   = f.teams?.home?.id
+        const homeName = f.teams?.home?.name
+        const awayId   = f.teams?.away?.id
+        const awayName = f.teams?.away?.name
+
+        if (homeId) {
+          if (!golesFavor[homeId])  golesFavor[homeId]  = { name: homeName, goles: 0 }
+          if (!golesContra[homeId]) golesContra[homeId] = { name: homeName, goles: 0 }
+          golesFavor[homeId].goles  += hg
+          golesContra[homeId].goles += ag
+        }
+        if (awayId) {
+          if (!golesFavor[awayId])  golesFavor[awayId]  = { name: awayName, goles: 0 }
+          if (!golesContra[awayId]) golesContra[awayId] = { name: awayName, goles: 0 }
+          golesFavor[awayId].goles  += ag
+          golesContra[awayId].goles += hg
+        }
+      }
+
+      const maxBy = (obj) => Object.entries(obj).reduce((best, [id, info]) =>
+        !best || info.goles > best.goles ? { id: Number(id), name: info.name, goles: info.goles } : best, null)
+
+      const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
+        !best || veces > best.veces ? { score, veces } : best, null)
+
+      const result = {
+        totalPartidos,
+        totalGoles,
+        promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
+        partidosSinGoles,
+        equipoMasGoleador:   maxBy(golesFavor),
+        equipoMasGoleado:    maxBy(golesContra),
+        marcadorMasRepetido: maxMarcador,
+      }
+
+      memCache.set(cacheKey, { data: result, ts: now, ttlMs: 300_000 })
+      kvSet(cacheKey, result, 300)
+      return res.status(200).json(result)
+    } catch (err) {
+      return res.status(502).json({ error: err.message })
+    }
+  }
+
   const { endpoint, ...params } = req.query
   if (!endpoint || typeof endpoint !== 'string' || !endpoint.startsWith('/')) {
     return res.status(400).json({ error: 'Falta el parámetro endpoint (ej: /fixtures)' })
