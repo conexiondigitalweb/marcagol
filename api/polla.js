@@ -119,16 +119,15 @@ export default async function handler(req, res) {
 
       // GET ?action=activas — tablero de pollas activas
       if (action === 'activas') {
-        // Usar fecha de 3h atrás en Colombia para capturar partidos nocturnos de ayer
-        const hace3hColDate = new Date(Date.now() - 3 * 3600 * 1000)
-          .toLocaleString('en-CA', { timeZone: 'America/Bogota' }).split(',')[0]
+        const ahoraCol = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
+        const limiteInferior = new Date(ahoraCol.getTime() - 4 * 60 * 60 * 1000)
         const { data: raw, ok } = await sbGet(
-          `/pollas?activa=eq.true&fecha_partido=gte.${hace3hColDate}&order=fecha_partido.asc` +
+          `/pollas?activa=eq.true&fecha_partido=gte.${limiteInferior.toISOString()}&order=fecha_partido.asc` +
           `&select=id,partido_id,equipo_local,equipo_visitante,fecha_partido,creador_nombre,publica,permite_repetir,max_repeticiones`
         )
         if (!ok || !Array.isArray(raw)) return res.status(200).json({ pollas: [] })
-        console.log('[activas] hace3hColDate=%s count=%d sample_fecha=%s',
-          hace3hColDate, raw.length, raw[0]?.fecha_partido ?? 'n/a')
+        console.log('[activas] limiteInferior=%s count=%d sample_fecha=%s',
+          limiteInferior.toISOString(), raw.length, raw[0]?.fecha_partido ?? 'n/a')
         const pollas = await withParticipantes(raw)
         return res.status(200).json({ pollas })
       }
