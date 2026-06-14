@@ -34,6 +34,7 @@ export default function CrearPolla() {
       : String(availableMatches[0]?.id ?? '')
   )
   const [creadorNombre, setCreadorNombre] = useState('')
+  const [publica, setPublica]               = useState(false)
   const [permiteRepetir, setPermiteRepetir] = useState(true)
   const [maxRepeticiones, setMaxRepeticiones] = useState('')
   const [loading, setLoading] = useState(false)
@@ -65,6 +66,7 @@ export default function CrearPolla() {
           creador_nombre:   creadorNombre.trim(),
           permite_repetir:  permiteRepetir,
           max_repeticiones: maxRepeticiones ? Number(maxRepeticiones) : null,
+          publica,
         }),
       })
       const data = await res.json()
@@ -157,6 +159,36 @@ export default function CrearPolla() {
             </div>
           </div>
         )}
+
+        {/* Visibilidad: Pública / Privada */}
+        <div>
+          <label className="block text-xs text-slate-400 uppercase tracking-wider mb-2">¿Quién puede participar?</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { value: false, icon: '🔒', title: 'Privada', desc: 'Solo quien tenga el link' },
+              { value: true,  icon: '🌐', title: 'Pública', desc: 'Aparece en el tablero' },
+            ].map(opt => (
+              <button
+                key={String(opt.value)}
+                type="button"
+                onClick={() => setPublica(opt.value)}
+                className="flex items-start gap-3 p-3 rounded-xl border text-left transition-all"
+                style={{
+                  background:   publica === opt.value ? 'rgba(56,189,248,0.08)' : 'rgba(15,23,42,0.6)',
+                  borderColor:  publica === opt.value ? '#38BDF8'                : 'rgb(51,65,85)',
+                }}
+              >
+                <span className="text-lg leading-none mt-0.5">{opt.icon}</span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: publica === opt.value ? '#38BDF8' : '#fff' }}>
+                    {opt.title}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">{opt.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Creator name */}
         <div>

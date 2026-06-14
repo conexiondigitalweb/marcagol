@@ -232,6 +232,7 @@ function StatCard({ icon, value, label, sub }) {
 export default function Dashboard() {
   const [countdown, setCountdown]           = useState(getCountdown(WORLD_CUP_START))
   const [apiLiveMatches, setApiLiveMatches] = useState([])
+  const [pollasActivas, setPollasActivas]   = useState(null)
 
   // Countdown ticker
   useEffect(() => {
@@ -242,6 +243,14 @@ export default function Dashboard() {
   // Live match polling
   useEffect(() => {
     return startLivePolling(matches => setApiLiveMatches(matches))
+  }, [])
+
+  // Pollas activas (una sola vez al montar)
+  useEffect(() => {
+    fetch('/api/polla?action=activas')
+      .then(r => r.json())
+      .then(d => setPollasActivas(d.pollas || []))
+      .catch(() => setPollasActivas([]))
   }, [])
 
   const upcoming       = getUpcomingMatches(6)
@@ -416,6 +425,94 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* ── Pollas Activas ───────────────────────────────────────────── */}
+      {(!countdown || (pollasActivas && pollasActivas.length > 0)) && (
+        <section>
+          <div
+            className="rounded-2xl border p-5"
+            style={{ backgroundColor: '#1E293B', borderColor: 'rgba(51,65,85,0.7)' }}
+          >
+            {/* Título */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-black text-white text-lg leading-tight">
+                  🎯 Pollas activas
+                  {pollasActivas && (
+                    <span className="font-normal text-slate-500 text-sm ml-2">
+                      · {pollasActivas.length} {pollasActivas.length === 1 ? 'polla' : 'pollas'}
+                    </span>
+                  )}
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Predice marcadores y compite con amigos
+                </p>
+              </div>
+              <Link
+                to="/pollas-activas"
+                className="text-xs font-semibold flex-shrink-0"
+                style={{ color: '#38BDF8' }}
+              >
+                Ver todas →
+              </Link>
+            </div>
+
+            {/* Preview: hasta 3 pollas públicas */}
+            {pollasActivas === null && (
+              <div className="space-y-2 mb-4">
+                {[1,2].map(i => (
+                  <div key={i} className="h-12 rounded-xl bg-slate-800/60 animate-pulse" />
+                ))}
+              </div>
+            )}
+
+            {pollasActivas && pollasActivas.filter(p => p.publica).slice(0, 3).length > 0 && (
+              <div className="space-y-2 mb-4">
+                {pollasActivas.filter(p => p.publica).slice(0, 3).map(p => (
+                  <Link
+                    key={p.id}
+                    to={`/polla/${p.id}`}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-700/30 transition-colors"
+                    style={{ background: 'rgba(15,23,42,0.5)', border: '1px solid rgba(51,65,85,0.5)' }}
+                  >
+                    <span className="flex-1 min-w-0">
+                      <span className="text-sm font-semibold text-white truncate block">
+                        {p.equipo_local} vs {p.equipo_visitante}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        👥 {p.participantes ?? 0} participantes · por {p.creador_nombre}
+                      </span>
+                    </span>
+                    <span
+                      className="flex-shrink-0 text-xs font-bold px-2.5 py-1 rounded-lg"
+                      style={{ background: 'rgba(249,115,22,0.15)', color: '#FB923C' }}
+                    >
+                      Ver →
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* CTAs */}
+            <div className="flex gap-2 mt-2">
+              <Link
+                to="/pollas-activas"
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-center border border-slate-700 text-slate-300 hover:border-slate-500 transition-colors"
+              >
+                Ver todas las pollas
+              </Link>
+              <Link
+                to="/crear-polla"
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90"
+                style={{ background: '#F97316' }}
+              >
+                + Crear tu polla
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Quick Links ──────────────────────────────────────────────── */}
       <section>

@@ -117,6 +117,18 @@ export default async function handler(req, res) {
         return res.status(200).json({ pollas: [] })
       }
 
+      // GET ?action=activas — tablero de pollas activas con fecha >= hoy Colombia
+      if (action === 'activas') {
+        const hoyCol = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)
+        const { data: raw, ok } = await sbGet(
+          `/pollas?activa=eq.true&fecha_partido=gte.${hoyCol}&order=fecha_partido.asc` +
+          `&select=id,partido_id,equipo_local,equipo_visitante,fecha_partido,creador_nombre,publica,permite_repetir,max_repeticiones`
+        )
+        if (!ok || !Array.isArray(raw)) return res.status(200).json({ pollas: [] })
+        const pollas = await withParticipantes(raw)
+        return res.status(200).json({ pollas })
+      }
+
       // GET ?id=xxx — polla + votos (sin exponer token_admin)
       if (!id) return res.status(400).json({ error: 'id requerido' })
       const { data: pollas, ok: pOk } = await sbGet(`/pollas?id=eq.${id}&limit=1`)
@@ -136,7 +148,7 @@ export default async function handler(req, res) {
       // ── crear polla ───────────────────────────────────────────────────────
       if (action === 'crear') {
         const { partido_id, equipo_local, equipo_visitante, fecha_partido,
-                creador_nombre, permite_repetir, max_repeticiones } = body
+                creador_nombre, permite_repetir, max_repeticiones, publica } = body
         if (!partido_id || !equipo_local || !equipo_visitante || !fecha_partido || !creador_nombre)
           return res.status(400).json({ error: 'Faltan campos requeridos' })
 
@@ -150,6 +162,7 @@ export default async function handler(req, res) {
           permite_repetir:  !!permite_repetir,
           max_repeticiones: max_repeticiones ? Number(max_repeticiones) : null,
           activa:           true,
+          publica:          !!publica,
           token_admin:      token,
         })
         if (!ok) return res.status(400).json({ error: data?.message || 'Error al crear la polla' })
