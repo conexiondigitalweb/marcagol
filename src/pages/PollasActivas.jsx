@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { MATCHES } from '../data/matches'
 
-function todayCol() {
-  return new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)
+function getColDateStr() {
+  return new Date().toLocaleString('en-CA', { timeZone: 'America/Bogota' }).split(',')[0]
+}
+
+function getKickoffMs(polla) {
+  const match = MATCHES.find(m => m.id === Number(polla.partido_id))
+  if (!match || !match.timeCol) return null
+  // timeCol = 'HH:MM' en hora Colombia (GMT-5 fijo)
+  return new Date(`${match.date}T${match.timeCol}:00-05:00`).getTime()
+}
+
+function isMatchOver(polla) {
+  const ko = getKickoffMs(polla)
+  if (ko === null) {
+    // Sin hora exacta: comparar solo por fecha
+    return String(polla.fecha_partido).slice(0, 10) < getColDateStr()
+  }
+  return Date.now() > ko + 3 * 3600 * 1000
 }
 
 function formatFecha(dateStr) {
@@ -16,7 +33,8 @@ function formatFecha(dateStr) {
 }
 
 function PollaCard({ polla }) {
-  const enJuego = polla.fecha_partido < todayCol()
+  const ko = getKickoffMs(polla)
+  const enJuego = ko !== null ? Date.now() >= ko : false
   const esPublica = !!polla.publica
 
   return (
@@ -92,13 +110,15 @@ export default function PollasActivas() {
       .catch(err => { setError(err.message); setLoading(false) })
   }, [])
 
-  const hoy         = todayCol()
-  const enJuego     = (pollas || []).filter(p => p.fecha_partido < hoy)
-  const proximas    = (pollas || []).filter(p => p.fecha_partido >= hoy)
-  const totalActivas = (pollas || []).length
+  // Filtrar en cliente: excluir partidos terminados (kickoff + 3h de gracia)
+  const now = Date.now()
+  const activePollas = (pollas || []).filter(p => !isMatchOver(p))
+  const enJuego  = activePollas.filter(p => { const ko = getKickoffMs(p); return ko !== null && now >= ko })
+  const proximas = activePollas.filter(p => { const ko = getKickoffMs(p); return ko === null || now < ko })
+  const totalActivas = activePollas.length
 
   return (
-    <div className="max-w-2xl mx-auto animate-slide-up">
+    <div className="max-w-2xl mx-auto animate-slide-up pb-28">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white mb-1">
@@ -155,7 +175,7 @@ export default function PollasActivas() {
 
       {/* Recibiendo predicciones */}
       {!loading && proximas.length > 0 && (
-        <section className="mb-24">
+        <section>
           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
             📝 Recibiendo predicciones
           </h2>
@@ -166,7 +186,7 @@ export default function PollasActivas() {
       )}
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pb-4 pointer-events-none">
+      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 pointer-events-none">
         <div className="max-w-2xl mx-auto pointer-events-auto">
           <Link
             to="/crear-polla"
