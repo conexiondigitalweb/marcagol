@@ -118,7 +118,7 @@ export default function PollasActivas() {
   const totalActivas = activePollas.length
 
   return (
-    <div className="max-w-2xl mx-auto animate-slide-up pb-28">
+    <div className="max-w-2xl mx-auto animate-slide-up pb-24">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white mb-1">
@@ -186,16 +186,13 @@ export default function PollasActivas() {
       )}
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 pointer-events-none">
-        <div className="max-w-2xl mx-auto pointer-events-auto">
-          <Link
-            to="/crear-polla"
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-white text-sm shadow-2xl transition-opacity hover:opacity-90"
-            style={{ background: '#F97316' }}
-          >
-            + Crear tu polla
-          </Link>
-        </div>
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pt-8 bg-gradient-to-t from-[#0F172A] to-transparent">
+        <Link
+          to="/crear-polla"
+          className="w-full max-w-2xl mx-auto block bg-[#F97316] hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-center transition-colors"
+        >
+          + Crear tu polla
+        </Link>
       </div>
     </div>
   )
