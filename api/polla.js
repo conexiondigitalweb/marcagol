@@ -243,6 +243,22 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'El partido ya finalizó. No se aceptan más predicciones.' })
         }
 
+        // Validación nombre duplicado (case-insensitive)
+        const nombreNormalizado = String(participante_nombre).trim().toLowerCase()
+        const { data: votosExistentes } = await sbGet(
+          `/votos?polla_id=eq.${polla_id}&select=participante_nombre`
+        )
+        const duplicado = Array.isArray(votosExistentes) && votosExistentes.some(
+          v => v.participante_nombre.trim().toLowerCase() === nombreNormalizado
+        )
+        if (duplicado) {
+          const nombreMostrar = String(participante_nombre).trim()
+          return res.status(409).json({
+            error: 'nombre_duplicado',
+            mensaje: `Ya hay un participante llamado "${nombreMostrar}" en esta polla. Agrega algo para diferenciarte: "${nombreMostrar} B.", "${nombreMostrar} 2", o un apodo.`,
+          })
+        }
+
         if (!polla.permite_repetir || polla.max_repeticiones) {
           const { data: existing } = await sbGet(
             `/votos?polla_id=eq.${polla_id}&goles_local=eq.${goles_local}&goles_visitante=eq.${goles_visitante}`

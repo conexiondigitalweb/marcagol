@@ -165,6 +165,7 @@ export default function PollaDetalle() {
   const [golesVisitante, setGolesVisitante] = useState('')
   const [submitting, setSubmitting]       = useState(false)
   const [formError, setFormError]         = useState('')
+  const [nombreAviso, setNombreAviso]     = useState('')
   const [formSuccess, setFormSuccess]     = useState(false)
 
   const isFinishedRef = useRef(false)
@@ -248,6 +249,7 @@ export default function PollaDetalle() {
   async function handleVote(e) {
     e.preventDefault()
     setFormError('')
+    setNombreAviso('')
 
     if (!nombre.trim()) { setFormError('Escribe tu nombre'); return }
     if (golesLocal === '' || golesVisitante === '') { setFormError('Completa el marcador'); return }
@@ -285,6 +287,7 @@ export default function PollaDetalle() {
         }),
       })
       const data = await res.json()
+      if (res.status === 409) { setNombreAviso(data.mensaje || data.error); return }
       if (!res.ok) { setFormError(data.error || `Error ${res.status}`); return }
 
       // Guardar nombre en localStorage para futuros usos
@@ -519,11 +522,14 @@ export default function PollaDetalle() {
                 <input
                   type="text"
                   value={nombre}
-                  onChange={e => setNombre(e.target.value)}
+                  onChange={e => { setNombre(e.target.value); setNombreAviso('') }}
                   placeholder="¿Cómo te llamas?"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                  className={`w-full bg-slate-900 border rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none ${nombreAviso ? 'border-amber-500 focus:border-amber-400' : 'border-slate-700 focus:border-sky-500'}`}
                   maxLength={50}
                 />
+                {nombreAviso && (
+                  <p className="mt-2 text-xs text-amber-400 leading-relaxed">⚠️ {nombreAviso}</p>
+                )}
               </div>
 
               <div>
