@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 
@@ -119,7 +118,7 @@ export default function PollasActivas() {
   const totalActivas = activePollas.length
 
   return (
-    <div className="max-w-2xl mx-auto pb-24">
+    <div className="max-w-2xl mx-auto pb-8">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white mb-1">
@@ -186,17 +185,12 @@ export default function PollasActivas() {
         </section>
       )}
 
-      {createPortal(
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 pt-8 bg-gradient-to-t from-[#0F172A] to-transparent">
-          <Link
-            to="/crear-polla"
-            className="block w-full max-w-2xl mx-auto bg-[#F97316] hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-center"
-          >
-            + Crear tu polla
-          </Link>
-        </div>,
-        document.body
-      )}
+      <Link
+        to="/crear-polla"
+        className="sticky bottom-4 mt-8 mx-auto max-w-2xl block w-full bg-[#F97316] hover:bg-orange-500 text-white font-bold py-4 rounded-xl text-center"
+      >
+        + Crear tu polla
+      </Link>
     </div>
   )
 }
