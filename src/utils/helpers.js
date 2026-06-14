@@ -109,5 +109,5 @@ export const groupMatchesByDate = (matches) => {
   })
   return Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, ms]) => [date, [...ms].sort((a, b) => (a.time || '').localeCompare(b.time || ''))])
+    .map(([date, ms]) => [date, [...ms].sort((a, b) => (a.timeCol || '').localeCompare(b.timeCol || ''))])
 }
