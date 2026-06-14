@@ -173,7 +173,8 @@ export default async function handler(req, res) {
 
       const empty = {
         totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
-        partidosSinGoles: 0, equipoMasGoleador: null, equipoMasGoleado: null,
+        partidosSinGoles: 0, autogoles: 0,
+        equipoMasGoleador: null, equipoMasGoleado: null,
         marcadorMasRepetido: null,
       }
 
@@ -222,11 +223,37 @@ export default async function handler(req, res) {
       const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
         !best || veces > best.veces ? { score, veces } : best, null)
 
+      // Autogoles: consultar eventos de cada fixture (con caché KV)
+      let autogoles = 0
+      await Promise.all(fixtures.map(async f => {
+        const fid = f.fixture.id
+        const eventsKey = `/fixtures/events?fixture=${fid}`
+        let eventsData = await kvGet(eventsKey)
+        if (!eventsData) {
+          try {
+            const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
+              headers: { 'x-apisports-key': apiKey },
+              signal: AbortSignal.timeout(8_000),
+            })
+            if (r.ok) {
+              eventsData = await r.json()
+              kvSet(eventsKey, eventsData, 86_400) // eventos FT son inmutables
+            }
+          } catch {}
+        }
+        if (eventsData?.response) {
+          for (const ev of eventsData.response) {
+            if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
+          }
+        }
+      }))
+
       const result = {
         totalPartidos,
         totalGoles,
         promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
         partidosSinGoles,
+        autogoles,
         equipoMasGoleador:   maxBy(golesFavor),
         equipoMasGoleado:    maxBy(golesContra),
         marcadorMasRepetido: maxMarcador,

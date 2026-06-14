@@ -415,9 +415,9 @@ export default function Dashboard() {
               />
               <StatCard
                 icon="🤦"
-                value="—"
+                value={statsWC?.totalPartidos > 0 ? (statsWC.autogoles ?? 0) : '—'}
                 label="autogoles"
-                sub="próximamente"
+                sub={statsWC?.totalPartidos > 0 ? 'en contra de su propio equipo' : undefined}
               />
             </div>
           </>
