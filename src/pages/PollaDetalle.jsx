@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
-import { getResult } from '../data/matchResults'
+import { getResult, saveResult } from '../data/matchResults'
+import { getFixtureMap } from '../data/fixtureMap'
 
 const ALL_TEAMS = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -167,6 +168,7 @@ export default function PollaDetalle() {
   const [formSuccess, setFormSuccess]     = useState(false)
 
   const isFinishedRef = useRef(false)
+  const [apiResult, setApiResult] = useState(null)
 
   // Token admin: solo quien creó la polla desde este dispositivo lo tiene
   const adminToken = localStorage.getItem(`polla_token_${id}`) || null
@@ -199,6 +201,49 @@ export default function PollaDetalle() {
     const timer = setInterval(() => fetchDetalle(false), POLL_INTERVAL)
     return () => clearInterval(timer)
   }, [fetchDetalle])
+
+  // Cuando el partido ya comenzó y no hay resultado en caché local,
+  // consultar API-Football directamente para obtener el marcador final.
+  useEffect(() => {
+    if (!polla) return
+    const m = MATCHES.find(mn => mn.id === Number(polla.partido_id))
+    if (!m) return
+    const ko = kickoffMs(m)
+    if (ko === null || Date.now() < ko) return  // partido no comenzado
+    if (getResult(m.id)) return                 // ya hay resultado en localStorage
+
+    let alive = true
+    let timer = null
+
+    async function checkResult() {
+      if (!alive) return
+      try {
+        const fmap = await getFixtureMap()
+        const fixtureId = fmap[m.id]
+        if (!fixtureId || !alive) return
+        const r = await fetch(`/api/football?endpoint=/fixtures&id=${fixtureId}`, {
+          signal: AbortSignal.timeout(8000),
+        })
+        const data = await r.json()
+        if (!alive) return
+        const f = data.response?.[0]
+        const status = f?.fixture?.status?.short
+        if (['FT', 'AET', 'PEN'].includes(status)) {
+          const homeScore = f.goals?.home ?? null
+          const awayScore = f.goals?.away ?? null
+          if (homeScore != null && awayScore != null) {
+            setApiResult({ homeScore, awayScore })
+            saveResult(m.id, homeScore, awayScore)
+            return  // dejar de polling
+          }
+        }
+      } catch {}
+      if (alive) timer = setTimeout(checkResult, 60_000)
+    }
+
+    checkResult()
+    return () => { alive = false; clearTimeout(timer) }
+  }, [polla])
 
   async function handleVote(e) {
     e.preventDefault()
@@ -298,16 +343,17 @@ export default function PollaDetalle() {
     </div>
   )
 
-  const match        = MATCHES.find(m => m.id === Number(polla.partido_id))
-  const result       = match ? getResult(match.id) : null
-  const isFinished   = !!result
-  const ko           = kickoffMs(match)
-  const matchStarted = ko !== null && Date.now() >= ko
-  const isCreador    = !!adminToken
+  const match           = MATCHES.find(m => m.id === Number(polla.partido_id))
+  const result          = match ? getResult(match.id) : null
+  const effectiveResult = result || apiResult
+  const isFinished      = !!effectiveResult
+  const ko              = kickoffMs(match)
+  const matchStarted    = ko !== null && Date.now() >= ko
+  const isCreador       = !!adminToken
   isFinishedRef.current = isFinished
 
   const rankedVotos = isFinished
-    ? votos.map(v => rankVoto(v, result))
+    ? votos.map(v => rankVoto(v, effectiveResult))
         .sort((a, b) => (b.exacto ? 2 : b.resultadoOk ? 1 : 0) - (a.exacto ? 2 : a.resultadoOk ? 1 : 0))
     : votos
 
@@ -405,7 +451,7 @@ export default function PollaDetalle() {
       )}
 
       {/* Resultado final — banner dorado + ganadores */}
-      {isFinished && result && (
+      {isFinished && effectiveResult && (
         <div className="mb-4 space-y-3">
           {/* Banner dorado */}
           <div className="card p-5 text-center" style={{ borderColor: 'rgba(251,191,36,0.45)', background: 'rgba(251,191,36,0.07)' }}>
@@ -413,7 +459,7 @@ export default function PollaDetalle() {
               ⚽ Resultado Final
             </p>
             <div className="text-3xl font-black text-white tabular-nums mb-1">
-              {result.homeScore} – {result.awayScore}
+              {effectiveResult.homeScore} – {effectiveResult.awayScore}
             </div>
             <p className="text-xs text-slate-400">{polla.equipo_local} vs {polla.equipo_visitante}</p>
           </div>
