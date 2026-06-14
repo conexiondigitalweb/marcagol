@@ -224,13 +224,21 @@ export default function MisPollas() {
           <h1 className="text-2xl font-black text-white mb-0.5">Mis Pollas</h1>
           <p className="text-slate-400 text-sm">Crea y gestiona pollas para el Mundial</p>
         </div>
-        <Link
-          to="/crear-polla"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-white text-sm"
-          style={{ background: '#F97316' }}
-        >
-          + Nueva
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/pollas-activas"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm border border-[#38BDF8] text-[#38BDF8] hover:bg-[#38BDF8]/10 transition-colors"
+          >
+            🎯 Ver pollas activas
+          </Link>
+          <Link
+            to="/crear-polla"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-white text-sm"
+            style={{ background: '#F97316' }}
+          >
+            + Nueva
+          </Link>
+        </div>
       </div>
 
       {/* ── Sección 1: Dispositivo actual ─────────────────────────────────── */}
