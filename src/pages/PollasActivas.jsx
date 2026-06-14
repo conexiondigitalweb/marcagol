@@ -24,12 +24,10 @@ function isMatchOver(polla) {
 
 function formatFecha(dateStr) {
   if (!dateStr) return ''
-  try {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-CO', {
-      timeZone: 'America/Bogota',
-      weekday: 'short', day: 'numeric', month: 'short',
-    })
-  } catch { return dateStr }
+  const [anio, mes, dia] = String(dateStr).slice(0, 10).split('-')
+  const d = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia))
+  if (isNaN(d.getTime())) return dateStr
+  return d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function PollaCard({ polla }) {
