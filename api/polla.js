@@ -119,7 +119,7 @@ export default async function handler(req, res) {
 
       // GET ?action=activas — tablero de pollas activas con fecha >= hoy Colombia
       if (action === 'activas') {
-        const hoyCol = new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)
+        const hoyCol = new Date().toLocaleString('en-CA', { timeZone: 'America/Bogota' }).split(',')[0]
         const { data: raw, ok } = await sbGet(
           `/pollas?activa=eq.true&fecha_partido=gte.${hoyCol}&order=fecha_partido.asc` +
           `&select=id,partido_id,equipo_local,equipo_visitante,fecha_partido,creador_nombre,publica,permite_repetir,max_repeticiones`

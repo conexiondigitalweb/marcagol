@@ -8,7 +8,8 @@ function todayCol() {
 function formatFecha(dateStr) {
   if (!dateStr) return ''
   try {
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('es-CO', {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-CO', {
+      timeZone: 'America/Bogota',
       weekday: 'short', day: 'numeric', month: 'short',
     })
   } catch { return dateStr }
