@@ -289,6 +289,14 @@ export default function PollaDetalle() {
 
       // Guardar nombre en localStorage para futuros usos
       localStorage.setItem(LS_KEY, nombre.trim())
+
+      // Registrar participación
+      const participaciones = JSON.parse(localStorage.getItem('wc2026_mis_participaciones') || '[]')
+      if (!participaciones.includes(id)) {
+        participaciones.push(id)
+        localStorage.setItem('wc2026_mis_participaciones', JSON.stringify(participaciones))
+      }
+
       setFormSuccess(true)
       setNombre('')
       setGolesLocal('')

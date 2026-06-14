@@ -126,7 +126,11 @@ export default function MisPollas() {
   const [pollasLocales, setPollasLocales] = useState(null)
   const [loadingLocal, setLoadingLocal]   = useState(false)
 
-  // Sección 2: búsqueda por nombre
+  // Sección 2: pollas en las que participé
+  const [pollasParticipadas, setPollasParticipadas] = useState(null)
+  const [loadingParticipadas, setLoadingParticipadas] = useState(false)
+
+  // Sección 3: búsqueda por nombre
   const [nombre, setNombre]               = useState('')
   const [pollasNombre, setPollasNombre]   = useState(null)
   const [loadingNombre, setLoadingNombre] = useState(false)
@@ -155,6 +159,19 @@ export default function MisPollas() {
   useEffect(() => {
     cargarLocales(tokenMap)
   }, [cargarLocales, tokenMap])
+
+  // ── Carga pollas en las que participé (no soy admin) ───────────────────
+  useEffect(() => {
+    const participaciones = JSON.parse(localStorage.getItem('wc2026_mis_participaciones') || '[]')
+    const ids = participaciones.filter(pid => !tokenMap[pid])
+    if (ids.length === 0) { setPollasParticipadas([]); return }
+    setLoadingParticipadas(true)
+    fetch(`/api/polla?action=mis-pollas&ids=${encodeURIComponent(ids.join(','))}`)
+      .then(r => r.json())
+      .then(d => setPollasParticipadas(d.pollas || []))
+      .catch(() => setPollasParticipadas([]))
+      .finally(() => setLoadingParticipadas(false))
+  }, [tokenMap])
 
   // ── Búsqueda por nombre ─────────────────────────────────────────────────
   async function buscarPorNombre(e) {
@@ -286,6 +303,25 @@ export default function MisPollas() {
           </p>
         )}
       </section>
+
+      {/* ── Sección 2: Pollas en las que participé ────────────────────────── */}
+      {(loadingParticipadas || (pollasParticipadas && pollasParticipadas.length > 0)) && (
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              🎯 En pollas que participé
+            </h2>
+            {loadingParticipadas && <span className="text-xs text-slate-600 animate-pulse">Cargando…</span>}
+          </div>
+          {pollasParticipadas && pollasParticipadas.length > 0 && (
+            <div className="space-y-3">
+              {pollasParticipadas.map(p => (
+                <PollaCard key={p.id} polla={p} isAdmin={false} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Divisor */}
       <div className="flex items-center gap-3 mb-6">
