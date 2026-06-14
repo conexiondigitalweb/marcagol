@@ -119,7 +119,7 @@ export default function PollasActivas() {
   const totalActivas = activePollas.length
 
   return (
-    <div className="max-w-2xl mx-auto animate-slide-up pb-24">
+    <div className="max-w-2xl mx-auto pb-24">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-black text-white mb-1">
