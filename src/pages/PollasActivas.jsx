@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
+import { getFixtureMap } from '../data/fixtureMap'
 
 function getColDateStr() {
   return new Date().toLocaleString('en-CA', { timeZone: 'America/Bogota' }).split(',')[0]
@@ -104,7 +105,35 @@ export default function PollasActivas() {
   useEffect(() => {
     fetch('/api/polla?action=activas')
       .then(r => r.json())
-      .then(d => { setPollas(d.pollas || []); setLoading(false) })
+      .then(async d => {
+        const lista = d.pollas || []
+        setPollas(lista)
+        setLoading(false)
+
+        if (!lista.length) return
+        try {
+          const fmap = await getFixtureMap()
+          const fixtureIds = [...new Set(lista.map(p => fmap[Number(p.partido_id)]).filter(Boolean))]
+          if (!fixtureIds.length) return
+
+          const statusRes = await fetch(`/api/football?action=fixtures-status&ids=${fixtureIds.join(',')}`)
+          if (!statusRes.ok) return
+          const statusMap = await statusRes.json()
+
+          const FINISHED = new Set(['FT', 'AET', 'PEN'])
+          const finishedPartidoIds = lista
+            .filter(p => { const fid = fmap[Number(p.partido_id)]; return fid && FINISHED.has(statusMap[String(fid)]) })
+            .map(p => Number(p.partido_id))
+          if (!finishedPartidoIds.length) return
+
+          fetch('/api/polla', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'cerrar-automatico', partido_ids: finishedPartidoIds }),
+          })
+          setPollas(prev => prev?.filter(p => !finishedPartidoIds.includes(Number(p.partido_id))))
+        } catch {}
+      })
       .catch(err => { setError(err.message); setLoading(false) })
   }, [])
 

@@ -264,6 +264,24 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true })
       }
 
+      // ── cerrar-automatico (disparado por cliente al detectar FT) ─────────
+      if (action === 'cerrar-automatico') {
+        const { partido_ids } = body
+        if (!Array.isArray(partido_ids) || !partido_ids.length)
+          return res.status(400).json({ error: 'partido_ids requerido' })
+        const safeIds = partido_ids.map(Number).filter(n => Number.isFinite(n) && n > 0)
+        if (!safeIds.length) return res.status(200).json({ cerradas: 0 })
+        const { ok, data: pd } = await sbPatch(
+          'pollas',
+          `partido_id=in.(${safeIds.join(',')})&activa=eq.true`,
+          { activa: false }
+        )
+        if (!ok) return res.status(400).json({ error: pd?.message || 'Error al cerrar pollas' })
+        const cerradas = Array.isArray(pd) ? pd.length : 0
+        console.log('[cerrar-automatico] partido_ids=%s cerradas=%d', safeIds.join(','), cerradas)
+        return res.status(200).json({ cerradas })
+      }
+
       // ── cerrar polla ──────────────────────────────────────────────────────
       if (action === 'cerrar') {
         const { polla_id, token } = body

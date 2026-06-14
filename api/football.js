@@ -95,6 +95,51 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: `Demasiadas solicitudes. Intenta de nuevo en ${resetIn}s.` })
   }
 
+  // ── action=fixtures-status: estado de varios fixtures en una sola llamada ──
+  if (req.query.action === 'fixtures-status') {
+    const rawIds = req.query.ids || ''
+    const ids = rawIds.split(',').map(s => s.trim()).filter(Boolean)
+    if (!ids.length) return res.status(400).json({ error: 'ids requerido' })
+
+    const cacheKey = `fixtures-status:${[...ids].sort().join(',')}`
+    const now = Date.now()
+
+    const memHit = memCache.get(cacheKey)
+    if (memHit && now - memHit.ts < memHit.ttlMs) {
+      res.setHeader('X-Cache', 'HIT-MEM')
+      return res.status(200).json(memHit.data)
+    }
+    const kvHit = await kvGet(cacheKey)
+    if (kvHit) {
+      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 30_000 })
+      res.setHeader('X-Cache', 'HIT-KV')
+      return res.status(200).json(kvHit)
+    }
+
+    const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
+    if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
+
+    try {
+      const upstream = await fetch(`${UPSTREAM}/fixtures?ids=${ids.join('-')}`, {
+        headers: { 'x-apisports-key': apiKey },
+        signal: AbortSignal.timeout(10_000),
+      })
+      if (!upstream.ok) return res.status(upstream.status).json({ error: `Error upstream: ${upstream.status}` })
+
+      const data = await upstream.json()
+      const result = {}
+      for (const f of data.response || []) {
+        result[String(f.fixture.id)] = f.fixture.status.short
+      }
+
+      memCache.set(cacheKey, { data: result, ts: now, ttlMs: 60_000 })
+      kvSet(cacheKey, result, 60)
+      return res.status(200).json(result)
+    } catch (err) {
+      return res.status(502).json({ error: err.message })
+    }
+  }
+
   const { endpoint, ...params } = req.query
   if (!endpoint || typeof endpoint !== 'string' || !endpoint.startsWith('/')) {
     return res.status(400).json({ error: 'Falta el parámetro endpoint (ej: /fixtures)' })
