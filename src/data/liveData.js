@@ -58,10 +58,14 @@ export async function getAllFixtures() {
 // ─── 4. DETALLE DE UN PARTIDO (eventos, estadísticas, alineaciones) ───────────
 export async function getMatchDetail(fixtureId) {
   // Partidos finalizados: caché permanente en localStorage (sin TTL)
+  // Solo se sirve si tiene eventos — evita cache envenenado con events:[]
   const FT_KEY = `wc2026_ft_detail_v3_${fixtureId}`
   try {
     const cached = localStorage.getItem(FT_KEY)
-    if (cached) return JSON.parse(cached)
+    if (cached) {
+      const parsed = JSON.parse(cached)
+      if (parsed.events?.length > 0) return parsed
+    }
   } catch {}
 
   const [events, stats, lineups] = await Promise.all([

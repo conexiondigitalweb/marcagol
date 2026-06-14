@@ -274,15 +274,15 @@ export function useMatchDetail(fixtureId, isFinished = false) {
   }, [fetch, isFinished])
 
   // Persistir detalle FT en localStorage una sola vez
+  // Solo guarda si hay eventos — evita envenenar el caché con events:[]
+  // Siempre sobrescribe para que datos corruptos previos sean reemplazados
   useEffect(() => {
     if (!isFinished || ftSavedRef.current || !fixtureId) return
-    if (events.length === 0 && lineups.length === 0) return
+    if (events.length === 0) return
     ftSavedRef.current = true
     try {
       const key = `wc2026_ft_detail_v3_${fixtureId}`
-      if (!localStorage.getItem(key)) {
-        localStorage.setItem(key, JSON.stringify({ events, stats, lineups }))
-      }
+      localStorage.setItem(key, JSON.stringify({ events, stats, lineups }))
     } catch {}
   }, [isFinished, events, lineups, stats, fixtureId])
 

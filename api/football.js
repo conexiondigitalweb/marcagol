@@ -78,6 +78,11 @@ async function kvSet(key, value, ttlSeconds) {
   try { await kv.set(KV_PREFIX + key, value, { ex: ttlSeconds }) } catch {}
 }
 
+async function kvDel(key) {
+  if (!kvReady()) return
+  try { await kv.del(KV_PREFIX + key) } catch {}
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -142,7 +147,8 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    const cacheKey = 'estadisticas-mundial:2026'
+    // v2: invalida la caché anterior que podía tener autogoles incorrectos
+    const cacheKey = 'estadisticas-mundial:2026:v2'
     const now = Date.now()
 
     const memHit = memCache.get(cacheKey)
@@ -223,12 +229,20 @@ export default async function handler(req, res) {
       const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
         !best || veces > best.veces ? { score, veces } : best, null)
 
-      // Autogoles: consultar eventos de cada fixture (con caché KV)
+      // Autogoles: consultar eventos de cada fixture
+      // Si el caché KV tiene respuesta vacía, se invalida y re-fetcha de API
       let autogoles = 0
       await Promise.all(fixtures.map(async f => {
         const fid = f.fixture.id
         const eventsKey = `/fixtures/events?fixture=${fid}`
         let eventsData = await kvGet(eventsKey)
+
+        // Caché con 0 eventos: puede ser dato incompleto guardado en partido en vivo
+        if (eventsData && !(eventsData.response?.length > 0)) {
+          await kvDel(eventsKey)
+          eventsData = null
+        }
+
         if (!eventsData) {
           try {
             const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
@@ -237,7 +251,9 @@ export default async function handler(req, res) {
             })
             if (r.ok) {
               eventsData = await r.json()
-              kvSet(eventsKey, eventsData, 86_400) // eventos FT son inmutables
+              // 300s para sincronizar con el TTL de estadisticas-mundial
+              // Solo cachea si hay datos — evita perpetuar respuestas vacías
+              if (eventsData.response?.length > 0) kvSet(eventsKey, eventsData, 300)
             }
           } catch {}
         }

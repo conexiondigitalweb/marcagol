@@ -1189,7 +1189,13 @@ export default function MatchDetail() {
               {events.length === 0 ? (
                 <div className="py-16 text-center text-slate-500">
                   <p className="text-3xl mb-3">⏱️</p>
-                  <p>Los eventos aparecerán cuando inicie el partido.</p>
+                  <p className="text-sm">
+                    {isFinished
+                      ? 'No hay eventos registrados para este partido.'
+                      : ['1H','2H','HT','ET','BT','PEN'].includes(liveMatchData?.status)
+                      ? 'Sin eventos aún — aparecerán en tiempo real.'
+                      : 'Los eventos aparecerán cuando inicie el partido.'}
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-700/20">
