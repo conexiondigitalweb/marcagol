@@ -120,15 +120,22 @@ export default async function handler(req, res) {
       // GET ?action=activas — tablero de pollas activas
       if (action === 'activas') {
         const ahoraCol = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
-        const limiteInferior = new Date(ahoraCol.getTime() - 4 * 60 * 60 * 1000)
+        const ayer = new Date(ahoraCol)
+        ayer.setDate(ayer.getDate() - 1)
+        const ayerStr = ayer.toISOString().split('T')[0]
+        const hoyStr  = ahoraCol.toISOString().split('T')[0]
+
         const { data: raw, ok } = await sbGet(
-          `/pollas?activa=eq.true&fecha_partido=gte.${limiteInferior.toISOString()}&order=fecha_partido.asc` +
+          `/pollas?activa=eq.true&fecha_partido=gte.${ayerStr}&order=fecha_partido.asc` +
           `&select=id,partido_id,equipo_local,equipo_visitante,fecha_partido,creador_nombre,publica,permite_repetir,max_repeticiones`
         )
         if (!ok || !Array.isArray(raw)) return res.status(200).json({ pollas: [] })
-        console.log('[activas] limiteInferior=%s count=%d sample_fecha=%s',
-          limiteInferior.toISOString(), raw.length, raw[0]?.fecha_partido ?? 'n/a')
-        const pollas = await withParticipantes(raw)
+
+        // Excluir partidos de ayer (ya terminaron); solo hoy en adelante
+        const filtradas = raw.filter(p => String(p.fecha_partido).slice(0, 10) >= hoyStr)
+        console.log('[activas] hoyStr=%s raw=%d filtradas=%d', hoyStr, raw.length, filtradas.length)
+
+        const pollas = await withParticipantes(filtradas)
         return res.status(200).json({ pollas })
       }
 
