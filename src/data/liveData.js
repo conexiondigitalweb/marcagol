@@ -87,16 +87,8 @@ export async function getStandings() {
   return fetchAPI('/standings', { league: LEAGUE_ID, season: SEASON }, 'standings')
 }
 
-// ─── Paginación completa con diagnóstico ─────────────────────────────────────
-async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
-  const baseKey = `${endpoint}?${new URLSearchParams(params)}`
-  const now = Date.now()
-
-  if (cache.has(baseKey)) {
-    const { data, ts } = cache.get(baseKey)
-    if (now - ts < CACHE_TTL[ttlKey]) return data
-  }
-
+// ─── Fetch paginado interno (todas las páginas de un endpoint) ───────────────
+async function doFetchAllPages(endpoint, params) {
   let page = 1
   const allResults = []
   while (true) {
@@ -117,9 +109,35 @@ async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
       break
     }
   }
+  return allResults
+}
 
-  if (allResults.length) cache.set(baseKey, { data: allResults, ts: now })
-  return allResults.length ? allResults : null
+// ─── Paginación completa con stale-while-revalidate ──────────────────────────
+async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
+  const staleKey = `${endpoint}?${new URLSearchParams(params)}`  // legacy fetchAPI key
+  const freshKey = `${staleKey}:v2`                              // clave paginada nueva
+  const now = Date.now()
+
+  // 1. Cache fresco → retornar de inmediato
+  if (cache.has(freshKey)) {
+    const entry = cache.get(freshKey)
+    if (now - entry.ts < CACHE_TTL[ttlKey]) return entry.data
+  }
+
+  // 2. Hay datos viejos (freshKey expirado O entrada legacy de fetchAPI) → retornar ya + revalidar en background
+  const stale = cache.get(freshKey) ?? cache.get(staleKey)
+  if (stale?.data?.length) {
+    setTimeout(async () => {
+      const results = await doFetchAllPages(endpoint, params)
+      if (results.length) cache.set(freshKey, { data: results, ts: Date.now() })
+    }, 0)
+    return stale.data
+  }
+
+  // 3. Sin datos previos → fetch bloqueante
+  const results = await doFetchAllPages(endpoint, params)
+  if (results.length) cache.set(freshKey, { data: results, ts: Date.now() })
+  return results.length ? results : null
 }
 
 // ─── 6. GOLEADORES ───────────────────────────────────────────────────────────
