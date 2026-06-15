@@ -147,8 +147,8 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    // v2: invalida la caché anterior que podía tener autogoles incorrectos
-    const cacheKey = 'estadisticas-mundial:2026:v2'
+    // v3: invalida caché con autogoles incorrectos (Qatar-Suiza y similares)
+    const cacheKey = 'estadisticas-mundial:2026:v3'
     const now = Date.now()
 
     const memHit = memCache.get(cacheKey)
