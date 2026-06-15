@@ -81,17 +81,9 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
           <span className="text-xs text-slate-600">{loading ? '…' : `${data.length} jugadores`}</span>
         </div>
 
-        {type === 'scorers' && (
-          <p className="px-4 pt-2.5 text-[10px] text-slate-600">
-            * Los autogoles no se contabilizan en esta tabla
-          </p>
-        )}
-
-        {type === 'assists' && (
-          <p className="px-4 pt-2.5 text-[10px] text-slate-600">
-            * Los datos de asistencias pueden tener un retraso de varias horas tras cada partido.
-          </p>
-        )}
+        <p className="px-4 pt-2.5 text-[10px] text-slate-600">
+          * Los datos se actualizan periódicamente. Puede haber un retraso de varias horas tras cada partido.
+        </p>
 
         {loading ? (
           <div className="py-12 text-center text-slate-500 text-sm">Cargando estadísticas…</div>
