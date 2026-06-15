@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useTopStats } from '../hooks/useLiveData'
 import { GROUPS } from '../data/groups'
 import { TEAM_IDS } from '../data/teamIds'
@@ -68,7 +69,10 @@ function PlayerRow({ item, rank, type }) {
   )
 }
 
-function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
+function StatsSection({ data, type, loading, title, icon, emptyMsg, visible, onShowMore }) {
+  const visibleData = data.slice(0, visible)
+  const remaining   = data.length - visible
+
   return (
     <div>
       <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-3">
@@ -101,9 +105,20 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
               <span className="flex-1">Jugador</span>
               <span className="min-w-[2.5rem] text-right">{type === 'scorers' ? 'Goles' : 'Asist.'}</span>
             </div>
-            {data.map((item, i) => (
+            {visibleData.map((item, i) => (
               <PlayerRow key={item.player?.id ?? i} item={item} rank={i + 1} type={type} />
             ))}
+
+            {remaining > 0 && (
+              <div className="px-4 pb-4 pt-3">
+                <button
+                  onClick={onShowMore}
+                  className="w-full py-3 rounded-xl border border-[#38BDF8] text-[#38BDF8] text-sm font-medium hover:bg-[#38BDF8]/10 transition-colors"
+                >
+                  Ver 10 más · {remaining} restantes
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -113,6 +128,8 @@ function StatsSection({ data, type, loading, title, icon, emptyMsg }) {
 
 export default function Scorers() {
   const { scorers, assists, loading, refetch } = useTopStats()
+  const [visibleScorers, setVisibleScorers] = useState(10)
+  const [visibleAssists, setVisibleAssists] = useState(10)
 
   const filteredScorers = [...(scorers ?? [])]
     .filter(item => (item.statistics?.[0]?.goals?.total ?? 0) > 0)
@@ -155,6 +172,8 @@ export default function Scorers() {
         title="Goleadores"
         icon="⚽"
         emptyMsg="Aún no hay goleadores registrados"
+        visible={visibleScorers}
+        onShowMore={() => setVisibleScorers(prev => prev + 10)}
       />
 
       <StatsSection
@@ -164,6 +183,8 @@ export default function Scorers() {
         title="Asistidores"
         icon="🎯"
         emptyMsg="Aún no hay asistidores registrados"
+        visible={visibleAssists}
+        onShowMore={() => setVisibleAssists(prev => prev + 10)}
       />
     </div>
   )
