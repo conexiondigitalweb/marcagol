@@ -97,11 +97,9 @@ async function doFetchAllPages(endpoint, params) {
       const res = await fetch(`/api/football?${proxyQs}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
-      console.log('fetchAllPages page:', page, 'results:', json.response?.length, json)
       const pageData = json.response ?? []
       if (!pageData.length) break
       allResults.push(...pageData)
-      console.log('fetchAllPages total acumulado:', allResults.length)
       if (pageData.length < 20) break
       page++
     } catch (err) {
@@ -134,10 +132,13 @@ async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
     return stale.data
   }
 
-  // 3. Sin datos previos → fetch bloqueante
+  // 3. Sin datos previos → fetch bloqueante; fallback a page=1 si falla
   const results = await doFetchAllPages(endpoint, params)
-  if (results.length) cache.set(freshKey, { data: results, ts: Date.now() })
-  return results.length ? results : null
+  if (results.length) {
+    cache.set(freshKey, { data: results, ts: Date.now() })
+    return results
+  }
+  return fetchAPI(endpoint, params, ttlKey)
 }
 
 // ─── 6. GOLEADORES ───────────────────────────────────────────────────────────
