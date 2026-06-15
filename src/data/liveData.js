@@ -87,14 +87,49 @@ export async function getStandings() {
   return fetchAPI('/standings', { league: LEAGUE_ID, season: SEASON }, 'standings')
 }
 
+// ─── Paginación completa con diagnóstico ─────────────────────────────────────
+async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
+  const baseKey = `${endpoint}?${new URLSearchParams(params)}`
+  const now = Date.now()
+
+  if (cache.has(baseKey)) {
+    const { data, ts } = cache.get(baseKey)
+    if (now - ts < CACHE_TTL[ttlKey]) return data
+  }
+
+  let page = 1
+  const allResults = []
+  while (true) {
+    const proxyQs = new URLSearchParams({ endpoint, ...params, page }).toString()
+    try {
+      const res = await fetch(`/api/football?${proxyQs}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const json = await res.json()
+      console.log('fetchAllPages page:', page, 'results:', json.response?.length, json)
+      const pageData = json.response ?? []
+      if (!pageData.length) break
+      allResults.push(...pageData)
+      console.log('fetchAllPages total acumulado:', allResults.length)
+      if (pageData.length < 20) break
+      page++
+    } catch (err) {
+      console.error(`[liveData] fetchAllPages error en ${endpoint} pág ${page}:`, err.message)
+      break
+    }
+  }
+
+  if (allResults.length) cache.set(baseKey, { data: allResults, ts: now })
+  return allResults.length ? allResults : null
+}
+
 // ─── 6. GOLEADORES ───────────────────────────────────────────────────────────
 export async function getTopScorers() {
-  return fetchAPI('/players/topscorers', { league: LEAGUE_ID, season: SEASON }, 'scorers')
+  return fetchAllPages('/players/topscorers', { league: LEAGUE_ID, season: SEASON }, 'scorers')
 }
 
 // ─── 7. ASISTIDORES ──────────────────────────────────────────────────────────
 export async function getTopAssists() {
-  return fetchAPI('/players/topassists', { league: LEAGUE_ID, season: SEASON }, 'scorers')
+  return fetchAllPages('/players/topassists', { league: LEAGUE_ID, season: SEASON }, 'scorers')
 }
 
 // ─── 8. ESTADÍSTICAS DE UN EQUIPO ────────────────────────────────────────────
