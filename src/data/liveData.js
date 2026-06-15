@@ -87,47 +87,14 @@ export async function getStandings() {
   return fetchAPI('/standings', { league: LEAGUE_ID, season: SEASON }, 'standings')
 }
 
-// ─── Paginación completa: acumula todas las páginas de un endpoint ────────────
-async function fetchAllPages(endpoint, params, ttlKey = 'fixtures') {
-  const baseKey = `${endpoint}?${new URLSearchParams(params)}`
-  const now = Date.now()
-
-  if (cache.has(baseKey)) {
-    const { data, ts } = cache.get(baseKey)
-    if (now - ts < CACHE_TTL[ttlKey]) return data
-  }
-
-  let page = 1
-  const allResults = []
-  while (true) {
-    const proxyQs = new URLSearchParams({ endpoint, ...params, page }).toString()
-    try {
-      const res = await fetch(`/api/football?${proxyQs}`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
-      const pageData = json.response ?? []
-      if (!pageData.length) break
-      allResults.push(...pageData)
-      if (pageData.length < 20) break  // última página
-      page++
-    } catch (err) {
-      console.error(`[liveData] Error en ${endpoint} pág ${page}:`, err.message)
-      break
-    }
-  }
-
-  if (allResults.length) cache.set(baseKey, { data: allResults, ts: now })
-  return allResults.length ? allResults : null
-}
-
 // ─── 6. GOLEADORES ───────────────────────────────────────────────────────────
 export async function getTopScorers() {
-  return fetchAllPages('/players/topscorers', { league: LEAGUE_ID, season: SEASON }, 'scorers')
+  return fetchAPI('/players/topscorers', { league: LEAGUE_ID, season: SEASON }, 'scorers')
 }
 
 // ─── 7. ASISTIDORES ──────────────────────────────────────────────────────────
 export async function getTopAssists() {
-  return fetchAllPages('/players/topassists', { league: LEAGUE_ID, season: SEASON }, 'scorers')
+  return fetchAPI('/players/topassists', { league: LEAGUE_ID, season: SEASON }, 'scorers')
 }
 
 // ─── 8. ESTADÍSTICAS DE UN EQUIPO ────────────────────────────────────────────
