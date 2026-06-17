@@ -261,6 +261,24 @@ export default function GroupDetail() {
         </div>
       </div>
 
+      {/* Navegación entre grupos */}
+      <div className="flex gap-2 py-1 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+        {['A','B','C','D','E','F','G','H','I','J','K','L'].map(g => (
+          <Link
+            key={g}
+            to={`/grupos/${g}`}
+            className={`px-3 py-1 rounded-full text-sm flex-shrink-0 transition-colors ${
+              g === group.id
+                ? 'font-bold text-white'
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            }`}
+            style={g === group.id ? { background: '#F97316' } : undefined}
+          >
+            {g}
+          </Link>
+        ))}
+      </div>
+
       {/* Standings */}
       <div className="card overflow-hidden">
         {/* Header de columnas */}
