@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
@@ -192,6 +192,7 @@ export default function Schedule() {
   const [search, setSearch]           = useState('')
 
   const liveScoresMap = useLiveScoresMap(MATCHES)
+  const scrolledRef = useRef(false)
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
@@ -210,6 +211,20 @@ export default function Schedule() {
   }, [groupFilter, mdFilter, countryFilter, search])
 
   const byDate = groupMatchesByDate(filtered)
+
+  useEffect(() => {
+    if (scrolledRef.current || byDate.length === 0) return
+    scrolledRef.current = true
+    const hoyStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    const targetDate = byDate.find(([date]) => date >= hoyStr)?.[0]
+    if (!targetDate) return
+    setTimeout(() => {
+      const el = document.getElementById(`fecha-${targetDate}`)
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY - 80
+      window.scrollTo({ top, behavior: 'smooth' })
+    }, 100)
+  }, [byDate])
 
   return (
     <div className="animate-slide-up">
@@ -319,7 +334,7 @@ export default function Schedule() {
       ) : (
         <div className="space-y-6">
           {byDate.map(([date, matches]) => (
-            <div key={date} className="card overflow-hidden">
+            <div key={date} id={`fecha-${date}`} className="card overflow-hidden">
               <div className="px-5 py-3 border-b border-slate-700/50 flex items-center justify-between"
                 style={{ backgroundColor: '#162032' }}>
                 <h3 className="font-semibold text-white">
