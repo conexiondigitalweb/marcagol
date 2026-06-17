@@ -4,7 +4,8 @@ import { MATCHES } from '../data/matches'
 import { GROUPS } from '../data/groups'
 import { VENUES_BY_NAME } from '../data/venues'
 import { groupMatchesByDate, formatDayOfWeek, capitalizeFirst, getKickoffCountdown } from '../utils/helpers'
-import { getResult } from '../data/matchResults'
+import { getResult, saveResult } from '../data/matchResults'
+import { getFixtureMap } from '../data/fixtureMap'
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
@@ -193,6 +194,7 @@ export default function Schedule() {
 
   const liveScoresMap = useLiveScoresMap(MATCHES)
   const scrolledRef = useRef(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
@@ -211,6 +213,36 @@ export default function Schedule() {
   }, [groupFilter, mdFilter, countryFilter, search])
 
   const byDate = groupMatchesByDate(filtered)
+
+  // Polling 60s: detectar partidos FT del día y guardar resultado en localStorage
+  useEffect(() => {
+    const FT_SET = new Set(['FT', 'AET', 'PEN'])
+    async function fetchPartidos() {
+      try {
+        const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+        const res = await fetch(`/api/football?endpoint=/fixtures&date=${hoyCol}&league=1&season=2026`)
+        if (!res.ok) return
+        const json = await res.json()
+        const fMap = await getFixtureMap()
+        const inv = {}
+        for (const [a, b] of Object.entries(fMap)) inv[b] = Number(a)
+        let changed = false
+        for (const f of json.response || []) {
+          if (FT_SET.has(f.fixture?.status?.short)) {
+            const appId = inv[f.fixture.id]
+            if (appId && !getResult(appId)) {
+              saveResult(appId, f.goals?.home ?? 0, f.goals?.away ?? 0)
+              changed = true
+            }
+          }
+        }
+        if (changed) setRefreshKey(k => k + 1)
+      } catch {}
+    }
+    fetchPartidos()
+    const id = setInterval(fetchPartidos, 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (scrolledRef.current || byDate.length === 0) return

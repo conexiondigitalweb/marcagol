@@ -57,6 +57,14 @@ function ttlSecondsFor(endpoint, params, data = null) {
     return 60
   }
 
+  // Fixtures por fecha: TTL corto para el día actual (detectar FT a tiempo)
+  if (endpoint === '/fixtures' && params.date && !params.id) {
+    const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    if (params.date === hoyCol) return 60       // hoy: refresca cada minuto
+    if (params.date < hoyCol)   return 86_400   // pasado: inmutable
+    return 300                                  // futuro: TTL normal
+  }
+
   // Standings: más frecuente si hay un partido en vivo
   if (endpoint === '/standings') return hasActiveLive() ? 60 : 300
 

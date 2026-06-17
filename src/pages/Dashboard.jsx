@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
 import { MATCHES, getUpcomingMatches } from '../data/matches'
 import { getCountdown, formatDateShort, formatDayOfWeek, capitalizeFirst, flagUrl, getKickoffCountdown } from '../utils/helpers'
-import { getResult } from '../data/matchResults'
+import { getResult, saveResult } from '../data/matchResults'
+import { getFixtureMap } from '../data/fixtureMap'
 import Flag from '../components/ui/Flag'
 import LiveIndicator from '../components/ui/LiveIndicator'
 import { TEAM_IDS } from '../data/teamIds'
@@ -235,6 +236,7 @@ export default function Dashboard() {
   const [pollasActivas, setPollasActivas]   = useState(null)
   const [statsWC, setStatsWC]               = useState(null)
   const [statsLoading, setStatsLoading]     = useState(true)
+  const [refreshKey, setRefreshKey]         = useState(0)
 
   // Countdown ticker
   useEffect(() => {
@@ -255,12 +257,47 @@ export default function Dashboard() {
       .catch(() => setPollasActivas([]))
   }, [])
 
-  // Estadísticas dinámicas del Mundial
+  // Estadísticas dinámicas del Mundial — polling 60s
   useEffect(() => {
-    fetch('/api/football?action=estadisticas-mundial')
-      .then(r => r.json())
-      .then(d => { setStatsWC(d); setStatsLoading(false) })
-      .catch(() => setStatsLoading(false))
+    function fetchStats() {
+      fetch('/api/football?action=estadisticas-mundial')
+        .then(r => r.json())
+        .then(d => { setStatsWC(d); setStatsLoading(false) })
+        .catch(() => setStatsLoading(false))
+    }
+    fetchStats()
+    const id = setInterval(fetchStats, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Polling 60s: detectar partidos FT del día y guardar resultado en localStorage
+  useEffect(() => {
+    const FT_SET = new Set(['FT', 'AET', 'PEN'])
+    async function fetchPartidos() {
+      try {
+        const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+        const res = await fetch(`/api/football?endpoint=/fixtures&date=${hoyCol}&league=1&season=2026`)
+        if (!res.ok) return
+        const json = await res.json()
+        const fMap = await getFixtureMap()
+        const inv = {}
+        for (const [a, b] of Object.entries(fMap)) inv[b] = Number(a)
+        let changed = false
+        for (const f of json.response || []) {
+          if (FT_SET.has(f.fixture?.status?.short)) {
+            const appId = inv[f.fixture.id]
+            if (appId && !getResult(appId)) {
+              saveResult(appId, f.goals?.home ?? 0, f.goals?.away ?? 0)
+              changed = true
+            }
+          }
+        }
+        if (changed) setRefreshKey(k => k + 1)
+      } catch {}
+    }
+    fetchPartidos()
+    const id = setInterval(fetchPartidos, 60_000)
+    return () => clearInterval(id)
   }, [])
 
   const upcoming       = getUpcomingMatches(6)
