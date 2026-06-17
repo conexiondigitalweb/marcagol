@@ -222,6 +222,36 @@ export default function GroupDetail() {
     return () => { live = false }
   }, [groupMatches, resultsVersion])
 
+  // Polling 60s: detectar partidos FT del día y actualizar standings sin recargar
+  useEffect(() => {
+    const FT_SET = new Set(['FT', 'AET', 'PEN'])
+    async function fetchPartidosGrupo() {
+      try {
+        const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+        const res = await fetch(`/api/football?endpoint=/fixtures&date=${hoyCol}&league=1&season=2026`)
+        if (!res.ok) return
+        const json = await res.json()
+        const fMap = await getFixtureMap()
+        const inv = {}
+        for (const [a, b] of Object.entries(fMap)) inv[b] = Number(a)
+        let changed = false
+        for (const f of json.response || []) {
+          if (FT_SET.has(f.fixture?.status?.short)) {
+            const appId = inv[f.fixture.id]
+            if (appId && !getResult(appId)) {
+              saveResult(appId, f.goals?.home ?? 0, f.goals?.away ?? 0)
+              changed = true
+            }
+          }
+        }
+        if (changed) setResultsVersion(v => v + 1)
+      } catch {}
+    }
+    fetchPartidosGrupo()
+    const interval = setInterval(fetchPartidosGrupo, 60_000)
+    return () => clearInterval(interval)
+  }, [group?.id])
+
   if (!group) {
     return (
       <div className="text-center py-20">
