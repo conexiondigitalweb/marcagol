@@ -231,7 +231,7 @@ export function useTopStats() {
 
   useEffect(() => {
     fetch()
-    const interval = setInterval(fetch, 10 * 60 * 1000)
+    const interval = setInterval(fetch, 2 * 60 * 1000)
     return () => clearInterval(interval)
   }, [fetch])
 

@@ -11,7 +11,7 @@ const CACHE_TTL = {
   live:       30 * 1000,
   fixtures:   5 * 60 * 1000,
   standings:  10 * 60 * 1000,
-  scorers:    10 * 60 * 1000,
+  scorers:    2 * 60 * 1000,
   events:     10 * 1000,
   lineups:    30 * 1000,
   statistics: 60 * 1000,

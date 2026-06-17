@@ -68,8 +68,8 @@ function ttlSecondsFor(endpoint, params, data = null) {
   // Standings: más frecuente si hay un partido en vivo
   if (endpoint === '/standings') return hasActiveLive() ? 60 : 300
 
-  // Goleadores y asistidores cambian poco
-  if (endpoint === '/players/topscorers' || endpoint === '/players/topassists') return 600
+  // Goleadores y asistidores: TTL corto para reflejar cambios rápidamente
+  if (endpoint === '/players/topscorers' || endpoint === '/players/topassists') return 120
 
   // Default
   return 300
