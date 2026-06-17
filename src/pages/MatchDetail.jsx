@@ -952,6 +952,18 @@ export default function MatchDetail() {
     saveResult(Number(id), fixtureData.homeScore, fixtureData.awayScore)
   }, [isFinished, fixtureData, id])
 
+  // Safety net 60s: garantiza transición EN VIVO → Finalizado aunque el polling
+  // de 30s de useFixtureData falle o el proxy tenga caché stale.
+  // Cuando status pasa a FT/AET/PEN el efecto re-corre, ve el status final y
+  // retorna sin crear interval; el cleanup del ciclo anterior cancela el anterior.
+  useEffect(() => {
+    if (!fixtureId || isExternal) return
+    const FT_SET = new Set(['FT', 'AET', 'PEN'])
+    if (FT_SET.has(fixtureData?.status)) return
+    const interval = setInterval(forceFixtureRefetch, 60_000)
+    return () => clearInterval(interval)
+  }, [fixtureId, isExternal, fixtureData?.status, forceFixtureRefetch])
+
   const homeCode   = matchData?.homeTeam || ''
   const awayCode   = matchData?.awayTeam || ''
   const matchDate  = matchData?.date || ''
