@@ -713,9 +713,9 @@ function LineupTeamCard({ team, substMap, statsMap, onPlayerClick, teamCode }) {
 
   // ID como criterio único cuando está disponible en la alineación —
   // evita falsos positivos entre jugadores con el mismo apellido (ej. L. Martínez).
-  const getExited         = (p) => p.player?.id != null ? exited[p.player.id]   : lookupSubst(p.player?.name, exited)
+  const getExited         = (p) => exited[p.player?.id]   ?? lookupSubst(p.player?.name, exited)
   const getExpelled       = (p) => p.player?.id != null ? expelled[p.player.id] : lookupSubst(p.player?.name, expelled)
-  const getEntered        = (p) => p.player?.id != null ? entered[p.player.id]  : lookupSubst(p.player?.name, entered)
+  const getEntered        = (p) => entered[p.player?.id]  ?? lookupSubst(p.player?.name, entered)
   const getYellowed       = (p) => (p.player?.id != null ? yellowed[p.player.id] : lookupSubst(p.player?.name, yellowed)) ?? 0
   const checkSecondYellow = (p) => {
     if (p.player?.id != null) return secondYellows.has(p.player.id)
