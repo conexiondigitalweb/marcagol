@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { GROUPS } from '../data/groups'
 import { MATCHES } from '../data/matches'
 import { usePredictions } from '../context/PredictionsContext'
-import { formatDateShort, getKickoffDate } from '../utils/helpers'
+import { formatDateShort, getKickoffDate, groupMatchesByDate, formatDayOfWeek, capitalizeFirst } from '../utils/helpers'
 import { getResult } from '../data/matchResults'
 import { useLiveScoresMap } from '../hooks/useLiveData'
 import Flag from '../components/ui/Flag'
@@ -288,6 +288,11 @@ function PredictionCard({ match, liveScore }) {
             <span className="text-slate-300 font-bold">{pred.home}–{pred.away}</span>
             <span className="text-slate-600 ml-2">· esperando resultado</span>
           </span>
+        ) : locked && result ? (
+          <span className="text-xs flex items-center justify-center gap-1.5">
+            <span className="text-red-400/70">✕</span>
+            <span className="text-red-400/70">No predijiste · 0 pts</span>
+          </span>
         ) : locked ? (
           <span className="text-xs text-slate-500 flex items-center justify-center gap-1.5">
             <span>🔒</span>
@@ -306,11 +311,29 @@ export default function Predictions() {
   const [selectedMD, setSelectedMD]       = useState('Todos')
   const liveScoresMap = useLiveScoresMap(MATCHES)
 
+  const scrolledRef = useRef(false)
+
   const filtered = MATCHES.filter(m => {
     if (selectedGroup !== 'Todos' && m.group !== selectedGroup) return false
     if (selectedMD !== 'Todos' && m.matchday !== Number(selectedMD)) return false
     return true
   })
+
+  const byDate = groupMatchesByDate(filtered)
+
+  useEffect(() => {
+    if (scrolledRef.current || byDate.length === 0) return
+    scrolledRef.current = true
+    const hoyStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+    const targetDate = byDate.find(([date]) => date >= hoyStr)?.[0]
+    if (!targetDate) return
+    setTimeout(() => {
+      const el = document.getElementById(`fecha-${targetDate}`)
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY - 80
+      window.scrollTo({ top, behavior: 'smooth' })
+    }, 100)
+  }, [byDate])
 
   return (
     <div className="animate-slide-up">
@@ -401,11 +424,20 @@ export default function Predictions() {
         </div>
       </div>
 
-      {/* Match cards */}
-      <div className="space-y-3">
+      {/* Match cards grouped by date */}
+      <div className="space-y-6">
         <p className="text-xs text-slate-500 uppercase tracking-wider">{filtered.length} partidos</p>
-        {filtered.map(match => (
-          <PredictionCard key={match.id} match={match} liveScore={liveScoresMap[match.id] ?? null} />
+        {byDate.map(([date, matches]) => (
+          <div key={date} id={`fecha-${date}`}>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+              {capitalizeFirst(formatDayOfWeek(date))}
+            </h3>
+            <div className="space-y-3">
+              {matches.map(match => (
+                <PredictionCard key={match.id} match={match} liveScore={liveScoresMap[match.id] ?? null} />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
