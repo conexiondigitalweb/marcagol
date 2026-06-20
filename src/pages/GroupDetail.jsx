@@ -6,7 +6,8 @@ import { getMatchesByGroup } from '../data/matches'
 import Flag from '../components/ui/Flag'
 import { StatusBadge, ConfederationBadge } from '../components/ui/Badge'
 import { getResult, saveResult } from '../data/matchResults'
-import { useLiveMatches, buildLiveScoresMap } from '../hooks/useLiveData'
+import { useLiveMatches, buildLiveScoresMap, useStandings } from '../hooks/useLiveData'
+import { TEAM_IDS } from '../data/teamIds'
 import { getFixture } from '../data/liveData'
 import { getFixtureMap } from '../data/fixtureMap'
 
@@ -184,7 +185,26 @@ export default function GroupDetail() {
 
   // Hooks deben llamarse antes de cualquier return condicional
   const { matches: apiLiveMatches } = useLiveMatches()
+  const { standings: apiStandings }  = useStandings()
   const [resultsVersion, setResultsVersion] = useState(0)
+
+  // Rank oficial de API-Football para este grupo: { appTeamCode → rank }
+  // ALIAS invierte ZAF→RSA, HTI→HAI, PRY→PAR (TEAM_IDS usa esas claves alternativas)
+  const apiRankMap = useMemo(() => {
+    if (!apiStandings?.length || !group) return {}
+    const allGroups = apiStandings[0]?.league?.standings ?? []
+    const groupData = allGroups.find(g => g[0]?.group === `Group ${group?.id}`)
+    if (!groupData) return {}
+    const ALIAS = { ZAF: 'RSA', HTI: 'HAI', PRY: 'PAR' }
+    const inv = {}
+    for (const [code, id] of Object.entries(TEAM_IDS)) inv[id] = ALIAS[code] ?? code
+    const map = {}
+    for (const entry of groupData) {
+      const code = inv[entry.team.id]
+      if (code) map[code] = entry.rank
+    }
+    return map
+  }, [apiStandings, group?.id])
 
   const groupMatches = useMemo(
     () => (group ? getMatchesByGroup(group.id) : []),
@@ -262,16 +282,25 @@ export default function GroupDetail() {
     )
   }
 
-  const hasLive = Object.keys(liveScores).length > 0
+  const hasLive     = Object.keys(liveScores).length > 0
+  const hasApiRanks = Object.keys(apiRankMap).length > 0
 
-  // Standings sin datos en vivo — para comparar posiciones
+  // Ordena usando rank oficial de API; fallback a sortTeams si aún no cargó
+  const byApiRank = (teams) =>
+    [...teams].sort((a, b) => (apiRankMap[a.code] ?? 99) - (apiRankMap[b.code] ?? 99))
+
+  // Standings sin datos en vivo — posición oficial según API
   const baseStats  = computeGroupStandings(group.teams, groupMatches)
-  const baseSorted = sortTeams(baseStats)
+  const baseSorted = hasApiRanks ? byApiRank(baseStats) : sortTeams(baseStats)
   const basePos    = Object.fromEntries(baseSorted.map((t, i) => [t.code, i + 1]))
 
-  // Standings con datos en vivo (provisional si hay partido en curso)
+  // Standings con datos en vivo:
+  // - Partido en curso → orden provisional local (API aún no actualizó)
+  // - Sin partido en curso → rank oficial de API como fuente de verdad
   const liveStats = computeGroupStandings(group.teams, groupMatches, liveScores)
-  const sorted    = sortTeams(liveStats)
+  const sorted    = hasLive
+    ? sortTeams(liveStats)
+    : (hasApiRanks ? byApiRank(liveStats) : sortTeams(liveStats))
 
   const byMatchday = [1, 2, 3].map(md => ({
     md,
