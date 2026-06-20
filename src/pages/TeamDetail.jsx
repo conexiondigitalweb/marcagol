@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getTeamByCode, getGroupById } from '../data/groups'
 import { sortTeams, toLocalTime } from '../utils/helpers'
@@ -6,8 +7,10 @@ import { getConfederationColor } from '../utils/helpers'
 import Flag from '../components/ui/Flag'
 import { ConfederationBadge, StatusBadge } from '../components/ui/Badge'
 import { getSquad, getCoach } from '../data/squads'
-import { getResult } from '../data/matchResults'
+import { getResult, saveResult } from '../data/matchResults'
 import { getHistory } from '../data/history'
+import { getFixtureMap } from '../data/fixtureMap'
+import { TEAM_IDS } from '../data/teamIds'
 
 const TEAM_COLORS = {
   USA:'#002868', ENG:'#CF091F', TUN:'#E70013', ECU:'#FFD100',
@@ -24,12 +27,180 @@ const TEAM_COLORS = {
   SCO:'#003F83', WAL:'#C8102E', UAE:'#00732F', QAT:'#8D1B3D',
 }
 
-// KEY_PLAYERS eliminado — ahora usamos squads.js con datos oficiales FIFA
+const CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
+function getApiTeamId(code) {
+  return TEAM_IDS[CODE_ALIAS[code] ?? code] ?? null
+}
+
+const FT_SET = new Set(['FT', 'AET', 'PEN'])
+
+const PHASE_ORDER = [
+  { key: 'Group Stage',    label: 'Fase de Grupos',   isGroup: true  },
+  { key: 'Round of 16',   label: 'Octavos de Final',  isGroup: false },
+  { key: 'Quarter-finals',label: 'Cuartos de Final',  isGroup: false },
+  { key: 'Semi-finals',   label: 'Semifinales',       isGroup: false },
+  { key: '3rd Place Final',label: 'Tercer Puesto',    isGroup: false },
+  { key: 'Final',         label: 'Final',             isGroup: false },
+]
+
+function normalizeRound(round) {
+  if (!round) return 'Unknown'
+  if (round.startsWith('Group Stage')) return 'Group Stage'
+  return round
+}
+
+function computeGroupStandings(teams, matches) {
+  const stats = {}
+  teams.forEach(t => {
+    stats[t.code] = { ...t, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0, points: 0 }
+  })
+  for (const m of matches) {
+    const result = getResult(m.id)
+    if (!result) continue
+    const h = stats[m.homeTeam]
+    const a = stats[m.awayTeam]
+    if (!h || !a) continue
+    h.played++; a.played++
+    h.gf += result.homeScore; h.ga += result.awayScore
+    a.gf += result.awayScore; a.ga += result.homeScore
+    h.gd = h.gf - h.ga;      a.gd = a.gf - a.ga
+    if (result.homeScore > result.awayScore)        { h.won++;   h.points += 3; a.lost++ }
+    else if (result.homeScore === result.awayScore) { h.drawn++; h.points++;    a.drawn++; a.points++ }
+    else                                            { h.lost++;  a.won++;       a.points += 3 }
+  }
+  return teams.map(t => stats[t.code])
+}
+
+function computeWorldCupStats(fixtures, teamApiId) {
+  const byPhase = {}
+  for (const f of fixtures) {
+    if (!FT_SET.has(f.fixture?.status?.short)) continue
+    const isHome = f.teams?.home?.id === teamApiId
+    const isAway = f.teams?.away?.id === teamApiId
+    if (!isHome && !isAway) continue
+
+    const round = normalizeRound(f.league?.round)
+    if (!byPhase[round]) byPhase[round] = { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, points: 0 }
+
+    const gf = isHome ? (f.goals?.home ?? 0) : (f.goals?.away ?? 0)
+    const ga = isHome ? (f.goals?.away ?? 0) : (f.goals?.home ?? 0)
+    byPhase[round].played++
+    byPhase[round].gf += gf
+    byPhase[round].ga += ga
+
+    const status = f.fixture?.status?.short
+    if (status === 'PEN') {
+      const penH = f.score?.penalty?.home ?? 0
+      const penA = f.score?.penalty?.away ?? 0
+      const teamWon = isHome ? penH > penA : penA > penH
+      if (teamWon) byPhase[round].won++; else byPhase[round].lost++
+    } else {
+      if (gf > ga)       { byPhase[round].won++;   if (round === 'Group Stage') byPhase[round].points += 3 }
+      else if (gf === ga){ byPhase[round].drawn++;  if (round === 'Group Stage') byPhase[round].points++ }
+      else               { byPhase[round].lost++ }
+    }
+  }
+  return byPhase
+}
 
 export default function TeamDetail() {
   const { code } = useParams()
   const team = getTeamByCode(code?.toUpperCase())
 
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [resultsVersion, setResultsVersion] = useState(0)
+  const [teamFixtures, setTeamFixtures]     = useState([])
+  const [fixturesLoading, setFixturesLoading] = useState(true)
+
+  // ── Derived (pre-hooks) ────────────────────────────────────────────────────
+  const group = team ? getGroupById(team.group) : null
+  const teamApiId = team ? getApiTeamId(team.code) : null
+
+  const groupMatches = useMemo(
+    () => (group ? getMatchesByGroup(group.id) : []),
+    [group?.id]
+  )
+
+  const sortedGroup = useMemo(
+    () => {
+      if (!group) return []
+      return sortTeams(computeGroupStandings(group.teams, groupMatches))
+    },
+    // resultsVersion triggers recompute when new FT results are cached
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [group, groupMatches, resultsVersion]
+  )
+
+  const wcStats = useMemo(
+    () => (teamApiId ? computeWorldCupStats(teamFixtures, teamApiId) : {}),
+    [teamFixtures, teamApiId]
+  )
+
+  const wcTotal = useMemo(
+    () => Object.values(wcStats).reduce(
+      (acc, s) => ({
+        played: acc.played + s.played,
+        won:    acc.won    + s.won,
+        drawn:  acc.drawn  + s.drawn,
+        lost:   acc.lost   + s.lost,
+        gf:     acc.gf     + s.gf,
+        ga:     acc.ga     + s.ga,
+      }),
+      { played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0 }
+    ),
+    [wcStats]
+  )
+
+  // ── Polling: standings del grupo (60s) ─────────────────────────────────────
+  useEffect(() => {
+    if (!group) return
+    async function fetchStandings() {
+      try {
+        const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+        const res = await fetch(`/api/football?endpoint=/fixtures&date=${hoyCol}&league=1&season=2026`)
+        if (!res.ok) return
+        const json = await res.json()
+        const fMap = await getFixtureMap()
+        const inv = {}
+        for (const [a, b] of Object.entries(fMap)) inv[b] = Number(a)
+        let changed = false
+        for (const f of json.response || []) {
+          if (FT_SET.has(f.fixture?.status?.short)) {
+            const appId = inv[f.fixture.id]
+            if (appId && !getResult(appId)) {
+              saveResult(appId, f.goals?.home ?? 0, f.goals?.away ?? 0)
+              changed = true
+            }
+          }
+        }
+        if (changed) setResultsVersion(v => v + 1)
+      } catch {}
+    }
+    fetchStandings()
+    const interval = setInterval(fetchStandings, 60_000)
+    return () => clearInterval(interval)
+  }, [group?.id])
+
+  // ── Polling: fixtures del equipo para estadísticas (60s) ───────────────────
+  useEffect(() => {
+    if (!teamApiId) { setFixturesLoading(false); return }
+    let live = true
+    async function fetchTeamFixtures() {
+      try {
+        const res = await fetch(`/api/football?endpoint=/fixtures&league=1&season=2026&team=${teamApiId}`)
+        if (!res.ok) return
+        const json = await res.json()
+        if (live) { setTeamFixtures(json.response || []); setFixturesLoading(false) }
+      } catch {
+        if (live) setFixturesLoading(false)
+      }
+    }
+    fetchTeamFixtures()
+    const interval = setInterval(fetchTeamFixtures, 60_000)
+    return () => { live = false; clearInterval(interval) }
+  }, [teamApiId])
+
+  // ── Early return ───────────────────────────────────────────────────────────
   if (!team) {
     return (
       <div className="text-center py-20">
@@ -40,10 +211,7 @@ export default function TeamDetail() {
     )
   }
 
-  const group = getGroupById(team.group)
-  const groupMatches = getMatchesByGroup(team.group)
-  const teamMatches = groupMatches.filter(m => m.homeTeam === team.code || m.awayTeam === team.code)
-  const sortedGroup = sortTeams(group.teams)
+  // ── Post-return derivations ────────────────────────────────────────────────
   const squad = getSquad(team.code)
   const hist  = getHistory(team.code)
   const coach = getCoach(team.code)
@@ -54,6 +222,9 @@ export default function TeamDetail() {
     acc[pos] = squad?.players?.filter(p => p.position === pos) || []
     return acc
   }, {})
+  const teamMatches = groupMatches.filter(m => m.homeTeam === team.code || m.awayTeam === team.code)
+  const phases = PHASE_ORDER.filter(ph => wcStats[ph.key]?.played > 0)
+  const wcGd = wcTotal.gf - wcTotal.ga
 
   return (
     <div className="animate-slide-up max-w-4xl mx-auto">
@@ -132,7 +303,7 @@ export default function TeamDetail() {
         {/* Group standing */}
         <div className="card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-700/50 font-semibold text-white">
-            Posición en {group.name}
+            Posición en {group?.name}
           </div>
           {sortedGroup.map((t, i) => (
             <Link
@@ -164,7 +335,7 @@ export default function TeamDetail() {
           {teamMatches.map(match => {
             const isHome       = match.homeTeam === team.code
             const opponentCode = isHome ? match.awayTeam : match.homeTeam
-            const opponent     = group.teams.find(t => t.code === opponentCode)
+            const opponent     = group?.teams.find(t => t.code === opponentCode)
             const result       = getResult(match.id)
             const { time, label } = toLocalTime(match.date, match.timeCol)
             return (
@@ -295,26 +466,76 @@ export default function TeamDetail() {
           </div>
         )}
 
-        {/* Tournament Stats */}
-        <div className="card p-5">
-          <h3 className="font-semibold text-white mb-4">Estadísticas de Fase de Grupos</h3>
-          <div className="space-y-3">
-            {[
-              { label: 'Partidos jugados', value: team.played },
-              { label: 'Victorias',        value: team.won    },
-              { label: 'Empates',          value: team.drawn  },
-              { label: 'Derrotas',         value: team.lost   },
-              { label: 'Goles a favor',    value: team.gf     },
-              { label: 'Goles en contra',  value: team.ga     },
-              { label: 'Diferencia',       value: team.gd > 0 ? `+${team.gd}` : team.gd },
-              { label: 'Puntos',           value: `${team.points} pts` },
-            ].map(stat => (
-              <div key={stat.label} className="flex justify-between items-center py-1.5 border-b border-slate-700/30 last:border-0">
-                <span className="text-sm text-slate-400">{stat.label}</span>
-                <span className="font-bold text-white">{stat.value}</span>
+        {/* Estadísticas Mundial 2026 */}
+        <div className="card p-5 md:col-span-2">
+          <h3 className="font-semibold text-white mb-4">Estadísticas Mundial 2026</h3>
+
+          {fixturesLoading ? (
+            <div className="text-center py-6 text-slate-500 text-sm">Cargando estadísticas...</div>
+          ) : wcTotal.played === 0 ? (
+            <div className="text-center py-6 text-slate-500 text-sm">Sin partidos jugados aún.</div>
+          ) : (
+            <div className="space-y-5">
+              {/* Bloque 1: Total acumulado */}
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Total Acumulado</p>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                  {[
+                    { label: 'PJ', value: wcTotal.played },
+                    { label: 'G',  value: wcTotal.won    },
+                    { label: 'E',  value: wcTotal.drawn  },
+                    { label: 'P',  value: wcTotal.lost   },
+                    { label: 'GF', value: wcTotal.gf     },
+                    { label: 'GC', value: wcTotal.ga     },
+                    { label: 'DG', value: wcGd > 0 ? `+${wcGd}` : wcGd },
+                  ].map(s => (
+                    <div key={s.label} className="bg-slate-700/30 rounded-lg p-2.5 text-center">
+                      <div className="text-xs text-slate-500 mb-1">{s.label}</div>
+                      <div className="font-bold text-white tabular-nums">{s.value}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Bloque 2: Desglose por fase */}
+              {phases.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desglose por Fase</p>
+                  <div className="space-y-2">
+                    {phases.map(ph => {
+                      const s = wcStats[ph.key]
+                      const gd = s.gf - s.ga
+                      const cols = [
+                        { label: 'PJ', value: s.played },
+                        { label: 'G',  value: s.won    },
+                        { label: 'E',  value: s.drawn  },
+                        { label: 'P',  value: s.lost   },
+                        { label: 'GF', value: s.gf     },
+                        { label: 'GC', value: s.ga     },
+                        { label: 'DG', value: gd > 0 ? `+${gd}` : gd },
+                        ...(ph.isGroup ? [{ label: 'PTS', value: s.points, accent: true }] : []),
+                      ]
+                      return (
+                        <div key={ph.key} className="bg-slate-700/20 rounded-xl px-4 py-3">
+                          <p className="text-xs font-semibold text-slate-300 mb-2">{ph.label}</p>
+                          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+                            {cols.map(c => (
+                              <div key={c.label} className="text-center min-w-[30px]">
+                                <div className="text-[10px] text-slate-600 uppercase">{c.label}</div>
+                                <div className={`text-sm font-bold tabular-nums ${c.accent ? 'text-sky-400' : 'text-white'}`}>
+                                  {c.value}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
