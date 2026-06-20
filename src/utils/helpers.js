@@ -53,7 +53,7 @@ export const sortTeams = (teams) => {
     if (b.points !== a.points) return b.points - a.points
     if (b.gd !== a.gd) return b.gd - a.gd
     if (b.gf !== a.gf) return b.gf - a.gf
-    return a.name.localeCompare(b.name)
+    return a.fifaRanking - b.fifaRanking
   })
 }
 
