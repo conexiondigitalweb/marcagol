@@ -262,7 +262,13 @@ export default function Dashboard() {
     function fetchStats() {
       fetch('/api/football?action=estadisticas-mundial')
         .then(r => r.json())
-        .then(d => { setStatsWC(d); setStatsLoading(false) })
+        .then(d => {
+          setStatsWC(d)
+          // Solo salir del estado loading cuando hay datos reales.
+          // Si totalPartidos===0 (caché rancio o vacío), mantener el skeleton
+          // para que el próximo ciclo de 60s reintente y no quede '—' trabado.
+          if ((d?.totalPartidos ?? 0) > 0) setStatsLoading(false)
+        })
         .catch(() => setStatsLoading(false))
     }
     fetchStats()
