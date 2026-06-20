@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { GROUPS } from '../data/groups'
 import { MATCHES, getUpcomingMatches } from '../data/matches'
@@ -11,7 +11,7 @@ import { TEAM_IDS } from '../data/teamIds'
 import { StatusBadge } from '../components/ui/Badge'
 import { startLivePolling } from '../services/liveData'
 import { usePredictions } from '../context/PredictionsContext'
-import { useLiveScoresMap } from '../hooks/useLiveData'
+import { useLiveScoresMap, useStandings } from '../hooks/useLiveData'
 import { esTeamName } from '../data/teamNames'
 
 const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
@@ -304,6 +304,27 @@ export default function Dashboard() {
   const hasApiLive     = apiLiveMatches.length > 0
   const liveScoresMap  = useLiveScoresMap(MATCHES)
   const { totalPoints, predictedCount } = usePredictions()
+  const { standings: apiStandings } = useStandings()
+
+  // Rank + puntos por grupo, directo de la API: { 'A': [{code,iso2,name,rank,points},...], ... }
+  const groupRankings = useMemo(() => {
+    if (!apiStandings?.length) return {}
+    const allGroups = apiStandings[0]?.league?.standings ?? []
+    const ALIAS = { ZAF: 'RSA', HTI: 'HAI', PRY: 'PAR' }
+    const inv = {}
+    for (const [code, id] of Object.entries(TEAM_IDS)) inv[id] = ALIAS[code] ?? code
+    const result = {}
+    for (const groupData of allGroups) {
+      if (!groupData.length) continue
+      const letter = groupData[0].group.replace('Group ', '')
+      result[letter] = groupData.map(entry => {
+        const code = inv[entry.team.id]
+        const teamObj = ALL_TEAMS_MAP[code]
+        return { code, name: teamObj?.name ?? entry.team.name, iso2: teamObj?.iso2 ?? '', points: entry.points, rank: entry.rank }
+      })
+    }
+    return result
+  }, [apiStandings])
 
   return (
     <div className="space-y-10 animate-slide-up">
@@ -662,23 +683,28 @@ export default function Dashboard() {
           <Link to="/grupos" className="btn-outline text-sm">Ver todos →</Link>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {GROUPS.map(group => (
-            <Link key={group.id} to={`/grupos/${group.id}`} className="card-hover p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="badge-group">{group.id}</span>
-                <span className="font-semibold text-white text-sm">Grupo {group.id}</span>
-              </div>
-              <div className="space-y-1.5">
-                {group.teams.map(team => (
-                  <div key={team.code} className="flex items-center gap-2">
-                    <Flag iso2={team.iso2} size="xs" />
-                    <span className="text-sm text-slate-300 truncate">{team.name}</span>
-                    <span className="ml-auto text-xs text-slate-600">#{team.fifaRanking}</span>
-                  </div>
-                ))}
-              </div>
-            </Link>
-          ))}
+          {GROUPS.map(group => {
+            const ranked = groupRankings[group.id]
+            const teams  = ranked ?? group.teams.map((t, i) => ({ ...t, rank: i + 1, points: t.points ?? 0 }))
+            return (
+              <Link key={group.id} to={`/grupos/${group.id}`} className="card-hover p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="badge-group">{group.id}</span>
+                  <span className="font-semibold text-white text-sm">Grupo {group.id}</span>
+                </div>
+                <div className="space-y-1.5">
+                  {teams.map((team, i) => (
+                    <div key={team.code} className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 w-3 shrink-0">{i + 1}</span>
+                      <Flag iso2={team.iso2} size="xs" />
+                      <span className="text-sm text-slate-300 truncate flex-1">{team.name}</span>
+                      <span className="ml-auto text-xs font-bold text-white tabular-nums shrink-0">{team.points} pts</span>
+                    </div>
+                  ))}
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </section>
 
