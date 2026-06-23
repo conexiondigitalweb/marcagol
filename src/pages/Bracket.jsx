@@ -1,8 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Flag from '../components/ui/Flag'
+import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { GROUPS } from '../data/groups'
-// matches.js es la fuente canónica de sede/fecha/hora para todos los partidos
 import { MATCHES } from '../data/matches'
+import { useStandings } from '../hooks/useLiveData'
+import { projectBracket } from '../utils/bracketProjector'
+import { rankThirdPlaceTeams } from '../utils/thirdPlaceRanking'
+import { esTeamName } from '../data/teamNames'
 
 const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
 
@@ -72,11 +76,16 @@ const SF_MATCHES = [
 const FINAL = { id: 'final', matchId: 104, home: 'W101', away: 'W102' }
 const THIRD = { id: 'third', matchId: 103, home: 'Per. SF-1', away: 'Per. SF-2' }
 
-function MatchSlot({ match, highlight = false }) {
+function MatchSlot({ match, highlight = false, resolvedMatch = null }) {
   const appMatch = match.matchId ? MATCH_BY_ID[match.matchId] : null
-  const date     = appMatch ? fmtDate(appMatch.date) : (match.date ?? '')
-  const venue    = appMatch?.venue ?? ''
-  const city     = appMatch?.city ?? ''
+  const date  = appMatch ? fmtDate(appMatch.date) : (match.date ?? '')
+  const venue = appMatch?.venue ?? ''
+  const city  = appMatch?.city ?? ''
+
+  const slots = [
+    { static: match.home, resolved: resolvedMatch?.home },
+    { static: match.away, resolved: resolvedMatch?.away },
+  ]
 
   return (
     <div className={`w-52 rounded-lg overflow-hidden border transition-all ${
@@ -93,18 +102,68 @@ function MatchSlot({ match, highlight = false }) {
           <div className="text-[10px] text-slate-600 truncate mt-0.5">{venue} · {city}</div>
         )}
       </div>
-      {[match.home, match.away].map((team, idx) => (
-        <div key={idx} className="flex items-center gap-2 px-3 py-2 text-xs border-t border-slate-700/50 text-slate-400">
-          <span className="w-2 h-2 rounded-sm bg-slate-600 flex-shrink-0" />
-          <span className="truncate">{team}</span>
-        </div>
-      ))}
+
+      {slots.map((slot, idx) => {
+        if (!slot.resolved?.team) {
+          return (
+            <div key={idx} className="flex items-center gap-2 px-3 py-2 text-xs border-t border-slate-700/50 text-slate-400">
+              <span className="w-2 h-2 rounded-sm bg-slate-600 flex-shrink-0" />
+              <span className="truncate">{slot.static}</span>
+            </div>
+          )
+        }
+        const name  = esTeamName({ id: slot.resolved.team.id, name: slot.resolved.team.name })
+        const badge = slot.resolved.confirmed ? '🟢' : '🟡'
+        return (
+          <div key={idx} className="flex items-center gap-2 px-3 py-2 text-xs border-t border-slate-700/50">
+            <span className="flex-shrink-0 leading-none">{badge}</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-slate-200 font-medium">{name}</div>
+              <div className="text-[10px] text-slate-500">{slot.resolved.position} Gr.{slot.resolved.group}</div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
 
 export default function Bracket() {
   const [activePhase, setActivePhase] = useState('d32')
+  const { standings: rawStandings, loading } = useStandings()
+
+  // useStandings() devuelve [{ league: { standings: [[groupA],[groupB],...] } }]
+  // Transformar al formato que esperan projectBracket y rankThirdPlaceTeams:
+  // [{ group: 'Group A', standings: [[entry1,entry2,entry3,entry4]] }]
+  const allGroups = useMemo(() => {
+    if (!rawStandings?.length) return []
+    return rawStandings[0]?.league?.standings ?? []
+  }, [rawStandings])
+
+  const formattedStandings = useMemo(() =>
+    allGroups.filter(g => g.length > 0).map(g => ({ group: g[0].group, standings: [g] }))
+  , [allGroups])
+
+  const bracketData = useMemo(() => {
+    if (!formattedStandings.length) return null
+    try { return projectBracket(formattedStandings) } catch { return null }
+  }, [formattedStandings])
+
+  const thirdPlaceData = useMemo(() => {
+    if (!formattedStandings.length) return null
+    try { return rankThirdPlaceTeams(formattedStandings) } catch { return null }
+  }, [formattedStandings])
+
+  // matchId (73-88) → objeto de cruce resuelto por bracketProjector
+  const bracketByMatchId = useMemo(() => {
+    if (!bracketData?.matches) return {}
+    return Object.fromEntries(
+      bracketData.matches.map(m => [parseInt(m.id.replace('M', '')), m])
+    )
+  }, [bracketData])
+
+  const allGroupsComplete = formattedStandings.length === 12 &&
+    formattedStandings.every(g => (g.standings[0][2]?.all?.played ?? 0) >= 3)
 
   const phases = [
     { id: 'd32',   label: 'Dieciseisavos', matches: R32_MATCHES,       cols: 2 },
@@ -151,63 +210,79 @@ export default function Bracket() {
         <p className="text-xs text-slate-500 mb-4">
           Los 8 mejores terceros de los 12 grupos avanzan a Dieciseisavos. Se ordenan por puntos, diferencia de goles y goles a favor.
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-slate-500 uppercase tracking-wider border-b border-slate-700">
-                <th className="text-left py-2 px-3">#</th>
-                <th className="text-left py-2">Selección</th>
-                <th className="text-center py-2">Grupo</th>
-                <th className="text-center py-2">PJ</th>
-                <th className="text-center py-2">G</th>
-                <th className="text-center py-2">E</th>
-                <th className="text-center py-2">P</th>
-                <th className="text-center py-2">DG</th>
-                <th className="text-center py-2">Pts</th>
-                <th className="text-center py-2">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 8 }, (_, i) => (
-                <tr key={i} className="border-b border-slate-700/30 hover:bg-slate-700/20">
-                  <td className="py-2.5 px-3 font-bold text-sky-400">{i + 1}</td>
-                  <td className="py-2.5 text-slate-400 italic">Por definir</td>
-                  <td className="py-2.5 text-center text-slate-500">—</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center text-slate-500">0</td>
-                  <td className="py-2.5 text-center">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
-                      {i < 8 ? '✓ Clasifica' : 'Eliminado'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-              {Array.from({ length: 4 }, (_, i) => (
-                <tr key={`out-${i}`} className="border-b border-slate-700/30 opacity-40">
-                  <td className="py-2.5 px-3 text-slate-600">{i + 9}</td>
-                  <td className="py-2.5 text-slate-600 italic">Por definir</td>
-                  <td className="py-2.5 text-center text-slate-600">—</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center text-slate-600">0</td>
-                  <td className="py-2.5 text-center">
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-600">
-                      Eliminado
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-slate-600 mt-3">* Se actualizará automáticamente cuando inicien los partidos el 11 de junio.</p>
+
+        {loading && !thirdPlaceData ? (
+          <LoadingSpinner text="Cargando clasificación..." />
+        ) : thirdPlaceData ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-slate-500 uppercase tracking-wider border-b border-slate-700">
+                    <th className="text-left py-2 px-3">#</th>
+                    <th className="text-left py-2">Selección</th>
+                    <th className="text-center py-2">PJ</th>
+                    <th className="text-center py-2">Pts</th>
+                    <th className="text-center py-2">DG</th>
+                    <th className="text-center py-2">GF</th>
+                    <th className="text-center py-2">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {thirdPlaceData.ranked.map((team, index) => {
+                    const isQualified  = index < 8
+                    const isBorderline = index === 7
+                    return (
+                      <tr
+                        key={team.group}
+                        className={
+                          !isQualified ? 'border-b border-slate-700/30 opacity-40' :
+                          isBorderline ? 'border-b border-yellow-500/30 bg-yellow-900/20' :
+                          'border-b border-slate-700/30 hover:bg-slate-700/20'
+                        }
+                      >
+                        <td className="py-2.5 px-3 font-bold text-sky-400">{index + 1}</td>
+                        <td className="py-2.5">
+                          <span className="mr-1">{isQualified ? '✅' : '❌'}</span>
+                          <span className="text-slate-200">
+                            {esTeamName({ id: team.teamId, name: team.teamName })}
+                          </span>
+                          <span className="text-slate-500 text-xs ml-1">({team.group})</span>
+                        </td>
+                        <td className="py-2.5 text-center text-slate-400">{team.played}</td>
+                        <td className="py-2.5 text-center font-bold text-slate-200">{team.points}</td>
+                        <td className="py-2.5 text-center text-slate-400">
+                          {team.goalDiff > 0 ? `+${team.goalDiff}` : team.goalDiff}
+                        </td>
+                        <td className="py-2.5 text-center text-slate-400">{team.goalsFor}</td>
+                        <td className="py-2.5 text-center">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            isQualified
+                              ? isBorderline
+                                ? 'bg-yellow-800/40 text-yellow-400'
+                                : 'bg-green-800/40 text-green-400'
+                              : 'bg-slate-800 text-slate-600'
+                          }`}>
+                            {isQualified ? '✓ Clasifica' : 'Eliminado'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {!allGroupsComplete && (
+              <p className="text-xs text-slate-500 mt-3">
+                ⚠️ Proyección basada en resultados actuales. Se actualiza en tiempo real.
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-slate-500 text-center py-6">
+            Se actualizará automáticamente cuando inicien los partidos de grupos.
+          </p>
+        )}
       </div>
 
       {/* Selector de fase */}
@@ -229,13 +304,21 @@ export default function Bracket() {
 
       {/* Partidos de la fase seleccionada */}
       <div className="card p-5 overflow-x-auto">
-        <h3 className="font-bold text-white mb-4">{current.label}</h3>
+        <div className="flex items-center gap-3 mb-4">
+          <h3 className="font-bold text-white">{current.label}</h3>
+          {activePhase === 'd32' && bracketData && (
+            <span className="text-xs text-slate-500">
+              {allGroupsComplete ? '🟢 Bracket confirmado' : '🟡 Proyectado (grupos en curso)'}
+            </span>
+          )}
+        </div>
         <div className={`grid gap-4 ${current.cols === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 max-w-sm'}`}>
           {current.matches.map(match => (
             <MatchSlot
               key={match.id}
               match={match}
               highlight={match.id === 'final'}
+              resolvedMatch={activePhase === 'd32' ? (bracketByMatchId[match.matchId] ?? null) : null}
             />
           ))}
         </div>
