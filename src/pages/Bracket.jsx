@@ -140,9 +140,16 @@ export default function Bracket() {
     return rawStandings[0]?.league?.standings ?? []
   }, [rawStandings])
 
-  const formattedStandings = useMemo(() =>
-    allGroups.filter(g => g.length > 0).map(g => ({ group: g[0].group, standings: [g] }))
-  , [allGroups])
+  // Deduplicar por nombre de grupo antes de procesar — la API puede devolver
+  // el mismo grupo dos veces (ej. Paraguay en Group D duplicado)
+  const formattedStandings = useMemo(() => {
+    const unique = Array.from(
+      new Map(
+        allGroups.filter(g => g.length > 0).map(g => [g[0].group, g])
+      ).values()
+    )
+    return unique.map(g => ({ group: g[0].group, standings: [g] }))
+  }, [allGroups])
 
   const bracketData = useMemo(() => {
     if (!formattedStandings.length) return null
