@@ -1,56 +1,505 @@
-// Annex C — FIFA World Cup 2026 official regulations
+﻿// Annex C — FIFA World Cup 2026 official regulations
 // Key: 8 grupos clasificados ordenados alfabéticamente (ej "CDEFGHIJ")
 // Value: objeto con qué tercero juega contra cada campeón
 // Formato: { A: 'E', B: 'J', D: 'I', E: 'F', G: 'H', I: 'G', K: 'L', L: 'K' }
 // significa: 1ºA vs 3ºE, 1ºB vs 3ºJ, 1ºD vs 3ºI, etc.
 
 export const BRACKET_COMBINATIONS = new Map([
-  ['EFGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'F', G: 'H', I: 'G', K: 'L', L: 'K' }],
-  ['DFGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['DEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'H', I: 'G', K: 'L', L: 'K' }],
-  ['DEFHIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['DEFGIJKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['DEFGHJKL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['DEFGHIKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['DEFGHIJL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],
-  ['DEFGHIJK', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],
-  ['CFGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['CEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'G', K: 'L', L: 'K' }],
-  ['CEFHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CEFGIJKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['CEFGHJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CEFGHIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CEFGHIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'L', L: 'I' }],
-  ['CEFGHIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'I', L: 'K' }],
-  ['CDGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],
-  ['CDFHIJKL', { A: 'C', B: 'J', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDFGIJKL', { A: 'C', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['CDFGHJKL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDFGHIKL', { A: 'C', B: 'G', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDFGHIJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],
-  ['CDFGHIJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],
-  ['CDEHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],
-  ['CDEGIJKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],
-  ['CDEGHIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],
-  ['CDEGHJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],
-  ['CDEGHIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'L', L: 'I' }],
-  ['CDEGHIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'I', L: 'K' }],
-  ['CDEFIJKL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFHJKL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFHIKL', { A: 'C', B: 'E', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFHIJL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],
-  ['CDEFHIJK', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],
-  ['CDEFGJKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFGIKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFGIJL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'L', L: 'I' }],
-  ['CDEFGIJK', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'I', L: 'K' }],
-  ['CDEFGHKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],
-  ['CDEFGHJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'E' }],
-  ['CDEFGHJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'E', L: 'K' }],
-  ['CDEFGHIL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],
-  ['CDEFGHIK', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],
-  ['CDEFGHIJ', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'E', L: 'I' }],
-  // ... continúan hasta la combinación 495
+  ['EFGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'F', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 1
+  ['DFGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 2
+  ['DEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 3
+  ['DEFHIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 4
+  ['DEFGIJKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 5
+  ['DEFGHJKL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 6
+  ['DEFGHIKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 7
+  ['DEFGHIJL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 8
+  ['DEFGHIJK', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 9
+  ['CFGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 10
+  ['CEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 11
+  ['CEFHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 12
+  ['CEFGIJKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 13
+  ['CEFGHJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 14
+  ['CEFGHIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 15
+  ['CEFGHIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 16
+  ['CEFGHIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 17
+  ['CDGHIJKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],  // 18
+  ['CDFHIJKL', { A: 'C', B: 'J', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 19
+  ['CDFGIJKL', { A: 'C', B: 'G', D: 'I', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 20
+  ['CDFGHJKL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 21
+  ['CDFGHIKL', { A: 'C', B: 'G', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 22
+  ['CDFGHIJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 23
+  ['CDFGHIJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 24
+  ['CDEHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 25
+  ['CDEGIJKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],  // 26
+  ['CDEGHJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 27
+  ['CDEGHIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 28
+  ['CDEGHIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'L', L: 'I' }],  // 29
+  ['CDEGHIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'H', I: 'D', K: 'I', L: 'K' }],  // 30
+  ['CDEFIJKL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 31
+  ['CDEFHJKL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 32
+  ['CDEFHIKL', { A: 'C', B: 'E', D: 'I', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 33
+  ['CDEFHIJL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 34
+  ['CDEFHIJK', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 35
+  ['CDEFGJKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 36
+  ['CDEFGIKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 37
+  ['CDEFGIJL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 38
+  ['CDEFGIJK', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 39
+  ['CDEFGHKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 40
+  ['CDEFGHJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'L', L: 'E' }],  // 41
+  ['CDEFGHJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'E', L: 'K' }],  // 42
+  ['CDEFGHIL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 43
+  ['CDEFGHIK', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 44
+  ['CDEFGHIJ', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'H', I: 'F', K: 'E', L: 'I' }],  // 45
+  ['BFGHIJKL', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 46
+  ['BEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'B', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 47
+  ['BEFHIJKL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 48
+  ['BEFGIJKL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 49
+  ['BEFGHJKL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 50
+  ['BEFGHIKL', { A: 'E', B: 'G', D: 'B', E: 'F', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 51
+  ['BEFGHIJL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'H', I: 'G', K: 'L', L: 'I' }],  // 52
+  ['BEFGHIJK', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'H', I: 'G', K: 'I', L: 'K' }],  // 53
+  ['BDGHIJKL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 54
+  ['BDFHIJKL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 55
+  ['BDFGIJKL', { A: 'I', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 56
+  ['BDFGHJKL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 57
+  ['BDFGHIKL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 58
+  ['BDFGHIJL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 59
+  ['BDFGHIJK', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 60
+  ['BDEHIJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 61
+  ['BDEGIJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 62
+  ['BDEGHJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 63
+  ['BDEGHIKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 64
+  ['BDEGHIJL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'G', K: 'L', L: 'I' }],  // 65
+  ['BDEGHIJK', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'G', K: 'I', L: 'K' }],  // 66
+  ['BDEFIJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 67
+  ['BDEFHJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 68
+  ['BDEFHIKL', { A: 'E', B: 'I', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 69
+  ['BDEFHIJL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 70
+  ['BDEFHIJK', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 71
+  ['BDEFGJKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 72
+  ['BDEFGIKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 73
+  ['BDEFGIJL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 74
+  ['BDEFGIJK', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 75
+  ['BDEFGHKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 76
+  ['BDEFGHJL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'E' }],  // 77
+  ['BDEFGHJK', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'E', L: 'K' }],  // 78
+  ['BDEFGHIL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 79
+  ['BDEFGHIK', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 80
+  ['BDEFGHIJ', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'E', L: 'I' }],  // 81
+  ['BCGHIJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 82
+  ['BCFHIJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 83
+  ['BCFGIJKL', { A: 'I', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 84
+  ['BCFGHJKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 85
+  ['BCFGHIKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 86
+  ['BCFGHIJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 87
+  ['BCFGHIJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 88
+  ['BCEHIJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 89
+  ['BCEGIJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 90
+  ['BCEGHJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 91
+  ['BCEGHIKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 92
+  ['BCEGHIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'G', K: 'L', L: 'I' }],  // 93
+  ['BCEGHIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'G', K: 'I', L: 'K' }],  // 94
+  ['BCEFIJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 95
+  ['BCEFHJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 96
+  ['BCEFHIKL', { A: 'E', B: 'I', D: 'B', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 97
+  ['BCEFHIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 98
+  ['BCEFHIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 99
+  ['BCEFGJKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 100
+  ['BCEFGIKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 101
+  ['BCEFGIJL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 102
+  ['BCEFGIJK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 103
+  ['BCEFGHKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 104
+  ['BCEFGHJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'L', L: 'E' }],  // 105
+  ['BCEFGHJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'E', L: 'K' }],  // 106
+  ['BCEFGHIL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 107
+  ['BCEFGHIK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 108
+  ['BCEFGHIJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'E', L: 'I' }],  // 109
+  ['BCDHIJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 110
+  ['BCDGIJKL', { A: 'I', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],  // 111
+  ['BCDGHJKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],  // 112
+  ['BCDGHIKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 113
+  ['BCDGHIJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'I' }],  // 114
+  ['BCDGHIJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'I', L: 'K' }],  // 115
+  ['BCDFIJKL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 116
+  ['BCDFHJKL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 117
+  ['BCDFHIKL', { A: 'C', B: 'I', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 118
+  ['BCDFHIJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 119
+  ['BCDFHIJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 120
+  ['BCDFGJKL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'K' }],  // 121
+  ['BCDFGIKL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 122
+  ['BCDFGIJL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'I' }],  // 123
+  ['BCDFGIJK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'I', L: 'K' }],  // 124
+  ['BCDFGHKL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 125
+  ['BCDFGHJL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'J' }],  // 126
+  ['BCDFGHJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'D', L: 'K' }],  // 127
+  ['BCDFGHIL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 128
+  ['BCDFGHIK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 129
+  ['BCDFGHIJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'D', L: 'I' }],  // 130
+  ['BCDEIJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 131
+  ['BCDEHJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 132
+  ['BCDEHIKL', { A: 'E', B: 'I', D: 'B', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 133
+  ['BCDEHIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'D', K: 'L', L: 'I' }],  // 134
+  ['BCDEHIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'H', I: 'D', K: 'I', L: 'K' }],  // 135
+  ['BCDEGJKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'K' }],  // 136
+  ['BCDEGIKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 137
+  ['BCDEGIJL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'I' }],  // 138
+  ['BCDEGIJK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'I', L: 'K' }],  // 139
+  ['BCDEGHKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'D', K: 'L', L: 'K' }],  // 140
+  ['BCDEGHJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'L', L: 'E' }],  // 141
+  ['BCDEGHJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'E', L: 'K' }],  // 142
+  ['BCDEGHIL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'D', K: 'L', L: 'I' }],  // 143
+  ['BCDEGHIK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'H', I: 'D', K: 'I', L: 'K' }],  // 144
+  ['BCDEGHIJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'D', K: 'E', L: 'I' }],  // 145
+  ['BCDEFJKL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'E', I: 'F', K: 'L', L: 'K' }],  // 146
+  ['BCDEFIKL', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 147
+  ['BCDEFIJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'E', I: 'F', K: 'L', L: 'I' }],  // 148
+  ['BCDEFIJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'E', I: 'F', K: 'I', L: 'K' }],  // 149
+  ['BCDEFHKL', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'K' }],  // 150
+  ['BCDEFHJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'E' }],  // 151
+  ['BCDEFHJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'E', L: 'K' }],  // 152
+  ['BCDEFHIL', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'I' }],  // 153
+  ['BCDEFHIK', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'H', I: 'F', K: 'I', L: 'K' }],  // 154
+  ['BCDEFHIJ', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'H', I: 'F', K: 'E', L: 'I' }],  // 155
+  ['BCDEFGKL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'E', I: 'F', K: 'L', L: 'K' }],  // 156
+  ['BCDEFGJL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'L', L: 'E' }],  // 157
+  ['BCDEFGJK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'E', L: 'K' }],  // 158
+  ['BCDEFGIL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'E', I: 'F', K: 'L', L: 'I' }],  // 159
+  ['BCDEFGIK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'E', I: 'F', K: 'I', L: 'K' }],  // 160
+  ['BCDEFGIJ', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'J', I: 'F', K: 'E', L: 'I' }],  // 161
+  ['BCDEFGHL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'L', L: 'E' }],  // 162
+  ['BCDEFGHK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'E', L: 'K' }],  // 163
+  ['BCDEFGHJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'J', I: 'F', K: 'D', L: 'E' }],  // 164
+  ['BCDEFGHI', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'H', I: 'F', K: 'E', L: 'I' }],  // 165
+  ['AFGHIJKL', { A: 'H', B: 'J', D: 'I', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 166
+  ['AEGHIJKL', { A: 'E', B: 'J', D: 'I', E: 'A', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 167
+  ['AEFHIJKL', { A: 'E', B: 'J', D: 'I', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 168
+  ['AEFGIJKL', { A: 'E', B: 'J', D: 'I', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 169
+  ['AEFGHJKL', { A: 'E', B: 'G', D: 'J', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 170
+  ['AEFGHIKL', { A: 'E', B: 'G', D: 'I', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 171
+  ['AEFGHIJL', { A: 'E', B: 'G', D: 'J', E: 'F', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 172
+  ['AEFGHIJK', { A: 'E', B: 'G', D: 'J', E: 'F', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 173
+  ['ADGHIJKL', { A: 'H', B: 'J', D: 'I', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 174
+  ['ADFHIJKL', { A: 'H', B: 'J', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 175
+  ['ADFGIJKL', { A: 'I', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 176
+  ['ADFGHJKL', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 177
+  ['ADFGHIKL', { A: 'H', B: 'G', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 178
+  ['ADFGHIJL', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 179
+  ['ADFGHIJK', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 180
+  ['ADEHIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 181
+  ['ADEGIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 182
+  ['ADEGHJKL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 183
+  ['ADEGHIKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 184
+  ['ADEGHIJL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 185
+  ['ADEGHIJK', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 186
+  ['ADEFIJKL', { A: 'E', B: 'J', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 187
+  ['ADEFHJKL', { A: 'H', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 188
+  ['ADEFHIKL', { A: 'H', B: 'E', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 189
+  ['ADEFHIJL', { A: 'H', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 190
+  ['ADEFHIJK', { A: 'H', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 191
+  ['ADEFGJKL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 192
+  ['ADEFGIKL', { A: 'E', B: 'G', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 193
+  ['ADEFGIJL', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 194
+  ['ADEFGIJK', { A: 'E', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 195
+  ['ADEFGHKL', { A: 'H', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 196
+  ['ADEFGHJL', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 197
+  ['ADEFGHJK', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 198
+  ['ADEFGHIL', { A: 'H', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 199
+  ['ADEFGHIK', { A: 'H', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 200
+  ['ADEFGHIJ', { A: 'H', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 201
+  ['ACGHIJKL', { A: 'H', B: 'J', D: 'I', E: 'C', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 202
+  ['ACFHIJKL', { A: 'H', B: 'J', D: 'I', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 203
+  ['ACFGIJKL', { A: 'I', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 204
+  ['ACFGHJKL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 205
+  ['ACFGHIKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 206
+  ['ACFGHIJL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 207
+  ['ACFGHIJK', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 208
+  ['ACEHIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 209
+  ['ACEGIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 210
+  ['ACEGHJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 211
+  ['ACEGHIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 212
+  ['ACEGHIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 213
+  ['ACEGHIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 214
+  ['ACEFIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 215
+  ['ACEFHJKL', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 216
+  ['ACEFHIKL', { A: 'H', B: 'E', D: 'I', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 217
+  ['ACEFHIJL', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 218
+  ['ACEFHIJK', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 219
+  ['ACEFGJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 220
+  ['ACEFGIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 221
+  ['ACEFGIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 222
+  ['ACEFGIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 223
+  ['ACEFGHKL', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 224
+  ['ACEFGHJL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 225
+  ['ACEFGHJK', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 226
+  ['ACEFGHIL', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 227
+  ['ACEFGHIK', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 228
+  ['ACEFGHIJ', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 229
+  ['ACDHIJKL', { A: 'H', B: 'J', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 230
+  ['ACDGIJKL', { A: 'I', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 231
+  ['ACDGHJKL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 232
+  ['ACDGHIKL', { A: 'H', B: 'G', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 233
+  ['ACDGHIJL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 234
+  ['ACDGHIJK', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 235
+  ['ACDFIJKL', { A: 'C', B: 'J', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 236
+  ['ACDFHJKL', { A: 'H', B: 'J', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 237
+  ['ACDFHIKL', { A: 'H', B: 'F', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 238
+  ['ACDFHIJL', { A: 'H', B: 'J', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 239
+  ['ACDFHIJK', { A: 'H', B: 'J', D: 'F', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 240
+  ['ACDFGJKL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 241
+  ['ACDFGIKL', { A: 'C', B: 'G', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 242
+  ['ACDFGIJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 243
+  ['ACDFGIJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 244
+  ['ACDFGHKL', { A: 'H', B: 'G', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 245
+  ['ACDFGHJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'H' }],  // 246
+  ['ACDFGHJK', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 247
+  ['ACDFGHIL', { A: 'H', B: 'G', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 248
+  ['ACDFGHIK', { A: 'H', B: 'G', D: 'F', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 249
+  ['ACDFGHIJ', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 250
+  ['ACDEIJKL', { A: 'E', B: 'J', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 251
+  ['ACDEHJKL', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 252
+  ['ACDEHIKL', { A: 'H', B: 'E', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 253
+  ['ACDEHIJL', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 254
+  ['ACDEHIJK', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 255
+  ['ACDEGJKL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 256
+  ['ACDEGIKL', { A: 'E', B: 'G', D: 'I', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 257
+  ['ACDEGIJL', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 258
+  ['ACDEGIJK', { A: 'E', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 259
+  ['ACDEGHKL', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 260
+  ['ACDEGHJL', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 261
+  ['ACDEGHJK', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'E', L: 'K' }],  // 262
+  ['ACDEGHIL', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 263
+  ['ACDEGHIK', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 264
+  ['ACDEGHIJ', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'D', K: 'E', L: 'I' }],  // 265
+  ['ACDEFJKL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 266
+  ['ACDEFIKL', { A: 'C', B: 'E', D: 'I', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 267
+  ['ACDEFIJL', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 268
+  ['ACDEFIJK', { A: 'C', B: 'J', D: 'E', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 269
+  ['ACDEFHKL', { A: 'H', B: 'E', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 270
+  ['ACDEFHJL', { A: 'H', B: 'J', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 271
+  ['ACDEFHJK', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 272
+  ['ACDEFHIL', { A: 'H', B: 'E', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 273
+  ['ACDEFHIK', { A: 'H', B: 'E', D: 'F', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 274
+  ['ACDEFHIJ', { A: 'H', B: 'J', D: 'E', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 275
+  ['ACDEFGKL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 276
+  ['ACDEFGJL', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 277
+  ['ACDEFGJK', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 278
+  ['ACDEFGIL', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 279
+  ['ACDEFGIK', { A: 'C', B: 'G', D: 'E', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 280
+  ['ACDEFGIJ', { A: 'C', B: 'G', D: 'J', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 281
+  ['ACDEFGHL', { A: 'H', B: 'G', D: 'F', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 282
+  ['ACDEFGHK', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 283
+  ['ACDEFGHJ', { A: 'H', B: 'G', D: 'J', E: 'C', G: 'A', I: 'F', K: 'D', L: 'E' }],  // 284
+  ['ACDEFGHI', { A: 'H', B: 'G', D: 'E', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 285
+  ['ABGHIJKL', { A: 'H', B: 'J', D: 'B', E: 'A', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 286
+  ['ABFHIJKL', { A: 'H', B: 'J', D: 'B', E: 'A', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 287
+  ['ABFGIJKL', { A: 'I', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 288
+  ['ABFGHJKL', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 289
+  ['ABFGHIKL', { A: 'H', B: 'G', D: 'B', E: 'A', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 290
+  ['ABFGHIJL', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 291
+  ['ABFGHIJK', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 292
+  ['ABEHIJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 293
+  ['ABEGIJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'I', I: 'G', K: 'L', L: 'K' }],  // 294
+  ['ABEGHJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'H', I: 'G', K: 'L', L: 'K' }],  // 295
+  ['ABEGHIKL', { A: 'E', B: 'G', D: 'B', E: 'A', G: 'I', I: 'H', K: 'L', L: 'K' }],  // 296
+  ['ABEGHIJL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'H', I: 'G', K: 'L', L: 'I' }],  // 297
+  ['ABEGHIJK', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'H', I: 'G', K: 'I', L: 'K' }],  // 298
+  ['ABEFIJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 299
+  ['ABEFHJKL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 300
+  ['ABEFHIKL', { A: 'E', B: 'I', D: 'B', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 301
+  ['ABEFHIJL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 302
+  ['ABEFHIJK', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 303
+  ['ABEFGJKL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 304
+  ['ABEFGIKL', { A: 'E', B: 'G', D: 'B', E: 'A', G: 'I', I: 'F', K: 'L', L: 'K' }],  // 305
+  ['ABEFGIJL', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 306
+  ['ABEFGIJK', { A: 'E', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 307
+  ['ABEFGHKL', { A: 'E', B: 'G', D: 'B', E: 'F', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 308
+  ['ABEFGHJL', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'E' }],  // 309
+  ['ABEFGHJK', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'E', L: 'K' }],  // 310
+  ['ABEFGHIL', { A: 'E', B: 'G', D: 'B', E: 'F', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 311
+  ['ABEFGHIK', { A: 'E', B: 'G', D: 'B', E: 'F', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 312
+  ['ABEFGHIJ', { A: 'H', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'E', L: 'I' }],  // 313
+  ['ABDHIJKL', { A: 'I', B: 'J', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 314
+  ['ABDGIJKL', { A: 'I', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 315
+  ['ABDGHJKL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 316
+  ['ABDGHIKL', { A: 'I', B: 'G', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 317
+  ['ABDGHIJL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 318
+  ['ABDGHIJK', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 319
+  ['ABDFIJKL', { A: 'I', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 320
+  ['ABDFHJKL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 321
+  ['ABDFHIKL', { A: 'H', B: 'I', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 322
+  ['ABDFHIJL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 323
+  ['ABDFHIJK', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 324
+  ['ABDFGJKL', { A: 'F', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 325
+  ['ABDFGIKL', { A: 'I', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 326
+  ['ABDFGIJL', { A: 'F', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 327
+  ['ABDFGIJK', { A: 'F', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 328
+  ['ABDFGHKL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 329
+  ['ABDFGHJL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'J' }],  // 330
+  ['ABDFGHJK', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'J', L: 'K' }],  // 331
+  ['ABDFGHIL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 332
+  ['ABDFGHIK', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 333
+  ['ABDFGHIJ', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'J' }],  // 334
+  ['ABDEIJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 335
+  ['ABDEHJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 336
+  ['ABDEHIKL', { A: 'E', B: 'I', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 337
+  ['ABDEHIJL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 338
+  ['ABDEHIJK', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 339
+  ['ABDEGJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 340
+  ['ABDEGIKL', { A: 'E', B: 'G', D: 'B', E: 'A', G: 'I', I: 'D', K: 'L', L: 'K' }],  // 341
+  ['ABDEGIJL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 342
+  ['ABDEGIJK', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 343
+  ['ABDEGHKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 344
+  ['ABDEGHJL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'E' }],  // 345
+  ['ABDEGHJK', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'E', L: 'K' }],  // 346
+  ['ABDEGHIL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 347
+  ['ABDEGHIK', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 348
+  ['ABDEGHIJ', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'E', L: 'I' }],  // 349
+  ['ABDEFJKL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 350
+  ['ABDEFIKL', { A: 'E', B: 'I', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 351
+  ['ABDEFIJL', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 352
+  ['ABDEFIJK', { A: 'E', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 353
+  ['ABDEFHKL', { A: 'H', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 354
+  ['ABDEFHJL', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 355
+  ['ABDEFHJK', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 356
+  ['ABDEFHIL', { A: 'H', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 357
+  ['ABDEFHIK', { A: 'H', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 358
+  ['ABDEFHIJ', { A: 'H', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 359
+  ['ABDEFGKL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 360
+  ['ABDEFGJL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'J' }],  // 361
+  ['ABDEFGJK', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'J', L: 'K' }],  // 362
+  ['ABDEFGIL', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 363
+  ['ABDEFGIK', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 364
+  ['ABDEFGIJ', { A: 'E', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'J' }],  // 365
+  ['ABDEFGHL', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 366
+  ['ABDEFGHK', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 367
+  ['ABDEFGHJ', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'J' }],  // 368
+  ['ABDEFGHI', { A: 'H', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 369
+  ['ABCHIJKL', { A: 'I', B: 'J', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 370
+  ['ABCGIJKL', { A: 'I', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 371
+  ['ABCGHJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 372
+  ['ABCGHIKL', { A: 'I', B: 'G', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 373
+  ['ABCGHIJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 374
+  ['ABCGHIJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 375
+  ['ABCFIJKL', { A: 'I', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 376
+  ['ABCFHJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 377
+  ['ABCFHIKL', { A: 'H', B: 'I', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 378
+  ['ABCFHIJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 379
+  ['ABCFHIJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 380
+  ['ABCFGJKL', { A: 'C', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 381
+  ['ABCFGIKL', { A: 'I', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 382
+  ['ABCFGIJL', { A: 'C', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 383
+  ['ABCFGIJK', { A: 'C', B: 'J', D: 'B', E: 'F', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 384
+  ['ABCFGHKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 385
+  ['ABCFGHJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'J' }],  // 386
+  ['ABCFGHJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'J', L: 'K' }],  // 387
+  ['ABCFGHIL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 388
+  ['ABCFGHIK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 389
+  ['ABCFGHIJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'J' }],  // 390
+  ['ABCEIJKL', { A: 'E', B: 'J', D: 'B', E: 'A', G: 'I', I: 'C', K: 'L', L: 'K' }],  // 391
+  ['ABCEHJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 392
+  ['ABCEHIKL', { A: 'E', B: 'I', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 393
+  ['ABCEHIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 394
+  ['ABCEHIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 395
+  ['ABCEGJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 396
+  ['ABCEGIKL', { A: 'E', B: 'G', D: 'B', E: 'A', G: 'I', I: 'C', K: 'L', L: 'K' }],  // 397
+  ['ABCEGIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 398
+  ['ABCEGIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 399
+  ['ABCEGHKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'K' }],  // 400
+  ['ABCEGHJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'L', L: 'E' }],  // 401
+  ['ABCEGHJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'E', L: 'K' }],  // 402
+  ['ABCEGHIL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'H', K: 'L', L: 'I' }],  // 403
+  ['ABCEGHIK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'H', K: 'I', L: 'K' }],  // 404
+  ['ABCEGHIJ', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'G', K: 'E', L: 'I' }],  // 405
+  ['ABCEFJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 406
+  ['ABCEFIKL', { A: 'E', B: 'I', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 407
+  ['ABCEFIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 408
+  ['ABCEFIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 409
+  ['ABCEFHKL', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 410
+  ['ABCEFHJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 411
+  ['ABCEFHJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 412
+  ['ABCEFHIL', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 413
+  ['ABCEFHIK', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 414
+  ['ABCEFHIJ', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 415
+  ['ABCEFGKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 416
+  ['ABCEFGJL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'J' }],  // 417
+  ['ABCEFGJK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'J', L: 'K' }],  // 418
+  ['ABCEFGIL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 419
+  ['ABCEFGIK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 420
+  ['ABCEFGIJ', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'I', L: 'J' }],  // 421
+  ['ABCEFGHL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 422
+  ['ABCEFGHK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 423
+  ['ABCEFGHJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'E', L: 'J' }],  // 424
+  ['ABCEFGHI', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 425
+  ['ABCDIJKL', { A: 'I', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 426
+  ['ABCDHJKL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 427
+  ['ABCDHIKL', { A: 'H', B: 'I', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 428
+  ['ABCDHIJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 429
+  ['ABCDHIJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 430
+  ['ABCDGJKL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'K' }],  // 431
+  ['ABCDGIKL', { A: 'I', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 432
+  ['ABCDGIJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'L', L: 'I' }],  // 433
+  ['ABCDGIJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'G', K: 'I', L: 'K' }],  // 434
+  ['ABCDGHKL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 435
+  ['ABCDGHJL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'J' }],  // 436
+  ['ABCDGHJK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'J', L: 'K' }],  // 437
+  ['ABCDGHIL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 438
+  ['ABCDGHIK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 439
+  ['ABCDGHIJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'J' }],  // 440
+  ['ABCDFJKL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 441
+  ['ABCDFIKL', { A: 'C', B: 'I', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 442
+  ['ABCDFIJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 443
+  ['ABCDFIJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 444
+  ['ABCDFHKL', { A: 'H', B: 'F', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 445
+  ['ABCDFHJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'H' }],  // 446
+  ['ABCDFHJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 447
+  ['ABCDFHIL', { A: 'H', B: 'F', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 448
+  ['ABCDFHIK', { A: 'H', B: 'F', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 449
+  ['ABCDFHIJ', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 450
+  ['ABCDFGKL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 451
+  ['ABCDFGJL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'J' }],  // 452
+  ['ABCDFGJK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'J', L: 'K' }],  // 453
+  ['ABCDFGIL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 454
+  ['ABCDFGIK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 455
+  ['ABCDFGIJ', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'J' }],  // 456
+  ['ABCDFGHL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'H' }],  // 457
+  ['ABCDFGHK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 458
+  ['ABCDFGHJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'J' }],  // 459
+  ['ABCDFGHI', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 460
+  ['ABCDEJKL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 461
+  ['ABCDEIKL', { A: 'E', B: 'I', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 462
+  ['ABCDEIJL', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 463
+  ['ABCDEIJK', { A: 'E', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 464
+  ['ABCDEHKL', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 465
+  ['ABCDEHJL', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 466
+  ['ABCDEHJK', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'E', L: 'K' }],  // 467
+  ['ABCDEHIL', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 468
+  ['ABCDEHIK', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 469
+  ['ABCDEHIJ', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'D', K: 'E', L: 'I' }],  // 470
+  ['ABCDEGKL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'K' }],  // 471
+  ['ABCDEGJL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'J' }],  // 472
+  ['ABCDEGJK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'J', L: 'K' }],  // 473
+  ['ABCDEGIL', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'I' }],  // 474
+  ['ABCDEGIK', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'K' }],  // 475
+  ['ABCDEGIJ', { A: 'E', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'I', L: 'J' }],  // 476
+  ['ABCDEGHL', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 477
+  ['ABCDEGHK', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'E', L: 'K' }],  // 478
+  ['ABCDEGHJ', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'E', L: 'J' }],  // 479
+  ['ABCDEGHI', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'D', K: 'E', L: 'I' }],  // 480
+  ['ABCDEFKL', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'K' }],  // 481
+  ['ABCDEFJL', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 482
+  ['ABCDEFJK', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 483
+  ['ABCDEFIL', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'I' }],  // 484
+  ['ABCDEFIK', { A: 'C', B: 'E', D: 'B', E: 'D', G: 'A', I: 'F', K: 'I', L: 'K' }],  // 485
+  ['ABCDEFIJ', { A: 'C', B: 'J', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 486
+  ['ABCDEFHL', { A: 'H', B: 'F', D: 'B', E: 'C', G: 'A', I: 'D', K: 'L', L: 'E' }],  // 487
+  ['ABCDEFHK', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'K' }],  // 488
+  ['ABCDEFHJ', { A: 'H', B: 'J', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'E' }],  // 489
+  ['ABCDEFHI', { A: 'H', B: 'E', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'I' }],  // 490
+  ['ABCDEFGL', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'L', L: 'E' }],  // 491
+  ['ABCDEFGK', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'K' }],  // 492
+  ['ABCDEFGJ', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'J' }],  // 493
+  ['ABCDEFGI', { A: 'C', B: 'G', D: 'B', E: 'D', G: 'A', I: 'F', K: 'E', L: 'I' }],  // 494
+  ['ABCDEFGH', { A: 'H', B: 'G', D: 'B', E: 'C', G: 'A', I: 'F', K: 'D', L: 'E' }],  // 495
 ])
 
 export function getBracketCombination(qualifiedGroups) {
@@ -58,3 +507,4 @@ export function getBracketCombination(qualifiedGroups) {
   const key = [...qualifiedGroups].sort().join('')
   return BRACKET_COMBINATIONS.get(key) || null
 }
+
