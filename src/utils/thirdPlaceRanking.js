@@ -1,3 +1,14 @@
+import { GROUPS } from '../data/groups'
+import { TEAM_IDS } from '../data/teamIds'
+
+const _CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
+const FIFA_RANKING_BY_TEAM_ID = new Map(
+  GROUPS.flatMap(g => g.teams).flatMap(t => {
+    const apiId = TEAM_IDS[_CODE_ALIAS[t.code] ?? t.code]
+    return apiId !== undefined ? [[apiId, t.fifaRanking]] : []
+  })
+)
+
 export function rankThirdPlaceTeams(standings) {
   // standings: array de objetos de la API-Football standings
   // Extraer el 3er clasificado de cada grupo
@@ -18,10 +29,9 @@ export function rankThirdPlaceTeams(standings) {
       points: thirdTeam.points,
       goalDiff: thirdTeam.goalsDiff,
       goalsFor: thirdTeam.all.goals.for,
-      // fairPlay y FIFA ranking los usamos como desempate de último recurso
       // fairPlay no viene de API-Football — lo dejamos en 0 por ahora
       fairPlay: 0,
-      fifaRanking: thirdTeam.team.id, // placeholder — usar ranking real si disponible
+      fifaRanking: FIFA_RANKING_BY_TEAM_ID.get(thirdTeam.team.id) ?? 999,
     })
   }
 
