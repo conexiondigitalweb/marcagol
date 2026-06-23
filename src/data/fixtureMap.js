@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { TEAM_IDS } from './teamIds'
 import { MATCHES } from './matches'
 
-const CACHE_KEY = 'wc2026_fixture_map_v1'
-const CACHE_TTL = 24 * 60 * 60 * 1000
+const CACHE_KEY = 'wc2026_fixture_map_v2'
+const CACHE_TTL = 2 * 60 * 60 * 1000
 
 // Alias entre códigos de matches.js y claves de TEAM_IDS
 const CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
@@ -19,13 +19,23 @@ let _map        = null
 let _inverseMap = null
 let _promise    = null
 
+// Devuelve true si el mapa cacheado omite algún partido cuyos equipos ahora son
+// resolvibles — caso típico: mapa construido cuando el rival era TBD, luego
+// actualizado en matches.js tras la eliminatoria.
+function hasResolvableGaps(map) {
+  for (const m of MATCHES) {
+    if (resolveId(m.homeTeam) && resolveId(m.awayTeam) && !map[m.id]) return true
+  }
+  return false
+}
+
 async function fetchAndBuild() {
-  // Cache localStorage (24h)
+  // Cache localStorage (2h) + invalidación si hay equipos TBD que ya se definieron
   try {
     const stored = localStorage.getItem(CACHE_KEY)
     if (stored) {
       const { map, ts } = JSON.parse(stored)
-      if (Date.now() - ts < CACHE_TTL) return map
+      if (Date.now() - ts < CACHE_TTL && !hasResolvableGaps(map)) return map
     }
   } catch {}
 

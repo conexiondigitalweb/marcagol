@@ -108,7 +108,7 @@
 
 ## ARQUITECTURA DE CACHÉ (4 capas)
 1. **Service Worker:** Cache-First para assets estáticos. La regla api-football-cache es dead code.
-2. **localStorage:** wc2026_ft_fixture_v3_*, wc2026_ft_detail_v3_*, wc2026_results_v1 (saveResult SIEMPRE sobrescribe), marcagol_predictions, wc2026_fixture_map_v1 (24h), wc2026_mis_participaciones, token_admin por polla
+2. **localStorage:** wc2026_ft_fixture_v3_*, wc2026_ft_detail_v3_*, wc2026_results_v1 (saveResult SIEMPRE sobrescribe), marcagol_predictions, wc2026_fixture_map_v2 (2h + invalidación automática si hay equipos TBD resueltos), wc2026_mis_participaciones, token_admin por polla
 3. **Memoria cliente (liveData.js cache Map singleton):** live 30s, fixtures 5min, standings 10min, scorers 2min, events 10s, lineups 30s, statistics 60s
 4. **KV/Redis (Upstash):** TTLs según endpoint (ver sección APIS)
 
@@ -120,7 +120,7 @@
 ## RIESGOS DE CACHÉ PENDIENTES
 - ⚠️ Sin mecanismo de invalidación remota para localStorage — si API-Football corrige un resultado y el usuario no vuelve, su caché permanece incorrecta hasta nuevo deploy con bump de cache key
 - ⚠️ L1 memCache sin sincronización entre instancias Vercel Fluid Compute — requests simultáneos pueden llegar a instancias con estados L1 diferentes (limitado por TTLs cortos)
-- ⚠️ fixtureMap 24h localStorage — links rotos si el mapa se construyó con equipos TBD
+- ✅ fixtureMap: TTL reducido a 2h + invalidación automática si equipos TBD ya resueltos (commit siguiente, cache key v2)
 
 ## ESTRATEGIA DE NEGOCIO
 - Fan page: Marcagol.live en Facebook e Instagram (@marcagollive)
