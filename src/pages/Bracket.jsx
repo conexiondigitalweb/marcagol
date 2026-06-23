@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Flag from '../components/ui/Flag'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { GROUPS } from '../data/groups'
@@ -150,6 +150,19 @@ export default function Bracket() {
     )
     return unique.map(g => ({ group: g[0].group, standings: [g] }))
   }, [allGroups])
+
+  // DEBUG TEMPORAL — eliminar después del diagnóstico
+  useEffect(() => {
+    if (!allGroups.length) return
+    console.log('RAW allGroups length:', allGroups.length)
+    console.log('RAW allGroups groups:', allGroups.map(g => g[0]?.group))
+    console.log('formattedStandings length:', formattedStandings.length)
+    console.log('formattedStandings groups:', formattedStandings.map(g => g.group))
+    formattedStandings.forEach(g => {
+      const third = g.standings[0]?.[2]
+      console.log(`Grupo ${g.group}: 3º = ${third?.team?.name} (rank=${third?.rank}, pts=${third?.points})`)
+    })
+  }, [allGroups, formattedStandings])
 
   const bracketData = useMemo(() => {
     if (!formattedStandings.length) return null
