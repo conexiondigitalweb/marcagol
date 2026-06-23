@@ -112,15 +112,25 @@
 3. **Memoria cliente (liveData.js cache Map singleton):** live 30s, fixtures 5min, standings 10min, scorers 2min, events 10s, lineups 30s, statistics 60s
 4. **KV/Redis (Upstash):** TTLs según endpoint (ver sección APIS)
 
-## RIESGOS DE CACHÉ RESUELTOS (commit 467791e — 22-jun-2026)
-- ✅ saveResult() ahora SIEMPRE sobrescribe — correcciones de API-Football se propagan en próxima visita
-- ✅ FT en KV: TTL reducido de 86400s (24h) a 7200s (2h) — ventana de datos incorrectos acotada
-- ✅ estadisticas-mundial TTL consistente: L1 memCache y L2 KV ambos en 300s — eliminada ventana de 240s de inconsistencia entre instancias Vercel
+## ARCHIVOS DE CACHÉ CENTRALIZADOS
+- **src/cacheConfig.js** — fuente de verdad única: CACHE_VERSION actual ('1') + todas las 11 cache keys del proyecto
+- **src/cacheManager.js** — runCacheInvalidation(version): limpia todas las keys de datos si CACHE_VERSION cambió, preserva keys de usuario
+
+## CÓMO FORZAR LIMPIEZA DE CACHÉ EN PRODUCCIÓN (sin intervención del usuario)
+1. Abrir src/cacheConfig.js
+2. Incrementar CACHE_VERSION de '1' a '2' (o el número siguiente)
+3. Commit y push → deploy automático en Vercel
+4. En la próxima carga de cada usuario, localStorage se limpia solo antes de que React renderice
+
+## RIESGOS DE CACHÉ RESUELTOS
+- ✅ saveResult() ahora SIEMPRE sobrescribe — correcciones de API-Football se propagan en próxima visita (commit 467791e)
+- ✅ FT en KV: TTL reducido de 86400s (24h) a 7200s (2h) — ventana de datos incorrectos acotada (commit 467791e)
+- ✅ estadisticas-mundial TTL consistente: L1 memCache y L2 KV ambos en 300s — eliminada ventana de 240s de inconsistencia entre instancias Vercel (commit 467791e)
+- ✅ fixtureMap: TTL reducido a 2h + invalidación automática si equipos TBD ya resueltos — cache key v2 (commit fc99e74)
+- ✅ Invalidación automática de localStorage por versión de build — runCacheInvalidation(CACHE_VERSION) en main.jsx antes de render. Para forzar limpieza en todos los dispositivos: incrementar CACHE_VERSION en src/cacheConfig.js y hacer deploy. Las keys de usuario (mis_pollas, polla_token_*, polla_nombre, pwa-install-dismissed, wc2026_mis_participaciones) nunca se tocan. (commit 1d1d2b3)
 
 ## RIESGOS DE CACHÉ PENDIENTES
-- ⚠️ Sin mecanismo de invalidación remota para localStorage — si API-Football corrige un resultado y el usuario no vuelve, su caché permanece incorrecta hasta nuevo deploy con bump de cache key
 - ⚠️ L1 memCache sin sincronización entre instancias Vercel Fluid Compute — requests simultáneos pueden llegar a instancias con estados L1 diferentes (limitado por TTLs cortos)
-- ✅ fixtureMap: TTL reducido a 2h + invalidación automática si equipos TBD ya resueltos (commit siguiente, cache key v2)
 
 ## ESTRATEGIA DE NEGOCIO
 - Fan page: Marcagol.live en Facebook e Instagram (@marcagollive)
