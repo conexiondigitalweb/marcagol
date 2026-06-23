@@ -14,7 +14,6 @@ export function runCacheInvalidation(version) {
         'wc2026_ft_detail_v3_',
         'wc2026_results_v1',
         'wc2026_fixture_map_v2',
-        'marcagol_predictions',
         'marcagol_player_',
       ].some(prefix => key.startsWith(prefix))
       if (shouldClear) keysToDelete.push(key)
