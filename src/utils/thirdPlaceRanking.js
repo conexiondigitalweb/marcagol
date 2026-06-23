@@ -18,7 +18,9 @@ export function rankThirdPlaceTeams(standings) {
 
   for (const groupData of standings) {
     const groupLetter = groupData.group.replace('Group ', '')
-    const thirdTeam = groupData.standings[0][2] // índice 2 = 3er lugar
+    const teamsInGroup = groupData.standings[0]
+    const thirdTeam = teamsInGroup.find(t => t.rank === 3)
+      ?? [...teamsInGroup].sort((a, b) => a.rank - b.rank)[2]
     if (!thirdTeam) continue
 
     thirds.push({

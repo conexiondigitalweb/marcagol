@@ -31,10 +31,10 @@ export function projectBracket(standings) {
     const letter = groupData.group.replace('Group ', '')
     const teams = groupData.standings[0]
     groupPositions[letter] = {
-      winner:   teams[0],
-      runnerUp: teams[1],
-      third:    teams[2],
-      fourth:   teams[3],
+      winner:   teams.find(t => t.rank === 1) ?? [...teams].sort((a, b) => a.rank - b.rank)[0],
+      runnerUp: teams.find(t => t.rank === 2) ?? [...teams].sort((a, b) => a.rank - b.rank)[1],
+      third:    teams.find(t => t.rank === 3) ?? [...teams].sort((a, b) => a.rank - b.rank)[2],
+      fourth:   teams.find(t => t.rank === 4) ?? [...teams].sort((a, b) => a.rank - b.rank)[3],
     }
   }
 
