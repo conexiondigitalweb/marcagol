@@ -15,7 +15,6 @@ export function getResult(matchId) {
 export function saveResult(matchId, homeScore, awayScore) {
   const store = readStore()
   const key = String(matchId)
-  if (store[key]) return  // already saved, no overwrite
   store[key] = { homeScore, awayScore }
   try { localStorage.setItem(KEY, JSON.stringify(store)) } catch {}
 }

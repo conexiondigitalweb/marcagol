@@ -53,7 +53,7 @@ function ttlSecondsFor(endpoint, params, data = null) {
     if (data === null) return 30
     const status = data?.response?.[0]?.fixture?.status?.short
     if (LIVE_STATUSES.has(status))          return 20
-    if (FINISHED_STATUSES.has(status))      return 86_400  // 24h — resultado inmutable
+    if (FINISHED_STATUSES.has(status))      return 7_200   // 2h — tiempo suficiente para confirmar resultado
     return 60
   }
 
@@ -166,7 +166,7 @@ export default async function handler(req, res) {
     }
     const kvHit = await kvGet(cacheKey)
     if (kvHit) {
-      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 60_000 })
+      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 300_000 })
       res.setHeader('X-Cache', 'HIT-KV')
       return res.status(200).json(kvHit)
     }
