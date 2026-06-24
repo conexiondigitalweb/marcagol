@@ -88,12 +88,23 @@ function GroupTable({ group, liveScoresMap, apiGroupArr }) {
   const hasLive = groupMatches.some(m => liveScoresMap[m.id])
 
   let sorted
+  let isUpdating = false
   if (hasLive && apiGroupArr?.length) {
     // Partido en curso: standings oficiales + overlay en vivo
     sorted = applyLiveOverlay(mapApiGroupTeams(apiGroupArr, group.teams), groupMatches, liveScoresMap)
   } else if (apiGroupArr?.length) {
-    // Sin partido en curso: standings oficiales de la API (fuente de verdad)
-    sorted = mapApiGroupTeams(apiGroupArr, group.teams)
+    const apiOrdered = mapApiGroupTeams(apiGroupArr, group.teams)
+    // Detectar ventana post-partido: rank aún no actualizado pero puntos ya reflejan el resultado.
+    // Si algún equipo tiene MÁS puntos que el equipo rankeado por encima → inconsistencia.
+    const inconsistent = apiOrdered.some((t, i) => i > 0 && t.points > apiOrdered[i - 1].points)
+    if (inconsistent) {
+      // Orden provisional por puntos; igual-puntos mantiene el rank API (sort estable)
+      sorted = [...apiOrdered].sort((a, b) => b.points - a.points)
+      isUpdating = true
+    } else {
+      // Rank oficial consistente → fuente de verdad
+      sorted = apiOrdered
+    }
   } else {
     // Fallback: cómputo local desde localStorage (API aún no cargó)
     sorted = sortTeams(computeGroupStandings(group.teams, groupMatches, liveScoresMap))
@@ -169,6 +180,14 @@ function GroupTable({ group, liveScoresMap, apiGroupArr }) {
           </tbody>
         </table>
       </div>
+
+      {/* Badge post-partido: rank API aún en delay, orden provisional por puntos */}
+      {isUpdating && (
+        <div className="px-4 py-2 flex items-center gap-2 border-t border-amber-500/20 bg-amber-500/5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+          <span className="text-xs text-amber-400">Actualizando posiciones...</span>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="px-4 py-2 flex items-center gap-4 border-t border-slate-700/30">
