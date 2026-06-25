@@ -206,7 +206,7 @@ function GroupTable({ group, liveScoresMap, apiGroupArr }) {
 
 export default function Groups() {
   const liveScoresMap = useLiveScoresMap(MATCHES)
-  const { standings: apiStandings } = useStandings()
+  const { standings: apiStandings } = useStandings(60_000)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const apiStandingsByGroup = useMemo(() => {
