@@ -185,7 +185,7 @@ export default function GroupDetail() {
 
   // Hooks deben llamarse antes de cualquier return condicional
   const { matches: apiLiveMatches } = useLiveMatches()
-  const { standings: apiStandings }  = useStandings()
+  const { standings: apiStandings }  = useStandings(60_000)
   const [resultsVersion, setResultsVersion] = useState(0)
 
   // Rank oficial de API-Football para este grupo: { appTeamCode → rank }

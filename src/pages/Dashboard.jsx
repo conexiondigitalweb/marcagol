@@ -310,7 +310,7 @@ export default function Dashboard() {
   const hasApiLive     = apiLiveMatches.length > 0
   const liveScoresMap  = useLiveScoresMap(MATCHES)
   const { totalPoints, predictedCount } = usePredictions()
-  const { standings: apiStandings } = useStandings()
+  const { standings: apiStandings } = useStandings(60_000)
 
   // Rank + puntos por grupo, directo de la API: { 'A': [{code,iso2,name,rank,points},...], ... }
   const groupRankings = useMemo(() => {
