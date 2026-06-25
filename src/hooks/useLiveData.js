@@ -183,7 +183,7 @@ export function useTodayMatches() {
 }
 
 // ─── Hook: Tablas de posiciones (polling cada 10min) ──────────────────────────
-export function useStandings() {
+export function useStandings(intervalMs = 10 * 60 * 1000) {
   const [standings, setStandings] = useState([])
   const [loading, setLoading]     = useState(true)
   const [error, setError]         = useState(null)
@@ -202,9 +202,9 @@ export function useStandings() {
 
   useEffect(() => {
     fetch()
-    const interval = setInterval(fetch, 10 * 60 * 1000)
+    const interval = setInterval(fetch, intervalMs)
     return () => clearInterval(interval)
-  }, [fetch])
+  }, [fetch, intervalMs])
 
   return { standings, loading, error, refetch: fetch }
 }

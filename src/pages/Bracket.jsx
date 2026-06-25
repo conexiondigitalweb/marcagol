@@ -3,7 +3,7 @@ import Flag from '../components/ui/Flag'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import { GROUPS } from '../data/groups'
 import { MATCHES } from '../data/matches'
-import { useStandings } from '../hooks/useLiveData'
+import { useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
 import { rankThirdPlaceTeams } from '../utils/thirdPlaceRanking'
 import { esTeamName } from '../data/teamNames'
@@ -128,9 +128,13 @@ function MatchSlot({ match, highlight = false, resolvedMatch = null }) {
   )
 }
 
+const LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE'])
+
 export default function Bracket() {
   const [activePhase, setActivePhase] = useState('d32')
-  const { standings: rawStandings, loading } = useStandings()
+  const { matches: liveMatches } = useLiveMatches()
+  const hasLive = liveMatches.some(m => LIVE_STATUSES.has(m.fixture?.status?.short))
+  const { standings: rawStandings, loading } = useStandings(hasLive ? 60_000 : 600_000)
 
   // useStandings() devuelve [{ league: { standings: [[groupA],[groupB],...] } }]
   // Transformar al formato que esperan projectBracket y rankThirdPlaceTeams:
