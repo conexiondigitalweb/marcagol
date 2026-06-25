@@ -313,7 +313,7 @@ export default function Bracket() {
 
       {/* Partidos de la fase seleccionada */}
       <div className="card p-5 overflow-x-auto">
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex items-center gap-3 mb-2">
           <h3 className="font-bold text-white">{current.label}</h3>
           {activePhase === 'd32' && bracketData && (
             <span className="text-xs text-slate-500">
@@ -321,6 +321,12 @@ export default function Bracket() {
             </span>
           )}
         </div>
+        {activePhase === 'd32' && (
+          <div className="flex gap-4 mb-4 text-xs text-slate-400">
+            <span>🟢 1º y 2º — Clasifican a Dieciseisavos</span>
+            <span>🟡 Posible clasificación</span>
+          </div>
+        )}
         <div className={`grid gap-4 ${current.cols === 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 max-w-sm'}`}>
           {current.matches.map(match => (
             <MatchSlot
