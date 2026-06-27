@@ -214,7 +214,7 @@ export function getMatchStatus(fixture) {
 export function getEventIcon(type, detail) {
   if (type === 'Goal') {
     if (detail?.includes('Missed Penalty'))    return { icon: '❌', label: 'Penal fallado' }
-    if (detail?.includes('Own Goal'))          return { icon: '⚽', label: 'Gol en contra' }
+    if (detail?.includes('Own Goal'))          return { icon: '🔴⚽', label: 'Gol en propia puerta' }
     if (detail?.includes('Penalty'))           return { icon: '⚽', label: 'Penal convertido' }
     if (detail?.includes('Direct Free-kick') || detail?.includes('Free Kick'))
                                                return { icon: '⚽', label: 'Tiro libre directo' }
