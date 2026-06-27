@@ -8,11 +8,12 @@ import { useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
 
 // ─── Constantes de layout desktop ────────────────────────────────────────────
-// Árbol Fase Final: alturas fijas por ronda, todas suman TREE_H
-// Octavos 8×80 = Cuartos 4×160 = Semis 2×320 = 640 → conectores siempre alineados
-const TREE_H  = 640
+// Árbol con posicionamiento absoluto: cada slot se posiciona en su centro exacto.
+// SLOT_H es la altura del card. TREE_H = 8 × SLOT_H (total de los 8 slots de Octavos).
+const SLOT_H  = 96    // altura de cada slot card (header+2 rows+padding = ~91px)
+const TREE_H  = SLOT_H * 8  // = 768px — contenedor de cada columna del árbol
 const COL_W   = 160   // ancho slot árbol desktop
-const CONN_W  = 32    // ancho conector desktop (slate-600)
+const CONN_W  = 32    // ancho conector desktop
 
 // ─── Constantes árbol móvil ───────────────────────────────────────────────────
 const MOB_SLOT_W  = 76
@@ -252,113 +253,125 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
   )
 }
 
-// ─── PhaseConnectors — conectores entre columnas del árbol desktop ────────────
-// count = slots en la columna DERECHA
-// TREE_H/count = altura de cada slot derecho = altura de cada celda de conector
-// El horizontal al 50% de cada celda apunta al centro del slot derecho,
-// que coincide con el centro del par de slots izquierdos (los que alimentan ese slot)
-function PhaseConnectors({ count }) {
-  const rowH = TREE_H / count
-  return (
-    <div className="flex-shrink-0 relative" style={{ width: CONN_W, height: TREE_H }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="absolute left-0 right-0" style={{ top: i * rowH, height: rowH }}>
-          <div className="absolute left-0 right-0 top-0" style={{
-            height: '50%', borderBottom: '1px solid #475569', borderRight: '1px solid #475569',
-          }} />
-          <div className="absolute left-0 right-0 bottom-0" style={{
-            height: '50%', borderTop: '1px solid #475569', borderRight: '1px solid #475569',
-          }} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ─── PhaseColumn — columna con slots de altura fija ──────────────────────────
-// slotH determina la altura de cada contenedor de slot.
-// El slot card vive centrado verticalmente dentro del contenedor.
-function PhaseColumn({ ids, slotH, bracketByMatchId }) {
-  return (
-    <div className="flex-shrink-0 flex flex-col" style={{ width: COL_W, height: TREE_H }}>
-      {ids.map(id => {
-        const m        = ALL_BY_ID[id]
-        const resolved = bracketByMatchId[id]
-        if (!m) return null
-        return (
-          <div key={id} className="flex items-center" style={{ height: slotH }}>
-            <BracketSlot
-              matchId={id}
-              home={m.home}
-              away={m.away}
-              resolvedHome={resolved?.home}
-              resolvedAway={resolved?.away}
-              isHighlight={id === 104}
-            />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Árbol desktop Fase Final ─────────────────────────────────────────────────
-// Octavos: 8 slots × h=80px = 640px
-// Cuartos: 4 slots × h=160px = 640px  → conector count=4, rowH=160
-// Semis:   2 slots × h=320px = 640px  → conector count=2, rowH=320
-// Final:   1 slot centrado en 640px   → conector count=1, rowH=640
+// ─── Árbol desktop Fase Final — posicionamiento absoluto ─────────────────────
+//
+// Cada slot se posiciona calculando su centro exacto:
+//   Oct slot i  → center = i × SLOT_H + SLOT_H/2
+//   QF  slot j  → center = avg(oct[2j].center, oct[2j+1].center)
+//   SF  slot k  → center = avg(qf[2k].center,  qf[2k+1].center)
+//   Final       → center = avg(sf[0].center,    sf[1].center)
+//
+// Conectores: 4 líneas absolutas por par (arm arriba, arm abajo, vertical, output).
 function DesktopFinalTree({ bracketByMatchId }) {
-  const COLS = [
-    { label: 'Octavos',    sub: '4 – 7 jul',   ids: [89,90,91,92,93,94,95,96], slotH: 80  },
-    { label: 'Cuartos',    sub: '9 – 11 jul',  ids: [97,98,99,100],            slotH: 160 },
-    { label: 'Semifinales',sub: '14 – 15 jul', ids: [101,102],                 slotH: 320 },
-    { label: 'Final',      sub: '19 jul',       ids: [104],                     slotH: TREE_H },
+  const half = SLOT_H / 2
+
+  // Posiciones absolutas de cada slot (top = center - half)
+  const oct = [89,90,91,92,93,94,95,96].map((id, i) => ({
+    id, center: i * SLOT_H + half,
+  }))
+  const qf = [97,98,99,100].map((id, j) => {
+    const c = (oct[2*j].center + oct[2*j+1].center) / 2
+    return { id, center: c }
+  })
+  const sf = [101,102].map((id, k) => {
+    const c = (qf[2*k].center + qf[2*k+1].center) / 2
+    return { id, center: c }
+  })
+  const finalC = (sf[0].center + sf[1].center) / 2
+
+  // Pares de conectores: { topY, botY, midY }
+  const connOctQF = qf.map((q, j) => ({ topY: oct[2*j].center, botY: oct[2*j+1].center, midY: q.center }))
+  const connQFSF  = sf.map((s, k)  => ({ topY: qf[2*k].center,  botY: qf[2*k+1].center,  midY: s.center }))
+  const connSFFin = { topY: sf[0].center, botY: sf[1].center, midY: finalC }
+
+  // Renderiza una columna con posicionamiento absoluto
+  function Col({ slots }) {
+    return (
+      <div className="flex-shrink-0 relative" style={{ width: COL_W, height: TREE_H }}>
+        {slots.map(({ id, center }) => {
+          const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
+          if (!m) return null
+          return (
+            <div key={id} className="absolute" style={{ top: center - half, left: 0, right: 0 }}>
+              <BracketSlot matchId={id} home={m.home} away={m.away}
+                resolvedHome={resolved?.home} resolvedAway={resolved?.away}
+                isHighlight={id === 104}
+              />
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // Renderiza un grupo de conectores (arm top, arm bot, vertical, output)
+  const MID_X = CONN_W / 2
+  function Conn({ pairs }) {
+    return (
+      <div className="flex-shrink-0 relative" style={{ width: CONN_W, height: TREE_H }}>
+        {pairs.map(({ topY, botY, midY }, i) => (
+          <Fragment key={i}>
+            {/* arm desde slot superior */}
+            <div className="absolute bg-slate-600" style={{ left: 0,     top: topY,  width: MID_X, height: 1 }} />
+            {/* arm desde slot inferior */}
+            <div className="absolute bg-slate-600" style={{ left: 0,     top: botY,  width: MID_X, height: 1 }} />
+            {/* vertical entre los dos arms */}
+            <div className="absolute bg-slate-600" style={{ left: MID_X, top: topY,  width: 1,     height: botY - topY + 1 }} />
+            {/* output horizontal hacia columna derecha */}
+            <div className="absolute bg-slate-600" style={{ left: MID_X, top: midY,  width: MID_X, height: 1 }} />
+          </Fragment>
+        ))}
+      </div>
+    )
+  }
+
+  const LABELS = [
+    { label: 'Octavos',     sub: '4 – 7 jul'   },
+    { label: 'Cuartos',     sub: '9 – 11 jul'  },
+    { label: 'Semifinales', sub: '14 – 15 jul' },
+    { label: 'Final',       sub: '19 jul'       },
   ]
 
   return (
     <div className="overflow-x-auto pb-4">
-      {/* Cabeceras de columna */}
+      {/* Cabeceras */}
       <div className="flex mb-2" style={{ gap: 0 }}>
-        {COLS.map((col, i) => (
+        {LABELS.map((l, i) => (
           <Fragment key={i}>
             <div className="flex-shrink-0 text-center" style={{ width: COL_W }}>
-              <div className="text-xs font-semibold text-slate-300">{col.label}</div>
-              <div className="text-[10px] text-slate-600">{col.sub}</div>
+              <div className="text-xs font-semibold text-slate-300">{l.label}</div>
+              <div className="text-[10px] text-slate-600">{l.sub}</div>
             </div>
-            {i < COLS.length - 1 && <div style={{ width: CONN_W }} />}
+            {i < LABELS.length - 1 && <div style={{ width: CONN_W }} />}
           </Fragment>
         ))}
       </div>
 
       {/* Árbol */}
       <div className="flex items-start" style={{ gap: 0 }}>
-        {COLS.map((col, i) => (
-          <Fragment key={col.label}>
-            <PhaseColumn ids={col.ids} slotH={col.slotH} bracketByMatchId={bracketByMatchId} />
-            {i < COLS.length - 1 && (
-              <PhaseConnectors count={COLS[i + 1].ids.length} />
-            )}
-          </Fragment>
-        ))}
+        <Col slots={oct} />
+        <Conn pairs={connOctQF} />
+        <Col slots={qf} />
+        <Conn pairs={connQFSF} />
+        <Col slots={sf} />
+        <Conn pairs={[connSFFin]} />
+        {/* Final: 1 slot centrado en TREE_H */}
+        <div className="flex-shrink-0 relative" style={{ width: COL_W, height: TREE_H }}>
+          <div className="absolute" style={{ top: finalC - half, left: 0, right: 0 }}>
+            <BracketSlot matchId={104} home={FINAL.home} away={FINAL.away}
+              resolvedHome={bracketByMatchId[104]?.home} resolvedAway={bracketByMatchId[104]?.away}
+              isHighlight
+            />
+          </div>
+        </div>
       </div>
 
       {/* 3er Puesto */}
       <div className="mt-6 flex items-center gap-3">
         <span className="text-xs text-slate-500 font-semibold">3er Puesto · 18 jul</span>
-        <BracketSlot
-          matchId={103}
-          home={THIRD.home}
-          away={THIRD.away}
-          resolvedHome={bracketByMatchId[103]?.home}
-          resolvedAway={bracketByMatchId[103]?.away}
+        <BracketSlot matchId={103} home={THIRD.home} away={THIRD.away}
+          resolvedHome={bracketByMatchId[103]?.home} resolvedAway={bracketByMatchId[103]?.away}
         />
-      </div>
-
-      {/* Leyenda */}
-      <div className="flex gap-5 mt-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmado</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-400" />Proyectado</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-700" />Por definir</span>
       </div>
     </div>
   )
@@ -469,13 +482,6 @@ function MobileFinalTree({ bracketByMatchId }) {
         <TreeSlot matchId={103} home={THIRD.home} away={THIRD.away}
           resolvedHome={bracketByMatchId[103]?.home} resolvedAway={bracketByMatchId[103]?.away}
         />
-      </div>
-
-      {/* Leyenda */}
-      <div className="flex gap-4 mt-4 text-[10px] text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
       </div>
     </div>
   )
