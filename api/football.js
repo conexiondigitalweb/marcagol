@@ -244,16 +244,22 @@ export default async function handler(req, res) {
         !best || veces > best.veces ? { score, veces } : best, null)
 
       // Autogoles + tarjetas: consultar eventos de cada fixture
+      // Bypass KV si el partido terminó hace <2h (eventos pueden estar incompletos)
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+      // Estimamos fin del partido como kickoff + 105 min (90 + ~15 descuentos)
+      const estimatedEnd = (f) => new Date(f.fixture.date).getTime() + 105 * 60 * 1000
+
       let autogoles = 0
       let tarjetasAmarillas = 0
       let tarjetasRojas = 0
       await Promise.all(fixtures.map(async f => {
         const fid = f.fixture.id
         const eventsKey = `/fixtures/events?fixture=${fid}`
-        let eventsData = await kvGet(eventsKey)
+        const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
+        let eventsData = recentFT ? null : await kvGet(eventsKey)
 
-        // Caché con 0 eventos para partido FT: puede ser dato incompleto
-        if (eventsData && !(eventsData.response?.length > 0)) {
+        // Caché con 0 eventos para partido FT antiguo: puede ser dato incompleto
+        if (!recentFT && eventsData && !(eventsData.response?.length > 0)) {
           await kvDel(eventsKey)
           eventsData = null
         }
@@ -279,7 +285,7 @@ export default async function handler(req, res) {
             if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
             if (ev.type === 'Card') {
               if (ev.detail === 'Yellow Card') tarjetasAmarillas++
-              else if (ev.detail === 'Red Card') tarjetasRojas++
+              else if (ev.detail === 'Red Card' || ev.detail === 'Second Yellow Card') tarjetasRojas++
             }
           }
         }
