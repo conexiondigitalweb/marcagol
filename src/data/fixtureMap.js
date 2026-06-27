@@ -19,11 +19,13 @@ let _map        = null
 let _inverseMap = null
 let _promise    = null
 
-// Devuelve true si el mapa cacheado omite algún partido cuyos equipos ahora son
-// resolvibles — caso típico: mapa construido cuando el rival era TBD, luego
-// actualizado en matches.js tras la eliminatoria.
+// Devuelve true si el mapa cacheado omite algún partido que ahora es resolvible.
+// Cubre dos casos:
+//   1. partido con equipos TBD que ya se definieron en matches.js
+//   2. partido con fixtureId hardcodeado en matches.js que no está en el mapa
 function hasResolvableGaps(map) {
   for (const m of MATCHES) {
+    if (m.fixtureId && !map[m.id]) return true
     if (resolveId(m.homeTeam) && resolveId(m.awayTeam) && !map[m.id]) return true
   }
   return false
@@ -50,6 +52,9 @@ async function fetchAndBuild() {
 
   const map = {}
   for (const m of MATCHES) {
+    // Prioridad 1: fixtureId hardcodeado en matches.js (R32+ con TBD equipos)
+    if (m.fixtureId) { map[m.id] = m.fixtureId; continue }
+    // Prioridad 2: lookup dinámico por par de equipos (fase de grupos)
     const hId = resolveId(m.homeTeam)
     const aId = resolveId(m.awayTeam)
     if (!hId || !aId) continue
