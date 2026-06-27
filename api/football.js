@@ -231,21 +231,28 @@ export default async function handler(req, res) {
         }
       }
 
-      const maxBy = (obj) => Object.entries(obj).reduce((best, [id, info]) =>
-        !best || info.goles > best.goles ? { id: Number(id), name: info.name, goles: info.goles } : best, null)
+      const allMaxBy = (obj, key) => {
+        const vals = Object.values(obj).map(v => v[key])
+        if (!vals.length) return []
+        const max = Math.max(...vals)
+        return Object.entries(obj)
+          .filter(([, info]) => info[key] === max)
+          .map(([id, info]) => ({ id: Number(id), name: info.name, goles: info[key] }))
+      }
 
       const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
         !best || veces > best.veces ? { score, veces } : best, null)
 
-      // Autogoles: consultar eventos de cada fixture
-      // Si el caché KV tiene respuesta vacía, se invalida y re-fetcha de API
+      // Autogoles + tarjetas: consultar eventos de cada fixture
       let autogoles = 0
+      let tarjetasAmarillas = 0
+      let tarjetasRojas = 0
       await Promise.all(fixtures.map(async f => {
         const fid = f.fixture.id
         const eventsKey = `/fixtures/events?fixture=${fid}`
         let eventsData = await kvGet(eventsKey)
 
-        // Caché con 0 eventos: puede ser dato incompleto guardado en partido en vivo
+        // Caché con 0 eventos para partido FT: puede ser dato incompleto
         if (eventsData && !(eventsData.response?.length > 0)) {
           await kvDel(eventsKey)
           eventsData = null
@@ -258,16 +265,22 @@ export default async function handler(req, res) {
               signal: AbortSignal.timeout(8_000),
             })
             if (r.ok) {
-              eventsData = await r.json()
-              // 300s para sincronizar con el TTL de estadisticas-mundial
-              // Solo cachea si hay datos — evita perpetuar respuestas vacías
-              if (eventsData.response?.length > 0) kvSet(eventsKey, eventsData, 300)
+              const fetched = await r.json()
+              // Solo cachea y usa si tiene eventos — evita sobrescribir con vacío
+              if (fetched.response?.length > 0) {
+                kvSet(eventsKey, fetched, 300)
+                eventsData = fetched
+              }
             }
           } catch {}
         }
         if (eventsData?.response) {
           for (const ev of eventsData.response) {
             if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
+            if (ev.type === 'Card') {
+              if (ev.detail === 'Yellow Card') tarjetasAmarillas++
+              else if (ev.detail === 'Red Card') tarjetasRojas++
+            }
           }
         }
       }))
@@ -278,8 +291,10 @@ export default async function handler(req, res) {
         promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
         partidosSinGoles,
         autogoles,
-        equipoMasGoleador:   maxBy(golesFavor),
-        equipoMasGoleado:    maxBy(golesContra),
+        tarjetasAmarillas,
+        tarjetasRojas,
+        masGoleador:        allMaxBy(golesFavor, 'goles'),
+        masGoleado:         allMaxBy(golesContra, 'goles'),
         marcadorMasRepetido: maxMarcador,
       }
 

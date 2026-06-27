@@ -453,20 +453,20 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard
                 icon="🥇"
-                value={statsWC?.equipoMasGoleador
-                  ? esTeamName({ id: statsWC.equipoMasGoleador.id, name: statsWC.equipoMasGoleador.name })
+                value={statsWC?.masGoleador?.length
+                  ? statsWC.masGoleador.map(e => esTeamName({ id: e.id, name: e.name })).join(' · ')
                   : '—'}
                 label="más goleador"
-                sub={statsWC?.equipoMasGoleador ? `${statsWC.equipoMasGoleador.goles} goles a favor` : undefined}
+                sub={statsWC?.masGoleador?.length ? `${statsWC.masGoleador[0].goles} goles a favor` : undefined}
                 valueClass="text-lg font-black text-white leading-tight"
               />
               <StatCard
                 icon="🤕"
-                value={statsWC?.equipoMasGoleado
-                  ? esTeamName({ id: statsWC.equipoMasGoleado.id, name: statsWC.equipoMasGoleado.name })
+                value={statsWC?.masGoleado?.length
+                  ? statsWC.masGoleado.map(e => esTeamName({ id: e.id, name: e.name })).join(' · ')
                   : '—'}
                 label="más goleado"
-                sub={statsWC?.equipoMasGoleado ? `${statsWC.equipoMasGoleado.goles} goles en contra` : undefined}
+                sub={statsWC?.masGoleado?.length ? `${statsWC.masGoleado[0].goles} goles en contra` : undefined}
                 valueClass="text-lg font-black text-white leading-tight"
               />
               <StatCard
@@ -482,6 +482,22 @@ export default function Dashboard() {
                 value={statsWC?.totalPartidos > 0 ? (statsWC.autogoles ?? 0) : '—'}
                 label="autogoles"
                 sub={statsWC?.totalPartidos > 0 ? 'en contra de su propio equipo' : undefined}
+              />
+            </div>
+            {/* Fila 3 — tarjetas */}
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 mt-4">Disciplina</p>
+            <div className="grid grid-cols-2 gap-4">
+              <StatCard
+                icon="🟨"
+                value={statsWC?.totalPartidos > 0 ? (statsWC.tarjetasAmarillas ?? 0) : '—'}
+                label="tarjetas amarillas"
+                sub={statsWC?.totalPartidos > 0 ? 'en el torneo' : undefined}
+              />
+              <StatCard
+                icon="🟥"
+                value={statsWC?.totalPartidos > 0 ? (statsWC.tarjetasRojas ?? 0) : '—'}
+                label="tarjetas rojas"
+                sub={statsWC?.totalPartidos > 0 ? 'en el torneo' : undefined}
               />
             </div>
           </>
