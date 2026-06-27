@@ -132,6 +132,13 @@
 ## RIESGOS DE CACHÉ PENDIENTES
 - ⚠️ L1 memCache sin sincronización entre instancias Vercel Fluid Compute — requests simultáneos pueden llegar a instancias con estados L1 diferentes (limitado por TTLs cortos)
 
+## TODO SIGUIENTE SPRINT — MatchDetail.jsx (tiempo extra y penales)
+- Badge "PRÓRROGA" cuando status === 'AET' (en lugar de solo el minuto)
+- Minuto > 90 mostrarlo como "90+1", "90+2"... "105", "105+1" (API devuelve elapsed + extra separados)
+- Badge "PENALES" cuando status === 'PEN'
+- Marcador de penales separado del marcador regular: viene en f.score.penalty { home, away }
+- Ejemplo visual: "Francia 1 (4) — (3) 1 Marruecos" donde el (4)/(3) son penales
+
 ## ESTRATEGIA DE NEGOCIO
 - Fan page: Marcagol.live en Facebook e Instagram (@marcagollive)
 - Modelo Freemium: Plan Gratis (hasta 20 participantes), Plan Grupo ($9.900 COP/mes), Plan Empresa ($49.900 COP/mes)

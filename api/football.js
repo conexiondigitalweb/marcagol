@@ -246,8 +246,13 @@ export default async function handler(req, res) {
       // Autogoles + tarjetas: consultar eventos de cada fixture
       // Bypass KV si el partido terminó hace <2h (eventos pueden estar incompletos)
       const TWO_HOURS_MS = 2 * 60 * 60 * 1000
-      // Estimamos fin del partido como kickoff + 105 min (90 + ~15 descuentos)
-      const estimatedEnd = (f) => new Date(f.fixture.date).getTime() + 105 * 60 * 1000
+      // Grupos: kickoff + 105min (90 + ~15 descuentos)
+      // Eliminatorios (AET/PEN): kickoff + 150min (90 + 30 ET + 15 penales + descuentos)
+      const estimatedEnd = (f) => {
+        const kickoff = new Date(f.fixture.date).getTime()
+        const isKnockout = ['AET', 'PEN'].includes(f.fixture?.status?.short)
+        return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
+      }
 
       let autogoles = 0
       let tarjetasAmarillas = 0
