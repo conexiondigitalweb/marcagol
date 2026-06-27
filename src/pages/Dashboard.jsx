@@ -312,6 +312,17 @@ export default function Dashboard() {
   const { totalPoints, predictedCount } = usePredictions()
   const { standings: apiStandings } = useStandings(60_000)
 
+  // Próximo partido sin predecir para el bloque de predicciones
+  const nextUnpredicted = useMemo(() => {
+    const todayCol = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    const saved = JSON.parse(localStorage.getItem('marcagol_predictions') || '{}')
+    const future = MATCHES
+      .filter(m => m.date >= todayCol)
+      .sort((a, b) => (a.date + a.timeCol).localeCompare(b.date + b.timeCol))
+    const unpredicted = future.find(m => !saved[m.id])
+    return unpredicted ?? future[0] ?? null
+  }, [])
+
   // Rank + puntos por grupo, directo de la API: { 'A': [{code,iso2,name,rank,points},...], ... }
   const groupRankings = useMemo(() => {
     if (!apiStandings?.length) return {}
@@ -505,37 +516,44 @@ export default function Dashboard() {
       </section>
 
       {/* ── Mis Predicciones ─────────────────────────────────────────── */}
-      <section>
-        <div
-          className="rounded-xl border border-slate-700/50 p-5 flex items-center justify-between gap-4 flex-wrap"
-          style={{ background: '#1E293B' }}
-        >
-          {predictedCount === 0 ? (
-            <div>
-              <p className="text-sm font-semibold text-white">
-                🎯 ¿Cuánto quedará México vs Sudáfrica?
-              </p>
-              <p className="text-xs text-slate-400 mt-0.5">Haz tu primera predicción del Mundial</p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <div className="text-2xl font-black text-amber-400 tabular-nums">{totalPoints}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Puntos</div>
+      {nextUnpredicted && (
+        <section>
+          <div
+            className="rounded-xl border border-slate-700/50 p-5 flex items-center justify-between gap-4 flex-wrap"
+            style={{ background: '#1E293B' }}
+          >
+            {predictedCount === 0 ? (
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  🎯 ¿Cuánto quedará {(ALL_TEAMS_MAP[nextUnpredicted.homeTeam]?.name ?? nextUnpredicted.homeTeam)} vs {(ALL_TEAMS_MAP[nextUnpredicted.awayTeam]?.name ?? nextUnpredicted.awayTeam)}?
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5">Haz tu primera predicción del Mundial</p>
               </div>
-              <div className="h-8 w-px bg-slate-700" />
-              <div className="text-center">
-                <div className="text-2xl font-black text-sky-400 tabular-nums">{predictedCount}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Predicciones</div>
+            ) : (
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-amber-400 tabular-nums">{totalPoints}</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Puntos</div>
+                </div>
+                <div className="h-8 w-px bg-slate-700" />
+                <div className="text-center">
+                  <div className="text-2xl font-black text-sky-400 tabular-nums">{predictedCount}</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mt-0.5">Predicciones</div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">
+                    🎯 ¿Cuánto quedará {(ALL_TEAMS_MAP[nextUnpredicted.homeTeam]?.name ?? nextUnpredicted.homeTeam)} vs {(ALL_TEAMS_MAP[nextUnpredicted.awayTeam]?.name ?? nextUnpredicted.awayTeam)}?
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5 hidden md:block">¡Sigue prediciendo para subir!</p>
+                </div>
               </div>
-              <p className="text-sm text-slate-400 hidden md:block">¡Sigue prediciendo para subir!</p>
-            </div>
-          )}
-          <Link to="/predicciones" className="btn-outline text-xs flex-shrink-0">
-            Ver mis predicciones →
-          </Link>
-        </div>
-      </section>
+            )}
+            <Link to="/predicciones" className="btn-outline text-xs flex-shrink-0">
+              Ver mis predicciones →
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* ── Live Matches ─────────────────────────────────────────────── */}
       {!countdown && (
