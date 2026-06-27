@@ -1,4 +1,4 @@
-# CONTEXTO MARCAGOL.LIVE - CLAUDE CODE (actualizado 22-jun-2026)
+# CONTEXTO MARCAGOL.LIVE - CLAUDE CODE (actualizado 27-jun-2026)
 
 ## PROYECTO
 - **URL:** marcagol.live — PWA del Mundial 2026
@@ -43,7 +43,7 @@
 - **Supabase:** proyecto Marcagol.live (qgomitqncgnkjojubghd.supabase.co) — East US North Virginia
 - **Upstash Redis:** upstash-kv-champagne-house — caché serverless para API-Football
 - **Vercel KV** integrado con marcagols2026
-- **RLS desactivado** en tablas pollas y votos (datos públicos, sin info sensible)
+- **RLS habilitado** en tablas pollas y votos (habilitado 27-jun-2026)
 
 ## TABLAS SUPABASE
 - **pollas:** id, partido_id, equipo_local, equipo_visitante, fecha_partido, creador_nombre, permite_repetir, max_repeticiones, activa, publica, token_admin, created_at
@@ -93,8 +93,20 @@
 29. Botón WhatsApp verde en MatchDetail y PollaDetalle
 30. Términos y Condiciones en /terminos con link en footer
 31. Broadcasts reales por partido Colombia en broadcasts.js
-32. Bracket dieciseisavos alineado al sorteo oficial FIFA
-33. Vista de Grupos en Home: orden por posición actual + puntos
+32. Bracket /llaves con 2 tabs: Dieciseisavos (lista) + Fase Final (árbol Octavos→Final)
+    - Desktop: árbol horizontal con posicionamiento absoluto proporcional (SLOT_H=96, TREE_H=768)
+    - Conectores: 4 líneas absolutas bg-slate-600 por par (arm-top, arm-bot, vertical, output)
+    - BracketSlot: bandera + código 3 letras + indicador estado (verde/amarillo/gris)
+    - Lookup EN_API_NAME → code → iso2 para banderas (fix mismatch inglés/español API)
+    - Leyenda Proyectado/Confirmado/Por definir solo en tab Dieciseisavos
+    - getTeamInfo(): 3 pasos — TEAM_INFO_MAP (español) → EN_NAME_TO_CODE (inglés) → fallback 3 letras
+33. /terceros: clasificación de mejores terceros en tiempo real desde standings
+34. Vista de Grupos en Home: orden por posición actual + puntos
+35. Calendario /calendario: R32 muestra equipos proyectados desde standings (bracketProjector)
+    - Schedule importa useStandings + projectBracket
+    - Badge 🟡 Proyectado / 🟢 Confirmado según partidos jugados
+    - getKnockoutTeamData(): API {id,name} → esTeamName → _ES_NAME_TO_TEAM → {code, iso2, name}
+36. Autogoles: icono 🔴⚽ + label "Gol en propia puerta" en minuto a minuto (liveData.js)
 
 ## COMPORTAMIENTO API-FOOTBALL CONFIRMADO EN PRODUCCIÓN
 - player.number es NULL en /fixtures/events — usar player.id para matching
@@ -127,46 +139,46 @@
 - ✅ FT en KV: TTL reducido de 86400s (24h) a 7200s (2h) — ventana de datos incorrectos acotada (commit 467791e)
 - ✅ estadisticas-mundial TTL consistente: L1 memCache y L2 KV ambos en 300s — eliminada ventana de 240s de inconsistencia entre instancias Vercel (commit 467791e)
 - ✅ fixtureMap: TTL reducido a 2h + invalidación automática si equipos TBD ya resueltos — cache key v2 (commit fc99e74)
+- ✅ fixtureMap prioriza fixtureId hardcodeado en matches.js (R32 con homeTeam:'TBD') — hasResolvableGaps también invalida caché si hay fixtureId nuevo sin mapear (commit 2524923)
 - ✅ Invalidación automática de localStorage por versión de build — runCacheInvalidation(CACHE_VERSION) en main.jsx antes de render. Para forzar limpieza en todos los dispositivos: incrementar CACHE_VERSION en src/cacheConfig.js y hacer deploy. Las keys de usuario (mis_pollas, polla_token_*, polla_nombre, pwa-install-dismissed, wc2026_mis_participaciones) nunca se tocan. (commit 1d1d2b3)
 
 ## RIESGOS DE CACHÉ PENDIENTES
 - ⚠️ L1 memCache sin sincronización entre instancias Vercel Fluid Compute — requests simultáneos pueden llegar a instancias con estados L1 diferentes (limitado por TTLs cortos)
 
-## 🚨 TAREA URGENTE — fixtureId R32 (antes del primer partido, 28 jun 2026)
+## ESTADO fixtureId R32 (actualizado 27-jun-2026)
 
-Los 16 partidos de dieciseisavos (ids 73-88 en matches.js) tienen fixtureId: null.
-Deben poblarse con los IDs reales de API-Football para activar:
-- Links clickeables en el bracket (/partido/:fixtureId)
-- Datos en vivo en MatchDetail (marcador, eventos, alineaciones)
-- Cierre automático de pollas (fixtures-status usa fixtureId)
+8 de 16 mapeados en src/data/matches.js. Fix crítico aplicado: useFixtureId/fetchAndBuild
+prioriza m.fixtureId de matches.js antes de buscar por equipos (necesario para TBD).
 
-### Paso 1 — Consultar la API (ejecutar en browser o curl)
-```
-GET https://marcagol.live/api/football?action=fixtures&league=1&season=2026&round=Round%20of%2032
-```
-O desde Node/terminal con VITE_API_FOOTBALL_KEY:
-```
-node scripts/fetch-r32-fixtures.js
-```
-(el script está en scripts/fetch-r32-fixtures.js — ver más abajo)
+| id | Estadio            | fixtureId | Equipos API              | Estado   |
+|----|--------------------|-----------|--------------------------|----------|
+| 73 | SoFi Stadium       | 1561329   | South Africa vs Canada   | ✅ venue |
+| 74 | Gillette Stadium   | 1562344   | Brazil vs Japan          | ⚠️ hora  |
+| 75 | Estadio BBVA       | 1565176   | Germany vs Paraguay      | ⚠️ hora  |
+| 76 | NRG Stadium        | null      | —                        | ❌ falta |
+| 77 | MetLife Stadium    | 1564789   | Ivory Coast vs Norway    | ⚠️ hora  |
+| 78 | AT&T Stadium       | 1565177   | France vs Sweden         | ⚠️ hora  |
+| 79 | Estadio Azteca     | 1562345   | Netherlands vs Morocco   | ⚠️ hora  |
+| 80 | Mercedes-Benz      | null      | —                        | ❌ falta |
+| 81 | Levi's Stadium     | null      | —                        | ❌ falta |
+| 82 | Lumen Field        | null      | —                        | ❌ falta |
+| 83 | BMO Field          | null      | —                        | ❌ falta |
+| 84 | SoFi Stadium       | null      | —                        | ❌ falta |
+| 85 | BC Place           | null      | —                        | ❌ falta |
+| 86 | Hard Rock Stadium  | 1565178   | Australia vs Egypt       | ⚠️ hora  |
+| 87 | Arrowhead Stadium  | 1565179   | Argentina vs Cape Verde  | ⚠️ hora  |
+| 88 | AT&T Stadium       | null      | —                        | ❌ falta |
 
-### Paso 2 — Mapear fixtures al bracket oficial FIFA
-El sorteo oficial (5-dic-2025) establece qué partido de R32 es cuál.
-Verificar fecha+equipos para confirmar que el fixture de API corresponde
-al matchId correcto en matches.js.
+⚠️ hora = mapeado por orden relativo de hora UTC dentro del día — VERIFICAR con venue cuando API los publique.
 
-### Paso 3 — Actualizar matches.js
-Para cada partido R32 (ids 73-88), añadir fixtureId real:
-```js
-{ id: 73, group: 'R32', ..., fixtureId: 1234567, ... }
+### Para poblar los pendientes
+```powershell
+# PowerShell con key del .env.local
+$key = "..." # VITE_API_FOOTBALL_KEY
+$r = Invoke-RestMethod -Uri "https://v3.football.api-sports.io/fixtures?league=1&season=2026&round=Round%20of%2032" -Headers @{"x-apisports-key"=$key}
+$r.response | Sort-Object { $_.fixture.date } | ForEach-Object { "$($_.fixture.id) | $($_.fixture.date.Substring(0,10)) | $($_.fixture.venue.name) | $($_.teams.home.name) vs $($_.teams.away.name)" }
 ```
-
-### Paso 4 — Commit y deploy
-```
-git add src/data/matches.js
-git commit -m "fix: fixtureId reales R32 — activa bracket clickeable y datos en vivo"
-git push
-```
+Mapear por venue (cuando estén disponibles) y actualizar matches.js ids 76, 80-85, 88.
 
 ## TODO SIGUIENTE SPRINT — MatchDetail.jsx (tiempo extra y penales)
 - Badge "PRÓRROGA" cuando status === 'AET' (en lugar de solo el minuto)
