@@ -155,8 +155,8 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    // v5-diag: temporario — incluye _diag en respuesta para diagnóstico
-    const cacheKey = 'estadisticas-mundial:2026:v5-diag'
+    // v5: lotes de 5 fixtures para evitar rate limiting en Promise.all paralelo
+    const cacheKey = 'estadisticas-mundial:2026:v5'
     const now = Date.now()
 
     const memHit = memCache.get(cacheKey)
@@ -254,33 +254,34 @@ export default async function handler(req, res) {
         return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
       }
 
+      // Procesa fixtures en lotes para no saturar el rate limit de API-Football
+      async function fetchInBatches(items, batchSize, delayMs, fetchFn) {
+        const results = []
+        for (let i = 0; i < items.length; i += batchSize) {
+          const batch = items.slice(i, i + batchSize)
+          const batchResults = await Promise.all(batch.map(fetchFn))
+          results.push(...batchResults)
+          if (i + batchSize < items.length) {
+            await new Promise(resolve => setTimeout(resolve, delayMs))
+          }
+        }
+        return results
+      }
+
       let autogoles = 0
       let tarjetasAmarillas = 0
       let tarjetasRojas = 0
-      // DIAG temporario — se elimina tras diagnóstico
-      let _diagBypass = 0, _diagCacheHit = 0, _diagCacheInvalid = 0, _diagSinEventos = 0
-      const _diagFixtureDetail = []
 
-      await Promise.all(fixtures.map(async f => {
+      await fetchInBatches(fixtures, 5, 300, async (f) => {
         const fid = f.fixture.id
         const eventsKey = `/fixtures/events?fixture=${fid}`
         const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
         let eventsData = recentFT ? null : await kvGet(eventsKey)
-        let _src = 'bypass'
 
-        if (recentFT) {
-          _diagBypass++
-        } else if (eventsData) {
-          // Caché sospechoso para partido FT antiguo: 0 eventos o <10 (capturado en vivo incompleto)
-          if ((eventsData.response?.length ?? 0) < 10) {
-            _diagCacheInvalid++
-            await kvDel(eventsKey)
-            eventsData = null
-            _src = 'cache-invalid'
-          } else {
-            _diagCacheHit++
-            _src = 'cache-ok'
-          }
+        // Caché sospechoso para partido FT antiguo: <10 eventos (capturado en vivo incompleto)
+        if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
+          await kvDel(eventsKey)
+          eventsData = null
         }
 
         if (!eventsData) {
@@ -294,19 +295,10 @@ export default async function handler(req, res) {
               if (fetched.response?.length > 0) {
                 kvSet(eventsKey, fetched, 300)
                 eventsData = fetched
-                if (_src !== 'bypass') _src = 'fetch-ok'
-                else _src = 'bypass-fetch-ok'
-              } else {
-                if (_src === 'bypass') _src = 'bypass-fetch-empty'
-                else _src = 'fetch-empty'
               }
             }
-          } catch { _src += '-timeout' }
+          } catch {}
         }
-
-        const evCount = eventsData?.response?.length ?? 0
-        if (!eventsData) _diagSinEventos++
-        _diagFixtureDetail.push({ fid, date: f.fixture.date, evCount, src: _src })
 
         if (eventsData?.response) {
           for (const ev of eventsData.response) {
@@ -317,7 +309,7 @@ export default async function handler(req, res) {
             }
           }
         }
-      }))
+      })
 
       const result = {
         totalPartidos,
@@ -327,15 +319,8 @@ export default async function handler(req, res) {
         autogoles,
         tarjetasAmarillas,
         tarjetasRojas,
-        _diag: {
-          bypass: _diagBypass,
-          cacheHit: _diagCacheHit,
-          cacheInvalid: _diagCacheInvalid,
-          sinEventos: _diagSinEventos,
-          fixtures: _diagFixtureDetail,
-        },
-        masGoleador:        allMaxBy(golesFavor, 'goles'),
-        masGoleado:         allMaxBy(golesContra, 'goles'),
+        masGoleador:         allMaxBy(golesFavor, 'goles'),
+        masGoleado:          allMaxBy(golesContra, 'goles'),
         marcadorMasRepetido: maxMarcador,
       }
 
