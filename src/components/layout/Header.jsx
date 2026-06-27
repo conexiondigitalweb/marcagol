@@ -6,7 +6,7 @@ import LiveIndicator from '../ui/LiveIndicator'
 const NAV_ITEMS = [
   { to: '/',             label: 'Inicio',       icon: '🏠' },
   { to: '/grupos',       label: 'Grupos',       icon: '📊' },
-  { to: '/equipos',      label: 'Equipos',      icon: '👕' },
+  { to: '/llaves',       label: 'Llaves',       icon: '🏆' },
   { to: '/goleadores',   label: 'Goleadores',   icon: '⚽' },
   { to: '/predicciones', label: 'Predicciones', icon: '🎯' },
   { to: '/calendario',   label: 'Calendario',   icon: '📅' },
@@ -14,9 +14,9 @@ const NAV_ITEMS = [
   { to: '/mis-pollas',   label: 'Mis Pollas',   icon: '🎰' },
 ]
 
-// Items solo en menú móvil y footer
+// Items solo en menú móvil (hamburger)
 const NAV_EXTRA = [
-  { to: '/llaves',    label: 'Llaves',    icon: '🔗' },
+  { to: '/equipos',   label: 'Equipos',   icon: '👕' },
   { to: '/donde-ver', label: 'Dónde Ver', icon: '📺' },
   { to: '/historia',  label: 'Historia',  icon: '🏆' },
 ]
