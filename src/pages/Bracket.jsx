@@ -302,15 +302,138 @@ function DesktopBracket({ bracketByMatchId, allGroupsComplete }) {
   )
 }
 
-// ─── Vista móvil (tabs + tarjetas de enfrentamiento) ─────────────────────────
-const MOBILE_PHASES = [
-  { id: 'd32', label: 'Dieciseisavos', ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
-  { id: 'r8',  label: 'Octavos',       ids: [89,90,91,92,93,94,95,96] },
-  { id: 'qf',  label: 'Cuartos',       ids: [97,98,99,100] },
-  { id: 'sf',  label: 'Semis',         ids: [101,102] },
-  { id: 'fin', label: 'Final',         ids: [104, 103] },
-]
+// ─── Vista móvil (2 tabs) ────────────────────────────────────────────────────
 
+// ─── Slot compacto para el árbol de Fase Final ───────────────────────────────
+const TREE_SLOT_W  = 76   // px — ancho slot árbol móvil
+const TREE_CONN_W  = 14   // px — ancho conector árbol móvil
+const TREE_H_MOB   = 512  // px — altura total del árbol (8 × 64px)
+
+function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
+  const navigate    = useNavigate()
+  const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
+  const isClickable = !!appMatch?.fixtureId
+
+  function TRow({ resolved }) {
+    const info   = resolved?.team ? getTeamInfo(resolved.team) : null
+    const dotCls = !info ? 'bg-slate-700' : resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
+    return (
+      <div className="flex items-center gap-0.5 px-1 py-[3px] border-t border-slate-700/40">
+        {info?.iso2
+          ? <Flag iso2={info.iso2} size="xs" className="flex-shrink-0 !w-4 !h-2.5" />
+          : <span className="w-4 h-2.5 bg-slate-700/60 rounded-sm flex-shrink-0" />}
+        <span className={`text-[9px] font-bold flex-1 truncate leading-none ${info ? 'text-slate-100' : 'text-slate-600'}`}>
+          {info ? info.code : 'TBD'}
+        </span>
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
+      </div>
+    )
+  }
+
+  return (
+    <div
+      style={{ width: TREE_SLOT_W }}
+      className={`rounded overflow-hidden border select-none ${
+        isHighlight ? 'border-amber-400/50 bg-amber-950/30' : 'border-slate-700 bg-slate-800'
+      } ${isClickable ? 'cursor-pointer' : ''}`}
+      onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
+    >
+      <div className="text-[8px] text-slate-500 text-center px-1 py-[2px] bg-slate-700/30 truncate leading-tight">
+        {appMatch ? fmtDate(appMatch.date) : `#${matchId}`}
+      </div>
+      <TRow resolved={resolvedHome} />
+      <TRow resolved={resolvedAway} />
+    </div>
+  )
+}
+
+// Conectores para el árbol móvil (misma lógica que BracketConnectors)
+function TreeConnectors({ count }) {
+  const rowH = TREE_H_MOB / count
+  return (
+    <div className="flex-shrink-0 relative" style={{ width: TREE_CONN_W, height: TREE_H_MOB }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="absolute left-0 right-0" style={{ top: i * rowH, height: rowH }}>
+          <div className="absolute left-0 right-0 top-0" style={{ height: '50%', borderBottom: '1px solid #334155', borderRight: '1px solid #334155' }} />
+          <div className="absolute left-0 right-0 bottom-0" style={{ height: '50%', borderTop: '1px solid #334155', borderRight: '1px solid #334155' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Árbol Fase Final: Octavos → Cuartos → Semis → Final (horizontal-scroll)
+function FinalPhaseTree({ bracketByMatchId }) {
+  const COLS = [
+    { label: 'Octavos', sub: '4–7 jul',    ids: [89,90,91,92,93,94,95,96], connPairs: 4 },
+    { label: 'Cuartos', sub: '9–11 jul',   ids: [97,98,99,100],            connPairs: 2 },
+    { label: 'Semis',   sub: '14–15 jul',  ids: [101,102],                 connPairs: 1 },
+    { label: 'Final',   sub: '19 jul',     ids: [104],                     connPairs: null },
+  ]
+
+  return (
+    <div>
+      {/* Etiquetas de fase */}
+      <div className="flex mb-2" style={{ gap: 0 }}>
+        {COLS.map((col, i) => (
+          <Fragment key={i}>
+            <div className="flex-shrink-0 text-center" style={{ width: TREE_SLOT_W }}>
+              <div className="text-[10px] font-semibold text-slate-300">{col.label}</div>
+              <div className="text-[8px] text-slate-600">{col.sub}</div>
+            </div>
+            {col.connPairs && <div style={{ width: TREE_CONN_W }} />}
+          </Fragment>
+        ))}
+      </div>
+
+      {/* Árbol */}
+      <div className="flex" style={{ height: TREE_H_MOB }}>
+        {COLS.map((col, i) => (
+          <Fragment key={i}>
+            <div className="flex-shrink-0 flex flex-col justify-around" style={{ width: TREE_SLOT_W, height: TREE_H_MOB }}>
+              {col.ids.map(id => {
+                const m        = ALL_BY_ID[id]
+                const resolved = bracketByMatchId[id]
+                if (!m) return null
+                return (
+                  <TreeSlot
+                    key={id}
+                    matchId={id}
+                    home={m.home}
+                    away={m.away}
+                    resolvedHome={resolved?.home}
+                    resolvedAway={resolved?.away}
+                    isHighlight={id === 104}
+                  />
+                )
+              })}
+            </div>
+            {col.connPairs && <TreeConnectors count={col.connPairs} />}
+          </Fragment>
+        ))}
+      </div>
+
+      {/* 3er puesto */}
+      <div className="flex items-center gap-2 mt-4">
+        <span className="text-[10px] text-slate-500 font-semibold flex-shrink-0">3er lugar · 18 jul</span>
+        <TreeSlot
+          matchId={103}
+          home={THIRD.home}
+          away={THIRD.away}
+        />
+      </div>
+
+      {/* Leyenda */}
+      <div className="flex gap-4 mt-4 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tarjeta de enfrentamiento cara a cara (tab Dieciseisavos) ────────────────
 function MatchCard({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
   const navigate    = useNavigate()
   const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
@@ -390,55 +513,65 @@ function MatchCard({ matchId, home, away, resolvedHome, resolvedAway, isHighligh
   )
 }
 
+const D32_IDS = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88]
+
 function MobileBracket({ bracketByMatchId }) {
-  const [activePhase, setActivePhase] = useState('d32')
-  const phase = MOBILE_PHASES.find(p => p.id === activePhase)
+  const [activeTab, setActiveTab] = useState('d32')
+
+  const TABS = [
+    { id: 'd32',   label: 'Dieciseisavos' },
+    { id: 'final', label: 'Fase Final'    },
+  ]
 
   return (
     <div>
-      {/* Tabs scrolleables */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
-        {MOBILE_PHASES.map(p => (
+      {/* 2 tabs */}
+      <div className="flex gap-2 mb-5">
+        {TABS.map(t => (
           <button
-            key={p.id}
-            onClick={() => setActivePhase(p.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex-shrink-0 transition-all border ${
-              activePhase === p.id
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0 transition-all border ${
+              activeTab === t.id
                 ? 'bg-sky-500 text-white border-sky-500'
                 : 'border-slate-700 text-slate-400 bg-slate-800'
             }`}
           >
-            {p.label}
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* Tarjetas de enfrentamiento */}
-      <div className="flex flex-col gap-3">
-        {phase?.ids.map(id => {
-          const m        = ALL_BY_ID[id]
-          const resolved = bracketByMatchId[id]
-          if (!m) return null
-          return (
-            <MatchCard
-              key={id}
-              matchId={id}
-              home={m.home}
-              away={m.away}
-              resolvedHome={resolved?.home}
-              resolvedAway={resolved?.away}
-              isHighlight={id === 104}
-            />
-          )
-        })}
-      </div>
-
-      {/* Leyenda al pie */}
-      <div className="flex gap-4 mt-5 text-[10px] text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
-      </div>
+      {activeTab === 'd32' ? (
+        /* Dieciseisavos: tarjetas cara a cara */
+        <div>
+          <div className="flex flex-col gap-3">
+            {D32_IDS.map(id => {
+              const m        = ALL_BY_ID[id]
+              const resolved = bracketByMatchId[id]
+              if (!m) return null
+              return (
+                <MatchCard
+                  key={id}
+                  matchId={id}
+                  home={m.home}
+                  away={m.away}
+                  resolvedHome={resolved?.home}
+                  resolvedAway={resolved?.away}
+                />
+              )
+            })}
+          </div>
+          <div className="flex gap-4 mt-5 text-[10px] text-slate-500">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
+          </div>
+        </div>
+      ) : (
+        /* Fase Final: árbol conectado Octavos → Final */
+        <FinalPhaseTree bracketByMatchId={bracketByMatchId} />
+      )}
     </div>
   )
 }
