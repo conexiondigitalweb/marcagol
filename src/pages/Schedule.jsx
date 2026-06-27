@@ -9,11 +9,23 @@ import { getFixtureMap } from '../data/fixtureMap'
 import Flag from '../components/ui/Flag'
 import TeamCrestImg from '../components/ui/TeamCrestImg'
 import { StatusBadge } from '../components/ui/Badge'
-import { useLiveScoresMap } from '../hooks/useLiveData'
+import { useLiveScoresMap, useStandings, useLiveMatches } from '../hooks/useLiveData'
+import { projectBracket } from '../utils/bracketProjector'
+import { esTeamName } from '../data/teamNames'
 
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
+
+// Lookup por nombre español → datos de equipo (para proyección de fases eliminatorias)
+const _ES_NAME_TO_TEAM = Object.fromEntries(
+  GROUPS.flatMap(g => g.teams.map(t => [t.name.toLowerCase(), t]))
+)
+function getKnockoutTeamData(apiTeam) {
+  if (!apiTeam) return null
+  const esName = esTeamName(apiTeam)
+  return _ES_NAME_TO_TEAM[esName.toLowerCase()] ?? null
+}
 
 function VenuePhoto({ venueName }) {
   const [imgErr, setImgErr] = useState(false)
@@ -54,9 +66,21 @@ function VenuePhoto({ venueName }) {
   )
 }
 
-function MatchRow({ match, liveData }) {
-  const home = ALL_TEAMS_MAP[match.homeTeam]
-  const away = ALL_TEAMS_MAP[match.awayTeam]
+function MatchRow({ match, liveData, projectedMatch }) {
+  const homeFromGroups = ALL_TEAMS_MAP[match.homeTeam]
+  const awayFromGroups = ALL_TEAMS_MAP[match.awayTeam]
+
+  // Para R32: usar proyección de standings si el equipo real aún es TBD
+  const projHome = !homeFromGroups && projectedMatch?.home?.team
+    ? getKnockoutTeamData(projectedMatch.home.team) : null
+  const projAway = !awayFromGroups && projectedMatch?.away?.team
+    ? getKnockoutTeamData(projectedMatch.away.team) : null
+
+  const home = homeFromGroups ?? projHome
+  const away = awayFromGroups ?? projAway
+
+  const isProjected    = !homeFromGroups && !!projHome
+  const projConfirmed  = projectedMatch?.home?.confirmed && projectedMatch?.away?.confirmed
   const result     = getResult(match.id)
   const isFinished = !!result
   const isLive     = !isFinished && !!liveData
@@ -126,7 +150,9 @@ function MatchRow({ match, liveData }) {
           <span className="font-semibold text-white text-sm text-right hidden md:block group-hover:text-sky-300 transition-colors">
             {home?.name || match.homeTeam}
           </span>
-          <span className="text-xs text-slate-400 sm:hidden">{match.homeTeam}</span>
+          <span className="text-xs text-slate-400 sm:hidden">
+            {home?.code ?? match.homeTeam}
+          </span>
           {home && (
             <TeamCrestImg
               code={home.code}
@@ -159,7 +185,9 @@ function MatchRow({ match, liveData }) {
           <span className="font-semibold text-white text-sm hidden md:block group-hover:text-sky-300 transition-colors">
             {away?.name || match.awayTeam}
           </span>
-          <span className="text-xs text-slate-400 sm:hidden">{match.awayTeam}</span>
+          <span className="text-xs text-slate-400 sm:hidden">
+            {away?.code ?? match.awayTeam}
+          </span>
         </div>
       </div>
 
@@ -171,6 +199,12 @@ function MatchRow({ match, liveData }) {
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-400">
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
             {liveData.status === 'HT' ? 'Descanso' : 'EN VIVO'}
+          </span>
+        ) : isProjected ? (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border
+            border-yellow-500/30 bg-yellow-900/20 text-yellow-400">
+            <span className={`w-1.5 h-1.5 rounded-full ${projConfirmed ? 'bg-green-400' : 'bg-yellow-400'}`} />
+            {projConfirmed ? 'Confirmado' : 'Proyectado'}
           </span>
         ) : (
           <StatusBadge status={match.status} />
@@ -195,6 +229,33 @@ export default function Schedule() {
   const liveScoresMap = useLiveScoresMap(MATCHES)
   const scrolledRef = useRef(false)
   const [refreshKey, setRefreshKey] = useState(0)
+
+  // Proyección de bracket para mostrar equipos R32 proyectados desde standings
+  const { matches: liveMatchesList } = useLiveMatches()
+  const _LIVE = useMemo(() => new Set(['1H','2H','HT','ET','BT','PEN','LIVE']), [])
+  const standingsInterval = useMemo(() => {
+    return liveMatchesList?.some(m => _LIVE.has(m.fixture?.status?.short)) ? 60_000 : 600_000
+  }, [liveMatchesList, _LIVE])
+  const { standings: rawStandings } = useStandings(standingsInterval)
+  const bracketByMatchId = useMemo(() => {
+    if (!rawStandings?.length) return {}
+    const allGroups = rawStandings[0]?.league?.standings ?? []
+    const unique = Array.from(
+      new Map(
+        allGroups
+          .filter(g => g.length > 0 && g[0]?.group?.match(/^Group [A-L]$/))
+          .map(g => [g[0].group, g])
+      ).values()
+    )
+    const formatted = unique.map(g => ({ group: g[0].group, standings: [g] }))
+    try {
+      const data = projectBracket(formatted)
+      if (!data?.matches) return {}
+      return Object.fromEntries(
+        data.matches.map(m => [parseInt(m.id.replace('M', '')), m])
+      )
+    } catch { return {} }
+  }, [rawStandings])
 
   const filtered = useMemo(() => {
     return MATCHES.filter(m => {
@@ -374,7 +435,11 @@ export default function Schedule() {
                 </h3>
                 <span className="text-xs text-slate-500">{matches.length} partido{matches.length !== 1 ? 's' : ''}</span>
               </div>
-              {matches.map(m => <MatchRow key={m.id} match={m} liveData={liveScoresMap[m.id]} />)}
+              {matches.map(m => (
+                <MatchRow key={m.id} match={m} liveData={liveScoresMap[m.id]}
+                  projectedMatch={m.group === 'R32' ? bracketByMatchId[m.id] : undefined}
+                />
+              ))}
             </div>
           ))}
         </div>

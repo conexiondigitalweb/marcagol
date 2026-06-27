@@ -580,9 +580,11 @@ export default function Bracket() {
             {t.label}
           </button>
         ))}
-        <span className="ml-auto self-center text-xs text-slate-600">
-          {allGroupsComplete ? '🟢 Bracket confirmado' : '🟡 Proyectado'}
-        </span>
+        {tab === 'd32' && (
+          <span className="ml-auto self-center text-xs text-slate-600">
+            {allGroupsComplete ? '🟢 Bracket confirmado' : '🟡 Proyectado'}
+          </span>
+        )}
       </div>
 
       {loading && !bracketData ? (
