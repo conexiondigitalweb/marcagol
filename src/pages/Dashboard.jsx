@@ -314,10 +314,15 @@ export default function Dashboard() {
 
   // Próximo partido sin predecir para el bloque de predicciones
   const nextUnpredicted = useMemo(() => {
-    const todayCol = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
     const saved = JSON.parse(localStorage.getItem('marcagol_predictions') || '{}')
+    const ahoraMs = Date.now()
+    const MARGEN_MS = 5 * 60 * 1000  // 5 min de margen antes del kickoff
     const future = MATCHES
-      .filter(m => m.date >= todayCol)
+      .filter(m => {
+        // timeCol es hora Colombia (GMT-5) → sufijo -05:00 da el UTC correcto
+        const kickoffMs = new Date(`${m.date}T${m.timeCol}:00-05:00`).getTime()
+        return kickoffMs > ahoraMs + MARGEN_MS
+      })
       .sort((a, b) => (a.date + a.timeCol).localeCompare(b.date + b.timeCol))
     const unpredicted = future.find(m => !saved[m.id])
     return unpredicted ?? future[0] ?? null
