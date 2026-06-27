@@ -302,14 +302,93 @@ function DesktopBracket({ bracketByMatchId, allGroupsComplete }) {
   )
 }
 
-// ─── Vista móvil (tabs) ──────────────────────────────────────────────────────
+// ─── Vista móvil (tabs + tarjetas de enfrentamiento) ─────────────────────────
 const MOBILE_PHASES = [
-  { id: 'd32', label: 'R32',         ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
-  { id: 'r8',  label: 'Octavos',     ids: [89,90,91,92,93,94,95,96] },
-  { id: 'qf',  label: 'Cuartos',     ids: [97,98,99,100] },
-  { id: 'sf',  label: 'Semis',       ids: [101,102] },
-  { id: 'fin', label: 'Final',       ids: [104, 103] },
+  { id: 'd32', label: 'Dieciseisavos', ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
+  { id: 'r8',  label: 'Octavos',       ids: [89,90,91,92,93,94,95,96] },
+  { id: 'qf',  label: 'Cuartos',       ids: [97,98,99,100] },
+  { id: 'sf',  label: 'Semis',         ids: [101,102] },
+  { id: 'fin', label: 'Final',         ids: [104, 103] },
 ]
+
+function MatchCard({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
+  const navigate    = useNavigate()
+  const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
+  const isClickable = !!appMatch?.fixtureId
+
+  function TeamSide({ staticLabel, resolved }) {
+    const info = resolved?.team ? getTeamInfo(resolved.team) : null
+    const dotCls = !info
+      ? 'bg-slate-700'
+      : resolved.confirmed
+        ? 'bg-green-500'
+        : 'bg-yellow-400'
+    const dotLabel = !info ? 'Por definir' : resolved.confirmed ? 'Confirmado' : 'Proyectado'
+
+    return (
+      <div className="flex flex-col items-center gap-1 flex-1 min-w-0 px-2">
+        {/* Bandera */}
+        <div className="w-9 h-6 rounded overflow-hidden flex items-center justify-center bg-slate-700/60">
+          {info?.iso2
+            ? <Flag iso2={info.iso2} size="sm" className="w-full h-full object-cover" />
+            : <span className="text-slate-600 text-xs">?</span>}
+        </div>
+        {/* Código */}
+        <span className={`text-sm font-black tracking-wide ${info ? 'text-slate-100' : 'text-slate-600'}`}>
+          {info ? info.code : 'TBD'}
+        </span>
+        {/* Estado */}
+        <span className="flex items-center gap-1 text-[9px] text-slate-500">
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
+          {dotLabel}
+        </span>
+        {/* Descripción estática (si no hay equipo resuelto) */}
+        {!info && staticLabel && (
+          <span className="text-[9px] text-slate-600 text-center leading-tight line-clamp-2 max-w-[80px]">
+            {staticLabel}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`rounded-xl border transition-colors overflow-hidden ${
+        isHighlight
+          ? 'border-amber-400/50 bg-amber-950/30'
+          : 'border-slate-700 bg-slate-800/80'
+      } ${isClickable ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+      onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
+    >
+      {/* Cabecera: fecha + estadio */}
+      <div className="px-4 pt-3 pb-1 text-center border-b border-slate-700/40">
+        {appMatch ? (
+          <>
+            <div className="text-xs font-semibold text-slate-300">
+              {fmtDate(appMatch.date)}
+              <span className="text-slate-500 font-normal"> · {appMatch.timeCol}</span>
+            </div>
+            {appMatch.venue && (
+              <div className="text-[10px] text-slate-500 truncate mt-0.5">{appMatch.venue}</div>
+            )}
+          </>
+        ) : (
+          <div className="text-xs text-slate-500">#{matchId}</div>
+        )}
+      </div>
+
+      {/* Equipos */}
+      <div className="flex items-center py-4 px-2">
+        <TeamSide staticLabel={home} resolved={resolvedHome} />
+        <div className="flex-shrink-0 px-1">
+          <span className="text-lg font-black text-slate-600">vs</span>
+        </div>
+        <TeamSide staticLabel={away} resolved={resolvedAway} />
+      </div>
+    </div>
+  )
+}
 
 function MobileBracket({ bracketByMatchId }) {
   const [activePhase, setActivePhase] = useState('d32')
@@ -317,8 +396,8 @@ function MobileBracket({ bracketByMatchId }) {
 
   return (
     <div>
-      {/* Tabs */}
-      <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
+      {/* Tabs scrolleables */}
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         {MOBILE_PHASES.map(p => (
           <button
             key={p.id}
@@ -334,19 +413,14 @@ function MobileBracket({ bracketByMatchId }) {
         ))}
       </div>
 
-      {/* Leyenda compacta */}
-      <div className="flex gap-3 mb-4 text-[10px] text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Tarjetas de enfrentamiento */}
+      <div className="flex flex-col gap-3">
         {phase?.ids.map(id => {
           const m        = ALL_BY_ID[id]
           const resolved = bracketByMatchId[id]
           if (!m) return null
           return (
-            <BracketSlot
+            <MatchCard
               key={id}
               matchId={id}
               home={m.home}
@@ -357,6 +431,13 @@ function MobileBracket({ bracketByMatchId }) {
             />
           )
         })}
+      </div>
+
+      {/* Leyenda al pie */}
+      <div className="flex gap-4 mt-5 text-[10px] text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
       </div>
     </div>
   )
