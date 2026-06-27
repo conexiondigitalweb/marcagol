@@ -155,8 +155,8 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    // v4: invalida caché con eventos FT incompletos (tarjetas/autogoles incorrectos)
-    const cacheKey = 'estadisticas-mundial:2026:v4'
+    // v5-diag: temporario — incluye _diag en respuesta para diagnóstico
+    const cacheKey = 'estadisticas-mundial:2026:v5-diag'
     const now = Date.now()
 
     const memHit = memCache.get(cacheKey)
@@ -257,16 +257,30 @@ export default async function handler(req, res) {
       let autogoles = 0
       let tarjetasAmarillas = 0
       let tarjetasRojas = 0
+      // DIAG temporario — se elimina tras diagnóstico
+      let _diagBypass = 0, _diagCacheHit = 0, _diagCacheInvalid = 0, _diagSinEventos = 0
+      const _diagFixtureDetail = []
+
       await Promise.all(fixtures.map(async f => {
         const fid = f.fixture.id
         const eventsKey = `/fixtures/events?fixture=${fid}`
         const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
         let eventsData = recentFT ? null : await kvGet(eventsKey)
+        let _src = 'bypass'
 
-        // Caché sospechoso para partido FT antiguo: 0 eventos o <10 (capturado en vivo incompleto)
-        if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
-          await kvDel(eventsKey)
-          eventsData = null
+        if (recentFT) {
+          _diagBypass++
+        } else if (eventsData) {
+          // Caché sospechoso para partido FT antiguo: 0 eventos o <10 (capturado en vivo incompleto)
+          if ((eventsData.response?.length ?? 0) < 10) {
+            _diagCacheInvalid++
+            await kvDel(eventsKey)
+            eventsData = null
+            _src = 'cache-invalid'
+          } else {
+            _diagCacheHit++
+            _src = 'cache-ok'
+          }
         }
 
         if (!eventsData) {
@@ -277,14 +291,23 @@ export default async function handler(req, res) {
             })
             if (r.ok) {
               const fetched = await r.json()
-              // Solo cachea y usa si tiene eventos — evita sobrescribir con vacío
               if (fetched.response?.length > 0) {
                 kvSet(eventsKey, fetched, 300)
                 eventsData = fetched
+                if (_src !== 'bypass') _src = 'fetch-ok'
+                else _src = 'bypass-fetch-ok'
+              } else {
+                if (_src === 'bypass') _src = 'bypass-fetch-empty'
+                else _src = 'fetch-empty'
               }
             }
-          } catch {}
+          } catch { _src += '-timeout' }
         }
+
+        const evCount = eventsData?.response?.length ?? 0
+        if (!eventsData) _diagSinEventos++
+        _diagFixtureDetail.push({ fid, date: f.fixture.date, evCount, src: _src })
+
         if (eventsData?.response) {
           for (const ev of eventsData.response) {
             if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
@@ -304,6 +327,13 @@ export default async function handler(req, res) {
         autogoles,
         tarjetasAmarillas,
         tarjetasRojas,
+        _diag: {
+          bypass: _diagBypass,
+          cacheHit: _diagCacheHit,
+          cacheInvalid: _diagCacheInvalid,
+          sinEventos: _diagSinEventos,
+          fixtures: _diagFixtureDetail,
+        },
         masGoleador:        allMaxBy(golesFavor, 'goles'),
         masGoleado:         allMaxBy(golesContra, 'goles'),
         marcadorMasRepetido: maxMarcador,
