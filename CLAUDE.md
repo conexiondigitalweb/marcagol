@@ -132,6 +132,42 @@
 ## RIESGOS DE CACHÉ PENDIENTES
 - ⚠️ L1 memCache sin sincronización entre instancias Vercel Fluid Compute — requests simultáneos pueden llegar a instancias con estados L1 diferentes (limitado por TTLs cortos)
 
+## 🚨 TAREA URGENTE — fixtureId R32 (antes del primer partido, 28 jun 2026)
+
+Los 16 partidos de dieciseisavos (ids 73-88 en matches.js) tienen fixtureId: null.
+Deben poblarse con los IDs reales de API-Football para activar:
+- Links clickeables en el bracket (/partido/:fixtureId)
+- Datos en vivo en MatchDetail (marcador, eventos, alineaciones)
+- Cierre automático de pollas (fixtures-status usa fixtureId)
+
+### Paso 1 — Consultar la API (ejecutar en browser o curl)
+```
+GET https://marcagol.live/api/football?action=fixtures&league=1&season=2026&round=Round%20of%2032
+```
+O desde Node/terminal con VITE_API_FOOTBALL_KEY:
+```
+node scripts/fetch-r32-fixtures.js
+```
+(el script está en scripts/fetch-r32-fixtures.js — ver más abajo)
+
+### Paso 2 — Mapear fixtures al bracket oficial FIFA
+El sorteo oficial (5-dic-2025) establece qué partido de R32 es cuál.
+Verificar fecha+equipos para confirmar que el fixture de API corresponde
+al matchId correcto en matches.js.
+
+### Paso 3 — Actualizar matches.js
+Para cada partido R32 (ids 73-88), añadir fixtureId real:
+```js
+{ id: 73, group: 'R32', ..., fixtureId: 1234567, ... }
+```
+
+### Paso 4 — Commit y deploy
+```
+git add src/data/matches.js
+git commit -m "fix: fixtureId reales R32 — activa bracket clickeable y datos en vivo"
+git push
+```
+
 ## TODO SIGUIENTE SPRINT — MatchDetail.jsx (tiempo extra y penales)
 - Badge "PRÓRROGA" cuando status === 'AET' (en lugar de solo el minuto)
 - Minuto > 90 mostrarlo como "90+1", "90+2"... "105", "105+1" (API devuelve elapsed + extra separados)
