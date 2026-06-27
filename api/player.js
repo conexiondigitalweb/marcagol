@@ -31,7 +31,8 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
 
   // ── action=mundial: estadísticas del jugador en el Mundial 2026 ──────────
-  // Busca por equipo + dorsal — un fetch cachea los 26 jugadores del equipo
+  // Paso 1: /players/squads → player.id por dorsal (dorsales son fijos en el torneo)
+  // Paso 2: /players?id&league=1&season=2026 → stats del Mundial
   if (req.query.action === 'mundial') {
     const { teamId, number } = req.query
     if (!teamId || !/^\d+$/.test(teamId)) {
@@ -40,39 +41,54 @@ export default async function handler(req, res) {
     if (!number || !/^\d+$/.test(number)) {
       return res.status(400).json({ error: 'number numérico requerido' })
     }
-
-    const cacheKey = `wc2026_squad_stats_${teamId}`
     const num = parseInt(number, 10)
 
-    const cached = await kvGet(cacheKey)
-    if (cached) {
-      res.setHeader('X-Cache', 'HIT-KV')
-      const entry = cached.find(p => p.player?.number === num)
-      return res.status(200).json({
-        found: !!entry,
-        statistics: entry?.statistics?.[0] ?? null,
-        playerInfo: entry?.player ?? null,
-      })
+    // ── Paso 1: resolver player.id desde el squad ─────────────────────────
+    const squadKey = `wc2026_squad_${teamId}`
+    let squad = await kvGet(squadKey)
+    if (!squad) {
+      try {
+        const r = await fetch(
+          `${UPSTREAM}/players/squads?team=${teamId}`,
+          { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(8_000) }
+        )
+        const data = await r.json()
+        squad = data.response?.[0]?.players ?? []
+        if (squad.length > 0) kvSet(squadKey, squad, 3600) // dorsales fijos — 1 hora
+      } catch (err) {
+        return res.status(502).json({ error: `squad fetch: ${err.message}` })
+      }
     }
 
-    try {
-      const r = await fetch(
-        `${UPSTREAM}/players?team=${teamId}&league=1&season=2026`,
-        { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(10_000) }
-      )
-      const data = await r.json()
-      const players = data.response || []
-      if (players.length > 0) kvSet(cacheKey, players, 300)
-      const entry = players.find(p => p.player?.number === num)
-      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60')
-      return res.status(200).json({
-        found: !!entry,
-        statistics: entry?.statistics?.[0] ?? null,
-        playerInfo: entry?.player ?? null,
-      })
-    } catch (err) {
-      return res.status(502).json({ error: err.message })
+    const squadPlayer = squad.find(p => p.number === num)
+    if (!squadPlayer) {
+      return res.status(200).json({ found: false, statistics: null, playerInfo: null })
     }
+    const playerId = squadPlayer.id
+
+    // ── Paso 2: stats del Mundial con el player.id ────────────────────────
+    const statsKey = `wc2026_player_mundial_${playerId}`
+    let statsEntry = await kvGet(statsKey)
+    if (!statsEntry) {
+      try {
+        const r = await fetch(
+          `${UPSTREAM}/players?id=${playerId}&league=1&season=2026`,
+          { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(8_000) }
+        )
+        const data = await r.json()
+        statsEntry = data.response?.[0] ?? null
+        if (statsEntry) kvSet(statsKey, statsEntry, 300) // stats cambian con cada partido
+      } catch (err) {
+        return res.status(502).json({ error: `stats fetch: ${err.message}` })
+      }
+    }
+
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60')
+    return res.status(200).json({
+      found: true,
+      statistics: statsEntry?.statistics?.[0] ?? null,
+      playerInfo: statsEntry?.player ?? squadPlayer,
+    })
   }
 
   // ── búsqueda por nombre+equipo (comportamiento original) ─────────────────
