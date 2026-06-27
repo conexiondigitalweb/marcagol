@@ -8,7 +8,7 @@ import { useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
 
 // ─── Constantes de layout ────────────────────────────────────────────────────
-const BRACKET_H = 1040   // 16 × 65 px — altura total del árbol
+const BRACKET_H = 1360   // 16 × 85 px — altura total del árbol (más holgura entre cruces)
 const COL_W     = 158    // ancho de cada columna de slots
 const CONN_W    = 28     // ancho del conector entre columnas
 
@@ -164,7 +164,7 @@ const ALL_BY_ID = {
 const R32_TREE_ORDER = [74, 77, 73, 75, 76, 78, 79, 80, 83, 84, 81, 82, 86, 88, 85, 87]
 
 // ─── BracketSlot ─────────────────────────────────────────────────────────────
-function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
+function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false, isPairEnd = false }) {
   const navigate   = useNavigate()
   const appMatch   = matchId ? MATCH_BY_ID[matchId] : null
   const isClickable = !!appMatch?.fixtureId
@@ -174,7 +174,7 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
       const info = getTeamInfo(resolved.team)
       const dotCls = resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
       return (
-        <div className="flex items-center gap-1.5 px-2 py-[5px] border-t border-slate-700/40 min-w-0">
+        <div className="flex items-center gap-1.5 px-2 py-2 border-t border-slate-700/40 min-w-0">
           {info.iso2
             ? <Flag iso2={info.iso2} size="xs" className="flex-shrink-0" />
             : <span className="w-5 h-3.5 bg-slate-600 rounded-sm flex-shrink-0" />}
@@ -184,7 +184,7 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
       )
     }
     return (
-      <div className="flex items-center gap-1.5 px-2 py-[5px] border-t border-slate-700/40 min-w-0">
+      <div className="flex items-center gap-1.5 px-2 py-2 border-t border-slate-700/40 min-w-0">
         <span className="w-5 h-3.5 bg-slate-700/60 rounded-sm flex-shrink-0" />
         <span className="text-[10px] text-slate-500 flex-1 truncate">{staticLabel}</span>
         <span className="w-1.5 h-1.5 rounded-full bg-slate-700 flex-shrink-0" />
@@ -195,10 +195,12 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
   return (
     <div
       style={{ width: COL_W }}
-      className={`rounded overflow-hidden border select-none transition-colors ${
+      className={`min-h-[60px] rounded overflow-hidden border select-none transition-colors ${
         isHighlight
           ? 'border-amber-400/60 bg-amber-950/30'
-          : 'border-slate-700 bg-slate-800'
+          : isPairEnd
+            ? 'border-slate-600/80 bg-slate-800'
+            : 'border-slate-700 bg-slate-800'
       } ${isClickable ? 'cursor-pointer hover:border-sky-500/50' : ''}`}
       onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
     >
@@ -218,6 +220,10 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
       )}
       <TeamRow staticLabel={home} resolved={resolvedHome} />
       <TeamRow staticLabel={away} resolved={resolvedAway} />
+      {/* Franja inferior sutil en el segundo slot de cada cruce (visual grouping) */}
+      {isPairEnd && (
+        <div className="h-[3px] bg-gradient-to-r from-slate-600/0 via-slate-500/20 to-slate-600/0" />
+      )}
     </div>
   )
 }
@@ -259,16 +265,19 @@ function BracketConnectors({ count }) {
 }
 
 // ─── Columna del árbol ────────────────────────────────────────────────────────
-function BracketColumn({ ids, bracketByMatchId }) {
+// pairSize: si se pasa, marca cada slot en posición (pairSize-1), (2*pairSize-1)…
+// como "cierre de par" → borde más visible + indicador visual sutil
+function BracketColumn({ ids, bracketByMatchId, pairSize }) {
   return (
     <div
       className="flex-shrink-0 flex flex-col justify-around"
       style={{ height: BRACKET_H, width: COL_W }}
     >
-      {ids.map(id => {
+      {ids.map((id, idx) => {
         const m        = ALL_BY_ID[id]
         const resolved = bracketByMatchId[id]
         if (!m) return null
+        const isPairEnd = pairSize ? (idx % pairSize === pairSize - 1) : false
         return (
           <BracketSlot
             key={id}
@@ -278,6 +287,7 @@ function BracketColumn({ ids, bracketByMatchId }) {
             resolvedHome={resolved?.home}
             resolvedAway={resolved?.away}
             isHighlight={id === 104}
+            isPairEnd={isPairEnd}
           />
         )
       })}
@@ -334,8 +344,8 @@ function DesktopBracket({ bracketByMatchId, allGroupsComplete }) {
 
       {/* Árbol */}
       <div className="flex items-start" style={{ gap: 0 }}>
-        {/* R32 */}
-        <BracketColumn ids={R32_TREE_ORDER} bracketByMatchId={bracketByMatchId} />
+        {/* R32 — pairSize=2: cada 2 slots forman un cruce, el segundo se resalta */}
+        <BracketColumn ids={R32_TREE_ORDER} bracketByMatchId={bracketByMatchId} pairSize={2} />
         <BracketConnectors count={8} />
 
         {/* R16 */}
