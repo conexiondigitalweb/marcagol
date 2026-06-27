@@ -155,8 +155,8 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    // v3: invalida caché con autogoles incorrectos (Qatar-Suiza y similares)
-    const cacheKey = 'estadisticas-mundial:2026:v3'
+    // v4: invalida caché con eventos FT incompletos (tarjetas/autogoles incorrectos)
+    const cacheKey = 'estadisticas-mundial:2026:v4'
     const now = Date.now()
 
     const memHit = memCache.get(cacheKey)
@@ -263,8 +263,8 @@ export default async function handler(req, res) {
         const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
         let eventsData = recentFT ? null : await kvGet(eventsKey)
 
-        // Caché con 0 eventos para partido FT antiguo: puede ser dato incompleto
-        if (!recentFT && eventsData && !(eventsData.response?.length > 0)) {
+        // Caché sospechoso para partido FT antiguo: 0 eventos o <10 (capturado en vivo incompleto)
+        if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
           await kvDel(eventsKey)
           eventsData = null
         }
