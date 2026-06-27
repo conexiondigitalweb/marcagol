@@ -7,95 +7,66 @@ import { MATCHES } from '../data/matches'
 import { useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
 
-// ─── Constantes de layout ────────────────────────────────────────────────────
-// R32 renderiza 8 par-containers en justify-around → cada par ocupa BRACKET_H/8
-// El resto de columnas también usan justify-around con BRACKET_H → conectores alineados
-const BRACKET_H = 1440   // 8 pares × ~180px por par
-const COL_W     = 158    // ancho de cada columna de slots
-const CONN_W    = 28     // ancho del conector entre columnas
+// ─── Constantes de layout desktop ────────────────────────────────────────────
+// Árbol Fase Final: alturas fijas por ronda, todas suman TREE_H
+// Octavos 8×80 = Cuartos 4×160 = Semis 2×320 = 640 → conectores siempre alineados
+const TREE_H  = 640
+const COL_W   = 160   // ancho slot árbol desktop
+const CONN_W  = 32    // ancho conector desktop (slate-600)
+
+// ─── Constantes árbol móvil ───────────────────────────────────────────────────
+const MOB_SLOT_W  = 76
+const MOB_CONN_W  = 14
+const MOB_TREE_H  = 512  // 8 slots × 64px
 
 // ─── Lookup de equipos ────────────────────────────────────────────────────────
-// Mapa: código FIFA 3 letras → iso2  (fuente única: GROUPS)
 const CODE_TO_ISO2 = {}
 GROUPS.forEach(g => g.teams.forEach(t => { CODE_TO_ISO2[t.code] = t.iso2 }))
 
-// Mapa principal: nombre en español (minúsculas) → { code, iso2 }
 const TEAM_INFO_MAP = {}
 GROUPS.forEach(g => g.teams.forEach(t => {
   TEAM_INFO_MAP[t.name.toLowerCase()] = { code: t.code, iso2: t.iso2 }
 }))
 
-// Aliases de nombres en inglés que devuelve la API → código FIFA
-// La API usa nombres en inglés; GROUPS tiene nombres en español.
 const EN_NAME_TO_CODE = {
-  'korea republic':             'KOR', 'south korea':               'KOR',
-  'saudi arabia':               'KSA',
-  "ivory coast":                'CIV', "côte d'ivoire":             'CIV', 'cote d\'ivoire': 'CIV',
-  'netherlands':                'NED', 'holland':                   'NED',
-  'united states':              'USA', 'usa':                       'USA',
-  'england':                    'ENG',
-  'bosnia':                     'BIH', 'bosnia and herzegovina':    'BIH', 'bosnia & herzegovina': 'BIH',
-  'new zealand':                'NZL',
-  'cape verde':                 'CPV', 'cabo verde':                'CPV',
-  'morocco':                    'MAR',
-  'senegal':                    'SEN',
-  'iraq':                       'IRQ',
-  'norway':                     'NOR',
-  'algeria':                    'ALG',
-  'austria':                    'AUT',
-  'jordan':                     'JOR',
-  'dr congo':                   'COD', 'democratic republic of congo': 'COD',
-  'congo dr':                   'COD', 'dr. congo':                 'COD',
-  'uzbekistan':                 'UZB',
-  'croatia':                    'CRO',
-  'ghana':                      'GHA',
-  'panama':                     'PAN', 'panamá':                    'PAN',
-  'mexico':                     'MEX', 'méxico':                    'MEX',
-  'south africa':               'RSA',
-  'czech republic':             'CZE', 'czechia':                   'CZE',
-  'canada':                     'CAN',
-  'qatar':                      'QAT',
-  'switzerland':                'SUI',
-  'brazil':                     'BRA',
-  'haiti':                      'HAI',
-  'scotland':                   'SCO',
-  'germany':                    'GER',
-  'curacao':                    'CUW', 'curaçao':                   'CUW',
-  'ecuador':                    'ECU',
-  'japan':                      'JPN',
-  'sweden':                     'SWE',
-  'tunisia':                    'TUN',
-  'belgium':                    'BEL',
-  'egypt':                      'EGY',
-  'iran':                       'IRN',
-  'spain':                      'ESP',
-  'uruguay':                    'URU',
-  'france':                     'FRA',
-  'paraguay':                   'PAR',
-  'australia':                  'AUS',
-  'turkey':                     'TUR', 'türkiye':                   'TUR',
-  'argentina':                  'ARG',
-  'colombia':                   'COL',
-  'portugal':                   'POR',
-  'england':                    'ENG',
+  'korea republic': 'KOR', 'south korea': 'KOR',
+  'saudi arabia': 'KSA',
+  'ivory coast': 'CIV', "côte d'ivoire": 'CIV', "cote d'ivoire": 'CIV',
+  'netherlands': 'NED', 'holland': 'NED',
+  'united states': 'USA', 'usa': 'USA',
+  'england': 'ENG',
+  'bosnia': 'BIH', 'bosnia and herzegovina': 'BIH', 'bosnia & herzegovina': 'BIH',
+  'new zealand': 'NZL',
+  'cape verde': 'CPV', 'cabo verde': 'CPV',
+  'morocco': 'MAR', 'senegal': 'SEN', 'iraq': 'IRQ', 'norway': 'NOR',
+  'algeria': 'ALG', 'austria': 'AUT', 'jordan': 'JOR',
+  'dr congo': 'COD', 'democratic republic of congo': 'COD', 'congo dr': 'COD', 'dr. congo': 'COD',
+  'uzbekistan': 'UZB', 'croatia': 'CRO', 'ghana': 'GHA',
+  'panama': 'PAN', 'panamá': 'PAN',
+  'mexico': 'MEX', 'méxico': 'MEX',
+  'south africa': 'RSA', 'czech republic': 'CZE', 'czechia': 'CZE',
+  'canada': 'CAN', 'qatar': 'QAT', 'switzerland': 'SUI', 'brazil': 'BRA',
+  'haiti': 'HAI', 'scotland': 'SCO', 'germany': 'GER',
+  'curacao': 'CUW', 'curaçao': 'CUW',
+  'ecuador': 'ECU', 'japan': 'JPN', 'sweden': 'SWE', 'tunisia': 'TUN',
+  'belgium': 'BEL', 'egypt': 'EGY', 'iran': 'IRN', 'spain': 'ESP',
+  'uruguay': 'URU', 'france': 'FRA', 'paraguay': 'PAR', 'australia': 'AUS',
+  'turkey': 'TUR', 'türkiye': 'TUR', 'argentina': 'ARG',
+  'colombia': 'COL', 'portugal': 'POR',
 }
 
 function getTeamInfo(team) {
   if (!team?.name) return { code: 'TBD', iso2: null }
   const key = team.name.toLowerCase()
-  // 1. Buscar por nombre español (coincidencia exacta)
   const byEs = TEAM_INFO_MAP[key]
   if (byEs) return byEs
-  // 2. Buscar por nombre en inglés (API devuelve inglés)
   const code = EN_NAME_TO_CODE[key]
   if (code) return { code, iso2: CODE_TO_ISO2[code] ?? null }
-  // 3. Fallback: primeras 3 letras como código, intentar iso2 por código
-  const fallbackCode = team.name.slice(0, 3).toUpperCase()
-  return { code: fallbackCode, iso2: CODE_TO_ISO2[fallbackCode] ?? null }
+  const fallback = team.name.slice(0, 3).toUpperCase()
+  return { code: fallback, iso2: CODE_TO_ISO2[fallback] ?? null }
 }
 
-const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
-
+// ─── Helper fecha ──────────────────────────────────────────────────────────────
 function fmtDate(iso) {
   if (!iso) return ''
   const p = iso.split('-')
@@ -105,24 +76,23 @@ function fmtDate(iso) {
 
 // ─── Datos de fases ───────────────────────────────────────────────────────────
 const R32_MATCHES = [
-  { matchId: 73,  home: '2º Grupo A',          away: '2º Grupo B'            },
-  { matchId: 74,  home: '1º Grupo E',          away: 'Mejor 3º A/B/C/D/F'   },
-  { matchId: 75,  home: '1º Grupo F',          away: '2º Grupo C'            },
-  { matchId: 76,  home: '1º Grupo C',          away: '2º Grupo F'            },
-  { matchId: 77,  home: '1º Grupo I',          away: 'Mejor 3º C/D/F/G/H'   },
-  { matchId: 78,  home: '2º Grupo E',          away: '2º Grupo I'            },
-  { matchId: 79,  home: '1º Grupo A',          away: 'Mejor 3º C/E/F/H/I'   },
-  { matchId: 80,  home: '1º Grupo L',          away: 'Mejor 3º E/H/I/J/K'   },
-  { matchId: 81,  home: '1º Grupo D',          away: 'Mejor 3º B/E/F/I/J'   },
-  { matchId: 82,  home: '1º Grupo G',          away: 'Mejor 3º A/E/H/I/J'   },
-  { matchId: 83,  home: '2º Grupo K',          away: '2º Grupo L'            },
-  { matchId: 84,  home: '1º Grupo H',          away: '2º Grupo J'            },
-  { matchId: 85,  home: '1º Grupo B',          away: 'Mejor 3º E/F/G/I/J'   },
-  { matchId: 86,  home: '1º Grupo J',          away: '2º Grupo H'            },
-  { matchId: 87,  home: '1º Grupo K',          away: 'Mejor 3º D/E/I/J/L'   },
-  { matchId: 88,  home: '2º Grupo D',          away: '2º Grupo G'            },
+  { matchId: 73,  home: '2º Grupo A',       away: '2º Grupo B'          },
+  { matchId: 74,  home: '1º Grupo E',       away: 'Mejor 3º A/B/C/D/F' },
+  { matchId: 75,  home: '1º Grupo F',       away: '2º Grupo C'          },
+  { matchId: 76,  home: '1º Grupo C',       away: '2º Grupo F'          },
+  { matchId: 77,  home: '1º Grupo I',       away: 'Mejor 3º C/D/F/G/H' },
+  { matchId: 78,  home: '2º Grupo E',       away: '2º Grupo I'          },
+  { matchId: 79,  home: '1º Grupo A',       away: 'Mejor 3º C/E/F/H/I' },
+  { matchId: 80,  home: '1º Grupo L',       away: 'Mejor 3º E/H/I/J/K' },
+  { matchId: 81,  home: '1º Grupo D',       away: 'Mejor 3º B/E/F/I/J' },
+  { matchId: 82,  home: '1º Grupo G',       away: 'Mejor 3º A/E/H/I/J' },
+  { matchId: 83,  home: '2º Grupo K',       away: '2º Grupo L'          },
+  { matchId: 84,  home: '1º Grupo H',       away: '2º Grupo J'          },
+  { matchId: 85,  home: '1º Grupo B',       away: 'Mejor 3º E/F/G/I/J' },
+  { matchId: 86,  home: '1º Grupo J',       away: '2º Grupo H'          },
+  { matchId: 87,  home: '1º Grupo K',       away: 'Mejor 3º D/E/I/J/L' },
+  { matchId: 88,  home: '2º Grupo D',       away: '2º Grupo G'          },
 ]
-
 const R8_MATCHES = [
   { matchId: 89,  home: 'W74', away: 'W77' },
   { matchId: 90,  home: 'W73', away: 'W75' },
@@ -133,23 +103,19 @@ const R8_MATCHES = [
   { matchId: 95,  home: 'W86', away: 'W88' },
   { matchId: 96,  home: 'W85', away: 'W87' },
 ]
-
 const QF_MATCHES = [
   { matchId: 97,  home: 'W89', away: 'W90' },
   { matchId: 98,  home: 'W91', away: 'W92' },
   { matchId: 99,  home: 'W93', away: 'W94' },
   { matchId: 100, home: 'W95', away: 'W96' },
 ]
-
 const SF_MATCHES = [
   { matchId: 101, home: 'W97',  away: 'W98'  },
   { matchId: 102, home: 'W99',  away: 'W100' },
 ]
-
 const FINAL = { matchId: 104, home: 'W101', away: 'W102' }
 const THIRD = { matchId: 103, home: 'Per. SF-1', away: 'Per. SF-2' }
 
-// Lookup por matchId
 const R32_BY_ID = Object.fromEntries(R32_MATCHES.map(m => [m.matchId, m]))
 const R8_BY_ID  = Object.fromEntries(R8_MATCHES.map(m => [m.matchId, m]))
 const QF_BY_ID  = Object.fromEntries(QF_MATCHES.map(m => [m.matchId, m]))
@@ -160,21 +126,85 @@ const ALL_BY_ID = {
   [THIRD.matchId]: THIRD,
 }
 
-// Pares de R32 ordenados según el bracket oficial FIFA
-// Cada par (A,B) → ganador avanza al R16 correspondiente
-// (74,77)→89, (73,75)→90, (76,78)→91, (79,80)→92
-// (83,84)→93, (81,82)→94, (86,88)→95, (85,87)→96
-const R32_PAIRS = [[74,77],[73,75],[76,78],[79,80],[83,84],[81,82],[86,88],[85,87]]
+const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
 
-// ─── BracketSlot — un partido (ambos equipos como unidad) ────────────────────
+const D32_IDS = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88]
+
+// ─── MatchCard — tarjeta cara a cara (lista de R32) ─────────────────────────
+function MatchCard({ matchId, home, away, resolvedHome, resolvedAway }) {
+  const navigate    = useNavigate()
+  const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
+  const isClickable = !!appMatch?.fixtureId
+
+  function TeamSide({ staticLabel, resolved }) {
+    const info = resolved?.team ? getTeamInfo(resolved.team) : null
+    const dotCls = !info ? 'bg-slate-700' : resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
+    const dotLabel = !info ? 'Por definir' : resolved.confirmed ? 'Confirmado' : 'Proyectado'
+    return (
+      <div className="flex flex-col items-center gap-1 flex-1 min-w-0 px-2">
+        <div className="w-9 h-6 rounded overflow-hidden flex items-center justify-center bg-slate-700/60">
+          {info?.iso2
+            ? <Flag iso2={info.iso2} size="sm" className="w-full h-full object-cover" />
+            : <span className="text-slate-600 text-xs">?</span>}
+        </div>
+        <span className={`text-sm font-black tracking-wide ${info ? 'text-slate-100' : 'text-slate-600'}`}>
+          {info ? info.code : 'TBD'}
+        </span>
+        <span className="flex items-center gap-1 text-[9px] text-slate-500">
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
+          {dotLabel}
+        </span>
+        {!info && staticLabel && (
+          <span className="text-[9px] text-slate-600 text-center leading-tight line-clamp-2 max-w-[80px]">
+            {staticLabel}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`rounded-xl border transition-colors overflow-hidden ${
+        isClickable ? 'border-slate-600 bg-slate-800/80 cursor-pointer hover:border-sky-500/60 active:scale-[0.98]' : 'border-slate-700 bg-slate-800/80'
+      }`}
+      onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
+    >
+      <div className="px-4 pt-3 pb-2 text-center border-b border-slate-700/40">
+        {appMatch ? (
+          <>
+            <div className="text-xs font-semibold text-slate-300">
+              {fmtDate(appMatch.date)}
+              <span className="text-slate-500 font-normal"> · {appMatch.timeCol}</span>
+            </div>
+            {appMatch.venue && (
+              <div className="text-[10px] text-slate-500 truncate mt-0.5">{appMatch.venue}</div>
+            )}
+          </>
+        ) : (
+          <div className="text-xs text-slate-500">#{matchId}</div>
+        )}
+      </div>
+      <div className="flex items-center py-4 px-2">
+        <TeamSide staticLabel={home} resolved={resolvedHome} />
+        <div className="flex-shrink-0 px-1">
+          <span className="text-lg font-black text-slate-600">vs</span>
+        </div>
+        <TeamSide staticLabel={away} resolved={resolvedAway} />
+      </div>
+    </div>
+  )
+}
+
+// ─── BracketSlot — slot compacto para el árbol desktop ───────────────────────
 function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
-  const navigate   = useNavigate()
-  const appMatch   = matchId ? MATCH_BY_ID[matchId] : null
+  const navigate    = useNavigate()
+  const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
   const isClickable = !!appMatch?.fixtureId
 
   function TeamRow({ staticLabel, resolved }) {
     if (resolved?.team) {
-      const info = getTeamInfo(resolved.team)
+      const info   = getTeamInfo(resolved.team)
       const dotCls = resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
       return (
         <div className="flex items-center gap-1.5 px-2 py-2 border-t border-slate-700 min-w-0">
@@ -198,14 +228,11 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
   return (
     <div
       style={{ width: COL_W }}
-      className={`min-h-[60px] rounded-lg overflow-hidden border select-none transition-colors ${
-        isHighlight
-          ? 'border-amber-400/60 bg-amber-950/30'
-          : 'border-slate-700 bg-slate-800'
+      className={`rounded-lg overflow-hidden border select-none transition-colors ${
+        isHighlight ? 'border-amber-400/60 bg-amber-950/30' : 'border-slate-700 bg-slate-800'
       } ${isClickable ? 'cursor-pointer hover:border-sky-500/50' : ''}`}
       onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
     >
-      {/* Header */}
       <div className="flex items-center justify-between gap-1 px-2 pt-[3px] pb-[2px] bg-slate-700/30">
         <span className="text-[9px] font-mono text-slate-500 flex-shrink-0">#{matchId}</span>
         {appMatch && (
@@ -225,172 +252,119 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
   )
 }
 
-// ─── Conectores CSS entre columnas ───────────────────────────────────────────
-// count = número de slots en la columna DERECHA
-// Para R32→R16: count=8 (los 8 pares de R32 actúan como 8 unidades)
-function BracketConnectors({ count }) {
-  const rowH = BRACKET_H / count
+// ─── PhaseConnectors — conectores entre columnas del árbol desktop ────────────
+// count = slots en la columna DERECHA
+// TREE_H/count = altura de cada slot derecho = altura de cada celda de conector
+// El horizontal al 50% de cada celda apunta al centro del slot derecho,
+// que coincide con el centro del par de slots izquierdos (los que alimentan ese slot)
+function PhaseConnectors({ count }) {
+  const rowH = TREE_H / count
   return (
-    <div className="flex-shrink-0 relative" style={{ width: CONN_W, height: BRACKET_H }}>
+    <div className="flex-shrink-0 relative" style={{ width: CONN_W, height: TREE_H }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute left-0 right-0"
-          style={{ top: i * rowH, height: rowH }}
-        >
-          <div
-            className="absolute left-0 right-0 top-0"
-            style={{ height: '50%', borderBottom: '1px solid #334155', borderRight: '1px solid #334155' }}
-          />
-          <div
-            className="absolute left-0 right-0 bottom-0"
-            style={{ height: '50%', borderTop: '1px solid #334155', borderRight: '1px solid #334155' }}
-          />
+        <div key={i} className="absolute left-0 right-0" style={{ top: i * rowH, height: rowH }}>
+          <div className="absolute left-0 right-0 top-0" style={{
+            height: '50%', borderBottom: '1px solid #475569', borderRight: '1px solid #475569',
+          }} />
+          <div className="absolute left-0 right-0 bottom-0" style={{
+            height: '50%', borderTop: '1px solid #475569', borderRight: '1px solid #475569',
+          }} />
         </div>
       ))}
     </div>
   )
 }
 
-// ─── Columna R32: 8 pares de partidos en justify-around ──────────────────────
-// Cada par ocupa BRACKET_H/8 — el espacio va ENTRE pares, no entre equipos del mismo partido.
-// Los conectores (count=8) apuntan al centro de cada par, alineando con R16. ✓
-function R32BracketColumn({ bracketByMatchId }) {
+// ─── PhaseColumn — columna con slots de altura fija ──────────────────────────
+// slotH determina la altura de cada contenedor de slot.
+// El slot card vive centrado verticalmente dentro del contenedor.
+function PhaseColumn({ ids, slotH, bracketByMatchId }) {
   return (
-    <div
-      className="flex-shrink-0 flex flex-col justify-around"
-      style={{ height: BRACKET_H, width: COL_W }}
-    >
-      {R32_PAIRS.map(([idA, idB]) => {
-        const mA = ALL_BY_ID[idA], mB = ALL_BY_ID[idB]
-        const rA = bracketByMatchId[idA], rB = bracketByMatchId[idB]
-        return (
-          <div key={idA} className="flex flex-col gap-2">
-            <BracketSlot matchId={idA} home={mA?.home} away={mA?.away} resolvedHome={rA?.home} resolvedAway={rA?.away} />
-            <BracketSlot matchId={idB} home={mB?.home} away={mB?.away} resolvedHome={rB?.home} resolvedAway={rB?.away} />
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Columna genérica para R16, QF, SF, Final ───────────────────────────────
-function BracketColumn({ ids, bracketByMatchId }) {
-  return (
-    <div
-      className="flex-shrink-0 flex flex-col justify-around"
-      style={{ height: BRACKET_H, width: COL_W }}
-    >
+    <div className="flex-shrink-0 flex flex-col" style={{ width: COL_W, height: TREE_H }}>
       {ids.map(id => {
         const m        = ALL_BY_ID[id]
         const resolved = bracketByMatchId[id]
         if (!m) return null
         return (
-          <BracketSlot
-            key={id}
-            matchId={id}
-            home={m.home}
-            away={m.away}
-            resolvedHome={resolved?.home}
-            resolvedAway={resolved?.away}
-            isHighlight={id === 104}
-          />
+          <div key={id} className="flex items-center" style={{ height: slotH }}>
+            <BracketSlot
+              matchId={id}
+              home={m.home}
+              away={m.away}
+              resolvedHome={resolved?.home}
+              resolvedAway={resolved?.away}
+              isHighlight={id === 104}
+            />
+          </div>
         )
       })}
     </div>
   )
 }
 
-// ─── Árbol desktop ───────────────────────────────────────────────────────────
-function DesktopBracket({ bracketByMatchId, allGroupsComplete }) {
-  return (
-    <div className="overflow-x-auto pb-6">
-      {/* Leyenda */}
-      <div className="flex gap-4 mb-4 text-xs text-slate-500 items-center">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-          Confirmado (grupo cerrado)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block" />
-          Proyectado
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-slate-700 inline-block" />
-          Por definir
-        </span>
-        <span className="ml-auto text-slate-600">
-          {allGroupsComplete ? '🟢 Bracket confirmado' : '🟡 Proyectado desde standings actuales'}
-        </span>
-      </div>
+// ─── Árbol desktop Fase Final ─────────────────────────────────────────────────
+// Octavos: 8 slots × h=80px = 640px
+// Cuartos: 4 slots × h=160px = 640px  → conector count=4, rowH=160
+// Semis:   2 slots × h=320px = 640px  → conector count=2, rowH=320
+// Final:   1 slot centrado en 640px   → conector count=1, rowH=640
+function DesktopFinalTree({ bracketByMatchId }) {
+  const COLS = [
+    { label: 'Octavos',    sub: '4 – 7 jul',   ids: [89,90,91,92,93,94,95,96], slotH: 80  },
+    { label: 'Cuartos',    sub: '9 – 11 jul',  ids: [97,98,99,100],            slotH: 160 },
+    { label: 'Semifinales',sub: '14 – 15 jul', ids: [101,102],                 slotH: 320 },
+    { label: 'Final',      sub: '19 jul',       ids: [104],                     slotH: TREE_H },
+  ]
 
-      {/* Etiquetas de columnas */}
-      <div className="flex items-end mb-2" style={{ gap: 0 }}>
-        {[
-          { label: 'Dieciseisavos', w: COL_W, sub: '28 jun – 3 jul' },
-          { label: '',              w: CONN_W, sub: '' },
-          { label: 'Octavos',       w: COL_W, sub: '4 – 7 jul' },
-          { label: '',              w: CONN_W, sub: '' },
-          { label: 'Cuartos',       w: COL_W, sub: '9 – 11 jul' },
-          { label: '',              w: CONN_W, sub: '' },
-          { label: 'Semifinales',   w: COL_W, sub: '14 – 15 jul' },
-          { label: '',              w: CONN_W, sub: '' },
-          { label: 'Final',         w: COL_W, sub: '19 jul' },
-        ].map((col, i) => (
-          <div key={i} className="flex-shrink-0 text-center" style={{ width: col.w }}>
-            {col.label && (
-              <>
-                <div className="text-xs font-semibold text-slate-300">{col.label}</div>
-                <div className="text-[10px] text-slate-600">{col.sub}</div>
-              </>
-            )}
-          </div>
+  return (
+    <div className="overflow-x-auto pb-4">
+      {/* Cabeceras de columna */}
+      <div className="flex mb-2" style={{ gap: 0 }}>
+        {COLS.map((col, i) => (
+          <Fragment key={i}>
+            <div className="flex-shrink-0 text-center" style={{ width: COL_W }}>
+              <div className="text-xs font-semibold text-slate-300">{col.label}</div>
+              <div className="text-[10px] text-slate-600">{col.sub}</div>
+            </div>
+            {i < COLS.length - 1 && <div style={{ width: CONN_W }} />}
+          </Fragment>
         ))}
       </div>
 
       {/* Árbol */}
       <div className="flex items-start" style={{ gap: 0 }}>
-        {/* R32 — 8 pares en justify-around; espacio entre pares, no entre equipos */}
-        <R32BracketColumn bracketByMatchId={bracketByMatchId} />
-        <BracketConnectors count={8} />
-
-        {/* R16 */}
-        <BracketColumn ids={[89, 90, 91, 92, 93, 94, 95, 96]} bracketByMatchId={bracketByMatchId} />
-        <BracketConnectors count={4} />
-
-        {/* QF */}
-        <BracketColumn ids={[97, 98, 99, 100]} bracketByMatchId={bracketByMatchId} />
-        <BracketConnectors count={2} />
-
-        {/* SF */}
-        <BracketColumn ids={[101, 102]} bracketByMatchId={bracketByMatchId} />
-        <BracketConnectors count={1} />
-
-        {/* Final */}
-        <BracketColumn ids={[104]} bracketByMatchId={bracketByMatchId} />
+        {COLS.map((col, i) => (
+          <Fragment key={col.label}>
+            <PhaseColumn ids={col.ids} slotH={col.slotH} bracketByMatchId={bracketByMatchId} />
+            {i < COLS.length - 1 && (
+              <PhaseConnectors count={COLS[i + 1].ids.length} />
+            )}
+          </Fragment>
+        ))}
       </div>
 
-      {/* 3er Puesto — debajo del árbol */}
+      {/* 3er Puesto */}
       <div className="mt-6 flex items-center gap-3">
         <span className="text-xs text-slate-500 font-semibold">3er Puesto · 18 jul</span>
         <BracketSlot
           matchId={103}
           home={THIRD.home}
           away={THIRD.away}
+          resolvedHome={bracketByMatchId[103]?.home}
+          resolvedAway={bracketByMatchId[103]?.away}
         />
+      </div>
+
+      {/* Leyenda */}
+      <div className="flex gap-5 mt-4 text-xs text-slate-500">
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmado</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-400" />Proyectado</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-700" />Por definir</span>
       </div>
     </div>
   )
 }
 
-// ─── Vista móvil (2 tabs) ────────────────────────────────────────────────────
-
-// ─── Slot compacto para el árbol de Fase Final ───────────────────────────────
-const TREE_SLOT_W  = 76   // px — ancho slot árbol móvil
-const TREE_CONN_W  = 14   // px — ancho conector árbol móvil
-const TREE_H_MOB   = 512  // px — altura total del árbol (8 × 64px)
-
+// ─── TreeSlot — slot compacto árbol móvil ────────────────────────────────────
 function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
   const navigate    = useNavigate()
   const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
@@ -414,7 +388,7 @@ function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight
 
   return (
     <div
-      style={{ width: TREE_SLOT_W }}
+      style={{ width: MOB_SLOT_W }}
       className={`rounded overflow-hidden border select-none ${
         isHighlight ? 'border-amber-400/50 bg-amber-950/30' : 'border-slate-700 bg-slate-800'
       } ${isClickable ? 'cursor-pointer' : ''}`}
@@ -429,11 +403,11 @@ function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight
   )
 }
 
-// Conectores para el árbol móvil (misma lógica que BracketConnectors)
-function TreeConnectors({ count }) {
-  const rowH = TREE_H_MOB / count
+// ─── Conectores árbol móvil ───────────────────────────────────────────────────
+function MobTreeConnectors({ count }) {
+  const rowH = MOB_TREE_H / count
   return (
-    <div className="flex-shrink-0 relative" style={{ width: TREE_CONN_W, height: TREE_H_MOB }}>
+    <div className="flex-shrink-0 relative" style={{ width: MOB_CONN_W, height: MOB_TREE_H }}>
       {Array.from({ length: count }).map((_, i) => (
         <div key={i} className="absolute left-0 right-0" style={{ top: i * rowH, height: rowH }}>
           <div className="absolute left-0 right-0 top-0" style={{ height: '50%', borderBottom: '1px solid #334155', borderRight: '1px solid #334155' }} />
@@ -444,53 +418,47 @@ function TreeConnectors({ count }) {
   )
 }
 
-// Árbol Fase Final: Octavos → Cuartos → Semis → Final (horizontal-scroll)
-function FinalPhaseTree({ bracketByMatchId }) {
+// ─── Árbol móvil Fase Final (horizontal-scroll) ───────────────────────────────
+function MobileFinalTree({ bracketByMatchId }) {
   const COLS = [
-    { label: 'Octavos', sub: '4–7 jul',    ids: [89,90,91,92,93,94,95,96], connPairs: 4 },
-    { label: 'Cuartos', sub: '9–11 jul',   ids: [97,98,99,100],            connPairs: 2 },
-    { label: 'Semis',   sub: '14–15 jul',  ids: [101,102],                 connPairs: 1 },
-    { label: 'Final',   sub: '19 jul',     ids: [104],                     connPairs: null },
+    { label: 'Octavos', sub: '4–7 jul',   ids: [89,90,91,92,93,94,95,96], connCount: 4 },
+    { label: 'Cuartos', sub: '9–11 jul',  ids: [97,98,99,100],            connCount: 2 },
+    { label: 'Semis',   sub: '14–15 jul', ids: [101,102],                 connCount: 1 },
+    { label: 'Final',   sub: '19 jul',    ids: [104],                     connCount: null },
   ]
 
   return (
-    <div>
-      {/* Etiquetas de fase */}
+    <div className="overflow-x-auto">
+      {/* Cabeceras */}
       <div className="flex mb-2" style={{ gap: 0 }}>
         {COLS.map((col, i) => (
           <Fragment key={i}>
-            <div className="flex-shrink-0 text-center" style={{ width: TREE_SLOT_W }}>
+            <div className="flex-shrink-0 text-center" style={{ width: MOB_SLOT_W }}>
               <div className="text-[10px] font-semibold text-slate-300">{col.label}</div>
               <div className="text-[8px] text-slate-600">{col.sub}</div>
             </div>
-            {col.connPairs && <div style={{ width: TREE_CONN_W }} />}
+            {col.connCount && <div style={{ width: MOB_CONN_W }} />}
           </Fragment>
         ))}
       </div>
 
       {/* Árbol */}
-      <div className="flex" style={{ height: TREE_H_MOB }}>
+      <div className="flex" style={{ height: MOB_TREE_H }}>
         {COLS.map((col, i) => (
           <Fragment key={i}>
-            <div className="flex-shrink-0 flex flex-col justify-around" style={{ width: TREE_SLOT_W, height: TREE_H_MOB }}>
+            <div className="flex-shrink-0 flex flex-col justify-around" style={{ width: MOB_SLOT_W, height: MOB_TREE_H }}>
               {col.ids.map(id => {
-                const m        = ALL_BY_ID[id]
-                const resolved = bracketByMatchId[id]
+                const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
                 if (!m) return null
                 return (
-                  <TreeSlot
-                    key={id}
-                    matchId={id}
-                    home={m.home}
-                    away={m.away}
-                    resolvedHome={resolved?.home}
-                    resolvedAway={resolved?.away}
+                  <TreeSlot key={id} matchId={id} home={m.home} away={m.away}
+                    resolvedHome={resolved?.home} resolvedAway={resolved?.away}
                     isHighlight={id === 104}
                   />
                 )
               })}
             </div>
-            {col.connPairs && <TreeConnectors count={col.connPairs} />}
+            {col.connCount && <MobTreeConnectors count={col.connCount} />}
           </Fragment>
         ))}
       </div>
@@ -498,10 +466,8 @@ function FinalPhaseTree({ bracketByMatchId }) {
       {/* 3er puesto */}
       <div className="flex items-center gap-2 mt-4">
         <span className="text-[10px] text-slate-500 font-semibold flex-shrink-0">3er lugar · 18 jul</span>
-        <TreeSlot
-          matchId={103}
-          home={THIRD.home}
-          away={THIRD.away}
+        <TreeSlot matchId={103} home={THIRD.home} away={THIRD.away}
+          resolvedHome={bracketByMatchId[103]?.home} resolvedAway={bracketByMatchId[103]?.away}
         />
       </div>
 
@@ -515,153 +481,11 @@ function FinalPhaseTree({ bracketByMatchId }) {
   )
 }
 
-// ─── Tarjeta de enfrentamiento cara a cara (tab Dieciseisavos) ────────────────
-function MatchCard({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
-  const navigate    = useNavigate()
-  const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
-  const isClickable = !!appMatch?.fixtureId
-
-  function TeamSide({ staticLabel, resolved }) {
-    const info = resolved?.team ? getTeamInfo(resolved.team) : null
-    const dotCls = !info
-      ? 'bg-slate-700'
-      : resolved.confirmed
-        ? 'bg-green-500'
-        : 'bg-yellow-400'
-    const dotLabel = !info ? 'Por definir' : resolved.confirmed ? 'Confirmado' : 'Proyectado'
-
-    return (
-      <div className="flex flex-col items-center gap-1 flex-1 min-w-0 px-2">
-        {/* Bandera */}
-        <div className="w-9 h-6 rounded overflow-hidden flex items-center justify-center bg-slate-700/60">
-          {info?.iso2
-            ? <Flag iso2={info.iso2} size="sm" className="w-full h-full object-cover" />
-            : <span className="text-slate-600 text-xs">?</span>}
-        </div>
-        {/* Código */}
-        <span className={`text-sm font-black tracking-wide ${info ? 'text-slate-100' : 'text-slate-600'}`}>
-          {info ? info.code : 'TBD'}
-        </span>
-        {/* Estado */}
-        <span className="flex items-center gap-1 text-[9px] text-slate-500">
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
-          {dotLabel}
-        </span>
-        {/* Descripción estática (si no hay equipo resuelto) */}
-        {!info && staticLabel && (
-          <span className="text-[9px] text-slate-600 text-center leading-tight line-clamp-2 max-w-[80px]">
-            {staticLabel}
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className={`rounded-xl border transition-colors overflow-hidden ${
-        isHighlight
-          ? 'border-amber-400/50 bg-amber-950/30'
-          : 'border-slate-700 bg-slate-800/80'
-      } ${isClickable ? 'cursor-pointer active:scale-[0.98]' : ''}`}
-      onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
-    >
-      {/* Cabecera: fecha + estadio */}
-      <div className="px-4 pt-3 pb-1 text-center border-b border-slate-700/40">
-        {appMatch ? (
-          <>
-            <div className="text-xs font-semibold text-slate-300">
-              {fmtDate(appMatch.date)}
-              <span className="text-slate-500 font-normal"> · {appMatch.timeCol}</span>
-            </div>
-            {appMatch.venue && (
-              <div className="text-[10px] text-slate-500 truncate mt-0.5">{appMatch.venue}</div>
-            )}
-          </>
-        ) : (
-          <div className="text-xs text-slate-500">#{matchId}</div>
-        )}
-      </div>
-
-      {/* Equipos */}
-      <div className="flex items-center py-4 px-2">
-        <TeamSide staticLabel={home} resolved={resolvedHome} />
-        <div className="flex-shrink-0 px-1">
-          <span className="text-lg font-black text-slate-600">vs</span>
-        </div>
-        <TeamSide staticLabel={away} resolved={resolvedAway} />
-      </div>
-    </div>
-  )
-}
-
-const D32_IDS = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88]
-
-function MobileBracket({ bracketByMatchId }) {
-  const [activeTab, setActiveTab] = useState('d32')
-
-  const TABS = [
-    { id: 'd32',   label: 'Dieciseisavos' },
-    { id: 'final', label: 'Fase Final'    },
-  ]
-
-  return (
-    <div>
-      {/* 2 tabs */}
-      <div className="flex gap-2 mb-5">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold flex-shrink-0 transition-all border ${
-              activeTab === t.id
-                ? 'bg-sky-500 text-white border-sky-500'
-                : 'border-slate-700 text-slate-400 bg-slate-800'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {activeTab === 'd32' ? (
-        /* Dieciseisavos: tarjetas cara a cara */
-        <div>
-          <div className="flex flex-col gap-3">
-            {D32_IDS.map(id => {
-              const m        = ALL_BY_ID[id]
-              const resolved = bracketByMatchId[id]
-              if (!m) return null
-              return (
-                <MatchCard
-                  key={id}
-                  matchId={id}
-                  home={m.home}
-                  away={m.away}
-                  resolvedHome={resolved?.home}
-                  resolvedAway={resolved?.away}
-                />
-              )
-            })}
-          </div>
-          <div className="flex gap-4 mt-5 text-[10px] text-slate-500">
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-500" />Confirmado</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />Proyectado</span>
-            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-slate-700" />Por definir</span>
-          </div>
-        </div>
-      ) : (
-        /* Fase Final: árbol conectado Octavos → Final */
-        <FinalPhaseTree bracketByMatchId={bracketByMatchId} />
-      )}
-    </div>
-  )
-}
-
 // ─── Página principal ─────────────────────────────────────────────────────────
 const _LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'LIVE'])
 
 export default function Bracket() {
+  const [tab, setTab] = useState('d32')
   const { matches: liveMatches } = useLiveMatches()
 
   const standingsInterval = useMemo(() => {
@@ -692,7 +516,6 @@ export default function Bracket() {
     try { return projectBracket(formattedStandings) } catch { return null }
   }, [formattedStandings])
 
-  // matchId (73-88) → resolved bracket entry
   const bracketByMatchId = useMemo(() => {
     if (!bracketData?.matches) return {}
     return Object.fromEntries(
@@ -703,7 +526,10 @@ export default function Bracket() {
   const allGroupsComplete = formattedStandings.length === 12 &&
     formattedStandings.every(g => (g.standings[0][2]?.all?.played ?? 0) >= 3)
 
-  const showThirdsLink = !allGroupsComplete
+  const TABS = [
+    { id: 'd32',   label: 'Dieciseisavos' },
+    { id: 'final', label: 'Fase Final'    },
+  ]
 
   return (
     <div className="animate-slide-up">
@@ -724,34 +550,74 @@ export default function Bracket() {
         </div>
       </div>
 
-      {/* Link a terceros */}
-      <div className="mb-6">
-        <Link
-          to="/terceros"
-          className="text-sm text-sky-400 hover:text-sky-300 underline underline-offset-2"
-        >
-          {showThirdsLink
-            ? 'Ver proyección de mejores terceros →'
-            : 'Ver clasificación final de mejores terceros →'}
+      {/* Link a mejores terceros */}
+      <div className="mb-5">
+        <Link to="/terceros" className="text-sm text-sky-400 hover:text-sky-300 underline underline-offset-2">
+          {allGroupsComplete
+            ? 'Ver clasificación final de mejores terceros →'
+            : 'Ver proyección de mejores terceros →'}
         </Link>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all border ${
+              tab === t.id
+                ? 'bg-sky-500 text-white border-sky-500'
+                : 'border-slate-700 text-slate-400 bg-slate-800 hover:border-slate-600'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+        <span className="ml-auto self-center text-xs text-slate-600">
+          {allGroupsComplete ? '🟢 Bracket confirmado' : '🟡 Proyectado'}
+        </span>
       </div>
 
       {loading && !bracketData ? (
         <LoadingSpinner text="Cargando standings..." />
       ) : (
         <>
-          {/* Desktop: árbol horizontal */}
-          <div className="hidden md:block">
-            <DesktopBracket
-              bracketByMatchId={bracketByMatchId}
-              allGroupsComplete={allGroupsComplete}
-            />
-          </div>
+          {/* TAB 1 — Dieciseisavos: lista 2 columnas desktop / 1 móvil */}
+          {tab === 'd32' && (
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {D32_IDS.map(id => {
+                  const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
+                  if (!m) return null
+                  return (
+                    <MatchCard key={id} matchId={id} home={m.home} away={m.away}
+                      resolvedHome={resolved?.home} resolvedAway={resolved?.away}
+                    />
+                  )
+                })}
+              </div>
+              <div className="flex gap-5 mt-5 text-xs text-slate-500">
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Confirmado</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-yellow-400" />Proyectado</span>
+                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-slate-700" />Por definir</span>
+              </div>
+            </div>
+          )}
 
-          {/* Móvil: tabs */}
-          <div className="md:hidden">
-            <MobileBracket bracketByMatchId={bracketByMatchId} />
-          </div>
+          {/* TAB 2 — Fase Final: árbol */}
+          {tab === 'final' && (
+            <>
+              {/* Desktop: árbol horizontal con alturas fijas */}
+              <div className="hidden md:block">
+                <DesktopFinalTree bracketByMatchId={bracketByMatchId} />
+              </div>
+              {/* Móvil: árbol horizontal compacto con scroll */}
+              <div className="md:hidden">
+                <MobileFinalTree bracketByMatchId={bracketByMatchId} />
+              </div>
+            </>
+          )}
         </>
       )}
     </div>
