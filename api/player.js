@@ -31,30 +31,45 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
 
   // ── action=mundial: estadísticas del jugador en el Mundial 2026 ──────────
+  // Busca por equipo + dorsal — un fetch cachea los 26 jugadores del equipo
   if (req.query.action === 'mundial') {
-    const { playerId } = req.query
-    if (!playerId || !/^\d+$/.test(playerId)) {
-      return res.status(400).json({ error: 'playerId numérico requerido' })
+    const { teamId, number } = req.query
+    if (!teamId || !/^\d+$/.test(teamId)) {
+      return res.status(400).json({ error: 'teamId numérico requerido' })
+    }
+    if (!number || !/^\d+$/.test(number)) {
+      return res.status(400).json({ error: 'number numérico requerido' })
     }
 
-    const cacheKey = `player:mundial:${playerId}`
+    const cacheKey = `wc2026_squad_stats_${teamId}`
+    const num = parseInt(number, 10)
+
     const cached = await kvGet(cacheKey)
     if (cached) {
       res.setHeader('X-Cache', 'HIT-KV')
-      return res.status(200).json(cached)
+      const entry = cached.find(p => p.player?.number === num)
+      return res.status(200).json({
+        found: !!entry,
+        statistics: entry?.statistics?.[0] ?? null,
+        playerInfo: entry?.player ?? null,
+      })
     }
 
     try {
       const r = await fetch(
-        `${UPSTREAM}/players?id=${playerId}&league=1&season=2026`,
-        { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(8_000) }
+        `${UPSTREAM}/players?team=${teamId}&league=1&season=2026`,
+        { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(10_000) }
       )
       const data = await r.json()
-      const result = data.response?.[0] ?? null
-      // TTL 300s — datos se actualizan tras cada jornada
-      if (result) kvSet(cacheKey, result, 300)
+      const players = data.response || []
+      if (players.length > 0) kvSet(cacheKey, players, 300)
+      const entry = players.find(p => p.player?.number === num)
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60')
-      return res.status(200).json(result)
+      return res.status(200).json({
+        found: !!entry,
+        statistics: entry?.statistics?.[0] ?? null,
+        playerInfo: entry?.player ?? null,
+      })
     } catch (err) {
       return res.status(502).json({ error: err.message })
     }

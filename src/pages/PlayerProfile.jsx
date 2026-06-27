@@ -122,21 +122,24 @@ export default function PlayerProfile() {
   const team   = getTeamByCode(code)
   const player = squad?.players?.find(p => p.number === num)
 
-  const { photo, stats, season, playerId, loading } = usePlayerData(player?.name ?? null, TEAM_IDS[code])
-  const [mundialStats, setMundialStats]   = useState(null)
+  const { photo, stats, season, loading } = usePlayerData(player?.name ?? null, TEAM_IDS[code])
+  const [mundialStats, setMundialStats]     = useState(null)
   const [mundialLoading, setMundialLoading] = useState(false)
+  const [mundialFound, setMundialFound]     = useState(false)
 
+  const teamId = TEAM_IDS[code]
   useEffect(() => {
-    if (!playerId) return
+    if (!teamId || !num) return
     setMundialLoading(true)
-    fetch(`/api/player?action=mundial&playerId=${playerId}`)
+    fetch(`/api/player?action=mundial&teamId=${teamId}&number=${num}`)
       .then(r => r.json())
       .then(data => {
-        setMundialStats(data?.statistics?.[0] ?? null)
+        setMundialFound(!!data.found)
+        setMundialStats(data.statistics ?? null)
         setMundialLoading(false)
       })
       .catch(() => setMundialLoading(false))
-  }, [playerId])
+  }, [teamId, num])
 
   if (!player || !team) {
     return (
@@ -267,8 +270,8 @@ export default function PlayerProfile() {
           Buscando estadísticas del Mundial…
         </div>
       )}
-      {!mundialLoading && playerId && (
-        <MundialStatsSection stats={mundialStats} />
+      {!mundialLoading && teamId && (
+        <MundialStatsSection stats={mundialFound ? mundialStats : null} />
       )}
 
       {/* Estadísticas de club */}
