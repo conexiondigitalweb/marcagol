@@ -45,7 +45,7 @@ async function fetchWithFallback(searchName, teamId) {
 }
 
 export function usePlayerData(rawName, teamId) {
-  const [state, setState] = useState({ photo: null, stats: null, season: null, loading: false, notFound: false })
+  const [state, setState] = useState({ photo: null, stats: null, season: null, playerId: null, loading: false, notFound: false })
 
   useEffect(() => {
     if (!rawName || !teamId) return
@@ -57,7 +57,7 @@ export function usePlayerData(rawName, teamId) {
     try {
       const cached = JSON.parse(localStorage.getItem(key))
       if (cached && Date.now() - cached.ts < CACHE_TTL) {
-        setState({ photo: cached.photo, stats: cached.stats, season: cached.season, loading: false, notFound: cached.notFound })
+        setState({ photo: cached.photo, stats: cached.stats, season: cached.season, playerId: cached.playerId ?? null, loading: false, notFound: cached.notFound })
         return
       }
     } catch { /* localStorage unavailable */ }
@@ -74,10 +74,11 @@ export function usePlayerData(rawName, teamId) {
         }
 
         const { player, statistics } = results[0]
-        const photo   = player?.photo   || null
-        const stats   = statistics?.[0] || null
-        const label   = season ? seasonLabel(season) : null
-        const payload = { photo, stats, season: label, notFound: false }
+        const photo    = player?.photo   || null
+        const stats    = statistics?.[0] || null
+        const playerId = player?.id      || null
+        const label    = season ? seasonLabel(season) : null
+        const payload  = { photo, stats, season: label, playerId, notFound: false }
         try { localStorage.setItem(key, JSON.stringify({ ...payload, ts: Date.now() })) } catch {}
         setState({ ...payload, loading: false })
       })

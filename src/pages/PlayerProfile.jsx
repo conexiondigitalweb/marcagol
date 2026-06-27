@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getSquad }        from '../data/squads'
 import { getTeamByCode }   from '../data/groups'
@@ -33,6 +34,42 @@ function ApiStatRow({ label, value }) {
   )
 }
 
+function MundialStatsSection({ stats }) {
+  const g  = stats?.games    || {}
+  const gl = stats?.goals    || {}
+  const ca = stats?.cards    || {}
+  const rating = g.rating ? parseFloat(g.rating).toFixed(1) : null
+  const hasData = stats && (g.appearences ?? 0) > 0
+
+  return (
+    <div className="card p-5 mt-4 border-amber-500/20">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-white">⚽ Mundial 2026</h2>
+        {rating && hasData && (
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400">
+            Rating {rating}
+          </span>
+        )}
+      </div>
+      {hasData ? (
+        <div className="grid grid-cols-2 gap-x-8">
+          <div>
+            <ApiStatRow label="Partidos"     value={g.appearences} />
+            <ApiStatRow label="Minutos"      value={g.minutes != null ? `${g.minutes}'` : null} />
+            <ApiStatRow label="Goles"        value={gl.total ?? 0} />
+            <ApiStatRow label="Asistencias"  value={gl.assists ?? 0} />
+          </div>
+          <div>
+            <ApiStatRow label="Tarjetas"     value={`🟨${ca.yellow ?? 0}  🟥${ca.red ?? 0}`} />
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-slate-500">Sin partidos en el Mundial 2026 aún</p>
+      )}
+    </div>
+  )
+}
+
 function StatsSection({ stats, season }) {
   if (!stats) return null
   const g  = stats.games    || {}
@@ -47,7 +84,7 @@ function StatsSection({ stats, season }) {
   return (
     <div className="card p-5 mt-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-white">Estadísticas {season}</h2>
+        <h2 className="font-semibold text-white">📊 Temporada en club {season}</h2>
         {rating && (
           <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400">
             Rating {rating}
@@ -85,7 +122,21 @@ export default function PlayerProfile() {
   const team   = getTeamByCode(code)
   const player = squad?.players?.find(p => p.number === num)
 
-  const { photo, stats, season, loading } = usePlayerData(player?.name ?? null, TEAM_IDS[code])
+  const { photo, stats, season, playerId, loading } = usePlayerData(player?.name ?? null, TEAM_IDS[code])
+  const [mundialStats, setMundialStats]   = useState(null)
+  const [mundialLoading, setMundialLoading] = useState(false)
+
+  useEffect(() => {
+    if (!playerId) return
+    setMundialLoading(true)
+    fetch(`/api/player?action=mundial&playerId=${playerId}`)
+      .then(r => r.json())
+      .then(data => {
+        setMundialStats(data?.statistics?.[0] ?? null)
+        setMundialLoading(false)
+      })
+      .catch(() => setMundialLoading(false))
+  }, [playerId])
 
   if (!player || !team) {
     return (
@@ -209,7 +260,18 @@ export default function PlayerProfile() {
         ))}
       </div>
 
-      {/* API stats — solo cuando hay datos */}
+      {/* Mundial 2026 */}
+      {mundialLoading && (
+        <div className="card p-5 mt-4 flex items-center gap-3 text-slate-500 text-sm">
+          <div className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-amber-400 animate-spin flex-shrink-0" />
+          Buscando estadísticas del Mundial…
+        </div>
+      )}
+      {!mundialLoading && playerId && (
+        <MundialStatsSection stats={mundialStats} />
+      )}
+
+      {/* Estadísticas de club */}
       {loading && (
         <div className="card p-5 mt-4 flex items-center gap-3 text-slate-500 text-sm">
           <div className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-sky-400 animate-spin flex-shrink-0" />
@@ -220,7 +282,7 @@ export default function PlayerProfile() {
 
       <p className="text-xs text-slate-600 text-center mt-4">
         Datos FIFA: convocatoria oficial Mundial 2026
-        {stats && season ? ` · Estadísticas: API-Football ${season}` : ''}
+        {stats && season ? ` · Club: API-Football ${season}` : ''}
       </p>
     </div>
   )

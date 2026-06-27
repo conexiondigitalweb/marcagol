@@ -1,6 +1,16 @@
+import { kv } from '@vercel/kv'
 import { rateLimit, getClientIp } from './_rateLimit.js'
 
 const RATE_LIMIT_RPM = 20
+const UPSTREAM = 'https://v3.football.api-sports.io'
+const KV_PREFIX = 'fb:'
+
+async function kvGet(key) {
+  try { return await kv.get(KV_PREFIX + key) } catch { return null }
+}
+async function kvSet(key, value, ttl) {
+  try { await kv.set(KV_PREFIX + key, value, { ex: ttl }) } catch {}
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -8,7 +18,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET')    return res.status(405).json({ error: 'Method not allowed' })
 
-  // Rate limiting
   const ip = getClientIp(req)
   const { limited, remaining, resetIn } = rateLimit(ip, RATE_LIMIT_RPM)
   res.setHeader('X-RateLimit-Limit',     RATE_LIMIT_RPM)
@@ -18,23 +27,54 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: `Demasiadas solicitudes. Intenta de nuevo en ${resetIn}s.` })
   }
 
+  const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
+  if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
+
+  // ── action=mundial: estadísticas del jugador en el Mundial 2026 ──────────
+  if (req.query.action === 'mundial') {
+    const { playerId } = req.query
+    if (!playerId || !/^\d+$/.test(playerId)) {
+      return res.status(400).json({ error: 'playerId numérico requerido' })
+    }
+
+    const cacheKey = `player:mundial:${playerId}`
+    const cached = await kvGet(cacheKey)
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT-KV')
+      return res.status(200).json(cached)
+    }
+
+    try {
+      const r = await fetch(
+        `${UPSTREAM}/players?id=${playerId}&league=1&season=2026`,
+        { headers: { 'x-apisports-key': apiKey }, signal: AbortSignal.timeout(8_000) }
+      )
+      const data = await r.json()
+      const result = data.response?.[0] ?? null
+      // TTL 300s — datos se actualizan tras cada jornada
+      if (result) kvSet(cacheKey, result, 300)
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=60')
+      return res.status(200).json(result)
+    } catch (err) {
+      return res.status(502).json({ error: err.message })
+    }
+  }
+
+  // ── búsqueda por nombre+equipo (comportamiento original) ─────────────────
   const { name, teamId, season = '2025' } = req.query
   if (!name || !teamId) return res.status(400).json({ error: 'name y teamId requeridos' })
-
-  // Validar que teamId sea numérico y season razonable
   if (!/^\d+$/.test(teamId) || !/^\d{4}$/.test(season)) {
     return res.status(400).json({ error: 'Parámetros inválidos' })
   }
 
-  const key = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
-  if (!key) return res.status(503).json({ error: 'API no configurada' })
-
-  const url = `https://v3.football.api-sports.io/players?search=${encodeURIComponent(name)}&team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(season)}`
+  const url = `${UPSTREAM}/players?search=${encodeURIComponent(name)}&team=${encodeURIComponent(teamId)}&season=${encodeURIComponent(season)}`
 
   try {
-    const upstream = await fetch(url, { headers: { 'x-apisports-key': key } })
+    const upstream = await fetch(url, {
+      headers: { 'x-apisports-key': apiKey },
+      signal: AbortSignal.timeout(8_000),
+    })
     const data = await upstream.json()
-
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=21600')
     return res.status(200).json(data.response ?? [])
   } catch (err) {
