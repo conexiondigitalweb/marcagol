@@ -12,19 +12,84 @@ const BRACKET_H = 1040   // 16 × 65 px — altura total del árbol
 const COL_W     = 158    // ancho de cada columna de slots
 const CONN_W    = 28     // ancho del conector entre columnas
 
-// ─── Lookup de equipos (nombre → { code, iso2 }) ─────────────────────────────
+// ─── Lookup de equipos ────────────────────────────────────────────────────────
+// Mapa: código FIFA 3 letras → iso2  (fuente única: GROUPS)
+const CODE_TO_ISO2 = {}
+GROUPS.forEach(g => g.teams.forEach(t => { CODE_TO_ISO2[t.code] = t.iso2 }))
+
+// Mapa principal: nombre en español (minúsculas) → { code, iso2 }
 const TEAM_INFO_MAP = {}
 GROUPS.forEach(g => g.teams.forEach(t => {
   TEAM_INFO_MAP[t.name.toLowerCase()] = { code: t.code, iso2: t.iso2 }
 }))
 
+// Aliases de nombres en inglés que devuelve la API → código FIFA
+// La API usa nombres en inglés; GROUPS tiene nombres en español.
+const EN_NAME_TO_CODE = {
+  'korea republic':             'KOR', 'south korea':               'KOR',
+  'saudi arabia':               'KSA',
+  "ivory coast":                'CIV', "côte d'ivoire":             'CIV', 'cote d\'ivoire': 'CIV',
+  'netherlands':                'NED', 'holland':                   'NED',
+  'united states':              'USA', 'usa':                       'USA',
+  'england':                    'ENG',
+  'bosnia':                     'BIH', 'bosnia and herzegovina':    'BIH', 'bosnia & herzegovina': 'BIH',
+  'new zealand':                'NZL',
+  'cape verde':                 'CPV', 'cabo verde':                'CPV',
+  'morocco':                    'MAR',
+  'senegal':                    'SEN',
+  'iraq':                       'IRQ',
+  'norway':                     'NOR',
+  'algeria':                    'ALG',
+  'austria':                    'AUT',
+  'jordan':                     'JOR',
+  'dr congo':                   'COD', 'democratic republic of congo': 'COD',
+  'congo dr':                   'COD', 'dr. congo':                 'COD',
+  'uzbekistan':                 'UZB',
+  'croatia':                    'CRO',
+  'ghana':                      'GHA',
+  'panama':                     'PAN', 'panamá':                    'PAN',
+  'mexico':                     'MEX', 'méxico':                    'MEX',
+  'south africa':               'RSA',
+  'czech republic':             'CZE', 'czechia':                   'CZE',
+  'canada':                     'CAN',
+  'qatar':                      'QAT',
+  'switzerland':                'SUI',
+  'brazil':                     'BRA',
+  'haiti':                      'HAI',
+  'scotland':                   'SCO',
+  'germany':                    'GER',
+  'curacao':                    'CUW', 'curaçao':                   'CUW',
+  'ecuador':                    'ECU',
+  'japan':                      'JPN',
+  'sweden':                     'SWE',
+  'tunisia':                    'TUN',
+  'belgium':                    'BEL',
+  'egypt':                      'EGY',
+  'iran':                       'IRN',
+  'spain':                      'ESP',
+  'uruguay':                    'URU',
+  'france':                     'FRA',
+  'paraguay':                   'PAR',
+  'australia':                  'AUS',
+  'turkey':                     'TUR', 'türkiye':                   'TUR',
+  'argentina':                  'ARG',
+  'colombia':                   'COL',
+  'portugal':                   'POR',
+  'england':                    'ENG',
+}
+
 function getTeamInfo(team) {
   if (!team?.name) return { code: 'TBD', iso2: null }
-  const found = TEAM_INFO_MAP[team.name.toLowerCase()]
-  return {
-    code: found?.code ?? team.name.slice(0, 3).toUpperCase(),
-    iso2:  found?.iso2 ?? null,
-  }
+  const key = team.name.toLowerCase()
+  // 1. Buscar por nombre español (coincidencia exacta)
+  const byEs = TEAM_INFO_MAP[key]
+  if (byEs) return byEs
+  // 2. Buscar por nombre en inglés (API devuelve inglés)
+  const code = EN_NAME_TO_CODE[key]
+  if (code) return { code, iso2: CODE_TO_ISO2[code] ?? null }
+  // 3. Fallback: primeras 3 letras como código, intentar iso2 por código
+  const fallbackCode = team.name.slice(0, 3).toUpperCase()
+  return { code: fallbackCode, iso2: CODE_TO_ISO2[fallbackCode] ?? null }
 }
 
 const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
