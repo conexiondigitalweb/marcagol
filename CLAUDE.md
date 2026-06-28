@@ -200,6 +200,34 @@ Mapear por venue (cuando estén disponibles) y actualizar matches.js ids 76, 80-
 - Marcador de penales separado del marcador regular: viene en f.score.penalty { home, away }
 - Ejemplo visual: "Francia 1 (4) — (3) 1 Marruecos" donde el (4)/(3) son penales
 
+## CAMBIOS SESIÓN 28-JUN-2026
+
+FASE ELIMINATORIA — BRACKET:
+- R32_MATCHES en Bracket.jsx ahora lee de matches.js (no hardcodeado)
+- Bypass bracketProjector para R32 confirmados — usa equipos reales directamente
+- knockoutResults.js: nuevo utilitario que consulta API y determina ganador de cada partido R32 (maneja FT, AET, PEN)
+- Octavos (M89-M96) se llenan automáticamente con ganadores reales — polling 60s
+- Mapeo Octavos verificado contra FIFA oficial (ver tabla en sección anterior)
+- CACHE_VERSION incrementada a '2' — invalida caché en todos los dispositivos
+
+MATCHDETAIL — FASE ELIMINATORIA:
+- Badge AET: "⏱ Prórroga · Final"
+- Badge PEN: "🎯 Penales · Final"
+- Badge ET (en juego): "🟠 ⏱ PRÓRROGA"
+- Marcador de penales visible debajo del marcador principal: "(4 – 3 pen.)"
+- Minutos ET formateados: elapsed 91-105 → "90+X'", elapsed >105 → "105+X'"
+
+MATCHES.JS R32 — DATOS OFICIALES FIFA:
+- 16 partidos con equipos, horarios Colombia, venues y fixtureIds reales
+- Todos verificados contra fifa.com oficial
+- venues M77 y M82 actualizados (AT&T Dallas y Levi's Stadium SF)
+- Colombia vs Ghana: M88 · 03-jul 20:30 · Arrowhead KC · fixtureId: 1567310
+
+PENDIENTES PRÓXIMOS DÍAS:
+- fixtureIds de Octavos (M89-M96): la API los publicará conforme se acerquen
+- Cuartos, Semis, Final: mismo proceso cuando la API los publique
+- Verificar AET/PEN en producción cuando ocurra el primer partido con prórroga
+
 ## ESTRATEGIA DE NEGOCIO
 - Fan page: Marcagol.live en Facebook e Instagram (@marcagollive)
 - Modelo Freemium: Plan Gratis (hasta 20 participantes), Plan Grupo ($9.900 COP/mes), Plan Empresa ($49.900 COP/mes)
