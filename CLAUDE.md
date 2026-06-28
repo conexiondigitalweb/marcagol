@@ -1,4 +1,4 @@
-# CONTEXTO MARCAGOL.LIVE - CLAUDE CODE (actualizado 27-jun-2026)
+# CONTEXTO MARCAGOL.LIVE - CLAUDE CODE (actualizado 28-jun-2026)
 
 ## PROYECTO
 - **URL:** marcagol.live — PWA del Mundial 2026
@@ -94,6 +94,19 @@
 30. Términos y Condiciones en /terminos con link en footer
 31. Broadcasts reales por partido Colombia en broadcasts.js
 32. Bracket /llaves con 2 tabs: Dieciseisavos (lista) + Fase Final (árbol Octavos→Final)
+    - **knockoutResults.js** (`src/utils/knockoutResults.js`): consulta `/api/football?endpoint=/fixtures&id=X` por cada fixtureId R32, determina ganador (goles o penales), devuelve `{ [matchId]: { team, confirmed } }`. Polling cada 60s desde Bracket.jsx via `useEffect` + `getKnockoutWinners`.
+    - **Mapeo Octavos verificado contra bracket oficial FIFA** (commiteado 28-jun-2026):
+      ```
+      M89 Filadelfia  4 jul: W74 vs W77
+      M90 Houston     4 jul: W73 vs W75
+      M91 Nueva York  5 jul: W76 vs W78
+      M92 México DF   5 jul: W79 vs W80
+      M93 Dallas      6 jul: W83 vs W84
+      M94 Seattle     6 jul: W81 vs W82
+      M95 Atlanta     7 jul: W86 vs W88  ← Colombia aquí si gana M88
+      M96 Vancouver   7 jul: W85 vs W87
+      ```
+    - `bracketByMatchId` en Bracket.jsx incluye R32 (via bracketProjector) + Octavos (via knockoutWinners). QF/SF/Final siguen vacíos hasta implementar siguiente nivel.
     - Desktop: árbol horizontal con posicionamiento absoluto proporcional (SLOT_H=96, TREE_H=768)
     - Conectores: 4 líneas absolutas bg-slate-600 por par (arm-top, arm-bot, vertical, output)
     - BracketSlot: bandera + código 3 letras + indicador estado (verde/amarillo/gris)
