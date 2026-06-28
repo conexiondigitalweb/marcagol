@@ -87,6 +87,16 @@ function MatchCountdownBanner({ match, isStarted }) {
   )
 }
 
+// Formatea el minuto en vivo distinguiendo tiempo extra (90+X, 105+X)
+function fmtETMinute(minute, extra, status) {
+  if (minute == null) return null
+  if (['ET', 'BT'].includes(status)) {
+    if (minute > 105) return `105+${minute - 105}'`
+    if (minute > 90)  return `90+${minute - 90}'`
+  }
+  return `${minute}${extra ? `+${extra}` : ''}'`
+}
+
 // ─── Header del partido ───────────────────────────────────────────────────────
 function MatchHeader({ match, liveData }) {
   const home = ALL_TEAMS[match.homeTeam]
@@ -108,15 +118,19 @@ function MatchHeader({ match, liveData }) {
           <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
             Grupo {match.group} · Jornada {match.matchday} · Copa Mundial 2026
           </span>
-          {isLive && (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40">
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"/>
-              <span className="text-xs font-bold text-red-400">EN VIVO</span>
+          {isLive && !['PEN'].includes(liveData.status) && (
+            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${['ET','BT'].includes(liveData.status) ? 'bg-orange-500/20 border border-orange-500/40' : 'bg-red-500/20 border border-red-500/40'}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${['ET','BT'].includes(liveData.status) ? 'bg-orange-400' : 'bg-red-400'}`}/>
+              <span className={`text-xs font-bold ${['ET','BT'].includes(liveData.status) ? 'text-orange-400' : 'text-red-400'}`}>
+                {['ET','BT'].includes(liveData.status) ? '⏱ PRÓRROGA' : 'EN VIVO'}
+              </span>
             </span>
           )}
           {isFinished && (
             <span className="px-3 py-1 rounded-full bg-slate-700 text-xs text-slate-400 font-semibold">
-              Finalizado
+              {liveData.status === 'AET' ? '⏱ Prórroga · Final'
+               : liveData.status === 'PEN' ? '🎯 Penales · Final'
+               : 'Finalizado'}
             </span>
           )}
           {!isLive && !isFinished && (
@@ -146,14 +160,21 @@ function MatchHeader({ match, liveData }) {
                 <div className={`text-3xl sm:text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
                   {liveData.homeScore ?? 0} – {liveData.awayScore ?? 0}
                 </div>
+                {liveData.penaltyHome != null && liveData.penaltyAway != null && (
+                  <div className="text-slate-300 text-sm font-semibold mt-0.5 tabular-nums">
+                    ({liveData.penaltyHome} – {liveData.penaltyAway} pen.)
+                  </div>
+                )}
                 {isLive && (
                   liveData.status === 'HT'
                     ? <div className="text-orange-400 text-sm font-bold mt-1">Descanso</div>
-                    : liveData.minute != null && (
-                        <div className="text-red-400 text-sm font-bold mt-1">
-                          {liveData.minute}{liveData.extra ? `+${liveData.extra}` : ''}'
-                        </div>
-                      )
+                    : liveData.status === 'BT'
+                      ? <div className="text-orange-400 text-sm font-bold mt-1">Desc. prórroga</div>
+                      : liveData.minute != null && (
+                          <div className="text-red-400 text-sm font-bold mt-1">
+                            {fmtETMinute(liveData.minute, liveData.extra, liveData.status)}
+                          </div>
+                        )
                 )}
                 {isFinished && <div className="text-slate-500 text-xs mt-1">Final</div>}
               </div>
@@ -340,16 +361,24 @@ function ExternalMatchHeader({ f }) {
           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest truncate max-w-[180px]">
             {league?.name || 'Partido en vivo'}{league?.round ? ` · ${league.round}` : ''}
           </span>
-          {isLive && (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 border border-red-500/40 flex-shrink-0">
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse"/>
-              <span className="text-xs font-bold text-red-400">
-                EN VIVO · {fixture.status.short === 'HT' ? 'Descanso' : `${fixture.status.elapsed}${fixture.status.extra ? `+${fixture.status.extra}` : ''}'`}
+          {isLive && !['PEN'].includes(fixture.status.short) && (
+            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full flex-shrink-0 ${['ET','BT'].includes(fixture.status.short) ? 'bg-orange-500/20 border border-orange-500/40' : 'bg-red-500/20 border border-red-500/40'}`}>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${['ET','BT'].includes(fixture.status.short) ? 'bg-orange-400' : 'bg-red-400'}`}/>
+              <span className={`text-xs font-bold ${['ET','BT'].includes(fixture.status.short) ? 'text-orange-400' : 'text-red-400'}`}>
+                {['ET','BT'].includes(fixture.status.short)
+                  ? `⏱ PRÓRROGA · ${fmtETMinute(fixture.status.elapsed, fixture.status.extra, fixture.status.short)}`
+                  : fixture.status.short === 'HT'
+                    ? 'EN VIVO · Descanso'
+                    : `EN VIVO · ${fmtETMinute(fixture.status.elapsed, fixture.status.extra, fixture.status.short)}`}
               </span>
             </span>
           )}
           {isFinished && (
-            <span className="px-3 py-1 rounded-full bg-slate-700 text-xs text-slate-400 font-semibold">Finalizado</span>
+            <span className="px-3 py-1 rounded-full bg-slate-700 text-xs text-slate-400 font-semibold">
+              {fixture.status.short === 'AET' ? '⏱ Prórroga · Final'
+               : fixture.status.short === 'PEN' ? '🎯 Penales · Final'
+               : 'Finalizado'}
+            </span>
           )}
           {!isLive && !isFinished && (
             <span className="px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 text-xs text-orange-400 font-semibold">Próximo</span>
@@ -367,6 +396,11 @@ function ExternalMatchHeader({ f }) {
                 <div className={`text-3xl sm:text-5xl font-black tabular-nums ${isLive ? 'text-sky-400' : 'text-white'}`}>
                   {goals.home ?? 0} – {goals.away ?? 0}
                 </div>
+                {f.score?.penalty?.home != null && f.score?.penalty?.away != null && (
+                  <div className="text-slate-300 text-sm font-semibold mt-0.5 tabular-nums">
+                    ({f.score.penalty.home} – {f.score.penalty.away} pen.)
+                  </div>
+                )}
                 {isFinished && <div className="text-slate-500 text-xs mt-1">Final</div>}
               </div>
             ) : (

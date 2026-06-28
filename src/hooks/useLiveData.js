@@ -39,12 +39,14 @@ export function buildLiveScoresMap(liveApiMatches, appMatches) {
 function normalizeFixtureForHeader(f) {
   if (!f) return null
   return {
-    homeScore: f.goals?.home ?? null,
-    awayScore: f.goals?.away ?? null,
-    minute:    f.fixture?.status?.elapsed ?? null,
-    extra:     f.fixture?.status?.extra ?? null,
-    status:    f.fixture?.status?.short ?? null,
-    referee:   f.fixture?.referee ?? null,
+    homeScore:   f.goals?.home ?? null,
+    awayScore:   f.goals?.away ?? null,
+    minute:      f.fixture?.status?.elapsed ?? null,
+    extra:       f.fixture?.status?.extra ?? null,
+    status:      f.fixture?.status?.short ?? null,
+    referee:     f.fixture?.referee ?? null,
+    penaltyHome: f.score?.penalty?.home ?? null,
+    penaltyAway: f.score?.penalty?.away ?? null,
   }
 }
 
