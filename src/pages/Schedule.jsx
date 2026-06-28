@@ -17,6 +17,41 @@ const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
+// Lookup por nombre español (minúsculas)
+const _ALL_TEAMS_BY_NAME = Object.fromEntries(
+  GROUPS.flatMap(g => g.teams.map(t => [t.name.toLowerCase(), t]))
+)
+
+// Nombres en inglés (API-Football) → código 3 letras
+const _EN_TO_CODE = {
+  'south africa': 'RSA', 'brazil': 'BRA', 'japan': 'JPN',
+  'germany': 'GER', 'paraguay': 'PAR', 'netherlands': 'NED', 'morocco': 'MAR',
+  'ivory coast': 'CIV', "côte d'ivoire": 'CIV', 'norway': 'NOR',
+  'france': 'FRA', 'sweden': 'SWE', 'mexico': 'MEX', 'ecuador': 'ECU',
+  'england': 'ENG', 'congo dr': 'COD', 'dr congo': 'COD',
+  'belgium': 'BEL', 'senegal': 'SEN',
+  'usa': 'USA', 'united states': 'USA',
+  'bosnia & herzegovina': 'BIH', 'bosnia and herzegovina': 'BIH',
+  'spain': 'ESP', 'austria': 'AUT',
+  'portugal': 'POR', 'croatia': 'CRO',
+  'switzerland': 'SUI', 'algeria': 'ALG',
+  'australia': 'AUS', 'egypt': 'EGY',
+  'argentina': 'ARG', 'cape verde islands': 'CPV', 'cape verde': 'CPV',
+  'colombia': 'COL', 'ghana': 'GHA', 'canada': 'CAN',
+}
+
+function resolveTeamByName(nameOrCode) {
+  if (!nameOrCode) return null
+  const byCode = ALL_TEAMS_MAP[nameOrCode]
+  if (byCode) return byCode
+  const key = nameOrCode.toLowerCase()
+  const byEs = _ALL_TEAMS_BY_NAME[key]
+  if (byEs) return byEs
+  const code = _EN_TO_CODE[key]
+  if (code) return ALL_TEAMS_MAP[code] ?? null
+  return null
+}
+
 // Lookup por nombre español → datos de equipo (para proyección de fases eliminatorias)
 const _ES_NAME_TO_TEAM = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.name.toLowerCase(), t]))
@@ -67,10 +102,10 @@ function VenuePhoto({ venueName }) {
 }
 
 function MatchRow({ match, liveData, projectedMatch }) {
-  const homeFromGroups = ALL_TEAMS_MAP[match.homeTeam]
-  const awayFromGroups = ALL_TEAMS_MAP[match.awayTeam]
+  const homeFromGroups = resolveTeamByName(match.homeTeam)
+  const awayFromGroups = resolveTeamByName(match.awayTeam)
 
-  // Para R32: usar proyección de standings si el equipo real aún es TBD
+  // Para R32: fallback a proyección de standings si el equipo real aún es TBD
   const projHome = !homeFromGroups && projectedMatch?.home?.team
     ? getKnockoutTeamData(projectedMatch.home.team) : null
   const projAway = !awayFromGroups && projectedMatch?.away?.team
@@ -79,8 +114,8 @@ function MatchRow({ match, liveData, projectedMatch }) {
   const home = homeFromGroups ?? projHome
   const away = awayFromGroups ?? projAway
 
+  const isR32Confirmed = match.group === 'R32' && !!home
   const isProjected    = !homeFromGroups && !!projHome
-  const projConfirmed  = projectedMatch?.home?.confirmed && projectedMatch?.away?.confirmed
   const result     = getResult(match.id)
   const isFinished = !!result
   const isLive     = !isFinished && !!liveData
@@ -200,11 +235,17 @@ function MatchRow({ match, liveData, projectedMatch }) {
             <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
             {liveData.status === 'HT' ? 'Descanso' : 'EN VIVO'}
           </span>
+        ) : isR32Confirmed ? (
+          <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border
+            border-green-500/30 bg-green-900/20 text-green-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+            Confirmado
+          </span>
         ) : isProjected ? (
           <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border
             border-yellow-500/30 bg-yellow-900/20 text-yellow-400">
-            <span className={`w-1.5 h-1.5 rounded-full ${projConfirmed ? 'bg-green-400' : 'bg-yellow-400'}`} />
-            {projConfirmed ? 'Confirmado' : 'Proyectado'}
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+            Proyectado
           </span>
         ) : (
           <StatusBadge status={match.status} />

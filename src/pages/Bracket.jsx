@@ -139,8 +139,8 @@ function MatchCard({ matchId, home, away, resolvedHome, resolvedAway }) {
 
   function TeamSide({ staticLabel, resolved }) {
     const info = resolved?.team ? getTeamInfo(resolved.team) : null
-    const dotCls = !info ? 'bg-slate-700' : resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
-    const dotLabel = !info ? 'Por definir' : resolved.confirmed ? 'Confirmado' : 'Proyectado'
+    const dotCls = !info ? 'bg-slate-700' : 'bg-green-500'
+    const dotLabel = !info ? 'Por definir' : 'Confirmado'
     return (
       <div className="flex flex-col items-center gap-1 flex-1 min-w-0 px-2">
         <div className="w-9 h-6 rounded overflow-hidden flex items-center justify-center bg-slate-700/60">
@@ -171,20 +171,21 @@ function MatchCard({ matchId, home, away, resolvedHome, resolvedAway }) {
       }`}
       onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
     >
-      <div className="px-4 pt-3 pb-2 text-center border-b border-slate-700/40">
-        {appMatch ? (
-          <>
-            <div className="text-xs font-semibold text-slate-300">
-              {fmtDate(appMatch.date)}
-              <span className="text-slate-500 font-normal"> · {appMatch.timeCol}</span>
-            </div>
-            {appMatch.venue && (
-              <div className="text-[10px] text-slate-500 truncate mt-0.5">{appMatch.venue}</div>
-            )}
-          </>
-        ) : (
-          <div className="text-xs text-slate-500">#{matchId}</div>
-        )}
+      <div className="px-4 pt-3 pb-2 border-b border-slate-700/40 flex items-start gap-2">
+        <span className="text-[10px] font-mono text-slate-500 flex-shrink-0 mt-0.5">#{matchId}</span>
+        <div className="flex-1 text-center min-w-0">
+          {appMatch ? (
+            <>
+              <div className="text-xs font-semibold text-slate-300">
+                {fmtDate(appMatch.date)}
+                <span className="text-slate-500 font-normal"> · {appMatch.timeCol}</span>
+              </div>
+              {appMatch.venue && (
+                <div className="text-[10px] text-slate-500 truncate mt-0.5">{appMatch.venue}</div>
+              )}
+            </>
+          ) : null}
+        </div>
       </div>
       <div className="flex items-center py-4 px-2">
         <TeamSide staticLabel={home} resolved={resolvedHome} />
@@ -206,7 +207,7 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
   function TeamRow({ staticLabel, resolved }) {
     if (resolved?.team) {
       const info   = getTeamInfo(resolved.team)
-      const dotCls = resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
+      const dotCls = 'bg-green-500'
       return (
         <div className="flex items-center gap-1.5 px-2 py-2 border-t border-slate-700 min-w-0">
           {info.iso2

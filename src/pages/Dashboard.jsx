@@ -20,6 +20,42 @@ const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
 )
 
+// Lookup por nombre en español (minúsculas)
+const ALL_TEAMS_BY_NAME = Object.fromEntries(
+  GROUPS.flatMap(g => g.teams.map(t => [t.name.toLowerCase(), t]))
+)
+
+// Nombres en inglés (API-Football) → código 3 letras
+const EN_TO_CODE = {
+  'south africa': 'RSA', 'brazil': 'BRA', 'japan': 'JPN',
+  'germany': 'GER', 'paraguay': 'PAR', 'netherlands': 'NED', 'morocco': 'MAR',
+  'ivory coast': 'CIV', "côte d'ivoire": 'CIV', 'norway': 'NOR',
+  'france': 'FRA', 'sweden': 'SWE', 'mexico': 'MEX', 'ecuador': 'ECU',
+  'england': 'ENG', 'congo dr': 'COD', 'dr congo': 'COD',
+  'belgium': 'BEL', 'senegal': 'SEN',
+  'usa': 'USA', 'united states': 'USA',
+  'bosnia & herzegovina': 'BIH', 'bosnia and herzegovina': 'BIH',
+  'spain': 'ESP', 'austria': 'AUT',
+  'portugal': 'POR', 'croatia': 'CRO',
+  'switzerland': 'SUI', 'algeria': 'ALG',
+  'australia': 'AUS', 'egypt': 'EGY',
+  'argentina': 'ARG', 'cape verde islands': 'CPV', 'cape verde': 'CPV',
+  'colombia': 'COL', 'ghana': 'GHA',
+  'canada': 'CAN',
+}
+
+function resolveTeam(nameOrCode) {
+  if (!nameOrCode) return null
+  const byCode = ALL_TEAMS_MAP[nameOrCode]
+  if (byCode) return byCode
+  const key = nameOrCode.toLowerCase()
+  const byName = ALL_TEAMS_BY_NAME[key]
+  if (byName) return byName
+  const code = EN_TO_CODE[key]
+  if (code) return ALL_TEAMS_MAP[code] ?? null
+  return null
+}
+
 function CountdownBox({ value, label }) {
   return (
     <div className="countdown-box">
@@ -85,8 +121,8 @@ function toLocalTime(date, timeCol) {
 }
 
 function MatchCard({ match, liveData, compact = false }) {
-  const home       = ALL_TEAMS_MAP[match.homeTeam]
-  const away       = ALL_TEAMS_MAP[match.awayTeam]
+  const home       = resolveTeam(match.homeTeam)
+  const away       = resolveTeam(match.awayTeam)
   const result     = getResult(match.id)
   const isFinished = !!result
   const isLive     = !isFinished && !!liveData
