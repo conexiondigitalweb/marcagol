@@ -38,7 +38,7 @@ const EN_NAME_TO_CODE = {
   'england': 'ENG',
   'bosnia': 'BIH', 'bosnia and herzegovina': 'BIH', 'bosnia & herzegovina': 'BIH',
   'new zealand': 'NZL',
-  'cape verde': 'CPV', 'cabo verde': 'CPV',
+  'cape verde': 'CPV', 'cape verde islands': 'CPV', 'cabo verde': 'CPV',
   'morocco': 'MAR', 'senegal': 'SEN', 'iraq': 'IRQ', 'norway': 'NOR',
   'algeria': 'ALG', 'austria': 'AUT', 'jordan': 'JOR',
   'dr congo': 'COD', 'democratic republic of congo': 'COD', 'congo dr': 'COD', 'dr. congo': 'COD',
