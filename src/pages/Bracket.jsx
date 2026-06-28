@@ -76,24 +76,10 @@ function fmtDate(iso) {
 }
 
 // ─── Datos de fases ───────────────────────────────────────────────────────────
-const R32_MATCHES = [
-  { matchId: 73,  home: '2º Grupo A',       away: '2º Grupo B'          },
-  { matchId: 74,  home: '1º Grupo E',       away: 'Mejor 3º A/B/C/D/F' },
-  { matchId: 75,  home: '1º Grupo F',       away: '2º Grupo C'          },
-  { matchId: 76,  home: '1º Grupo C',       away: '2º Grupo F'          },
-  { matchId: 77,  home: '1º Grupo I',       away: 'Mejor 3º C/D/F/G/H' },
-  { matchId: 78,  home: '2º Grupo E',       away: '2º Grupo I'          },
-  { matchId: 79,  home: '1º Grupo A',       away: 'Mejor 3º C/E/F/H/I' },
-  { matchId: 80,  home: '1º Grupo L',       away: 'Mejor 3º E/H/I/J/K' },
-  { matchId: 81,  home: '1º Grupo D',       away: 'Mejor 3º B/E/F/I/J' },
-  { matchId: 82,  home: '1º Grupo G',       away: 'Mejor 3º A/E/H/I/J' },
-  { matchId: 83,  home: '2º Grupo K',       away: '2º Grupo L'          },
-  { matchId: 84,  home: '1º Grupo H',       away: '2º Grupo J'          },
-  { matchId: 85,  home: '1º Grupo B',       away: 'Mejor 3º E/F/G/I/J' },
-  { matchId: 86,  home: '1º Grupo J',       away: '2º Grupo H'          },
-  { matchId: 87,  home: '1º Grupo K',       away: 'Mejor 3º D/E/I/J/L' },
-  { matchId: 88,  home: '2º Grupo D',       away: '2º Grupo G'          },
-]
+// R32_MATCHES lee de matches.js para mostrar equipos reales como fallback
+const R32_MATCHES = MATCHES
+  .filter(m => m.group === 'R32')
+  .map(m => ({ matchId: m.id, home: m.homeTeam, away: m.awayTeam }))
 const R8_MATCHES = [
   { matchId: 89,  home: 'W74', away: 'W77' },
   { matchId: 90,  home: 'W73', away: 'W75' },
