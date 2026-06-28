@@ -583,8 +583,17 @@ export default function Bracket() {
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {D32_IDS.map(id => {
-                  const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
+                  const m = ALL_BY_ID[id]
                   if (!m) return null
+                  const appMatch = MATCH_BY_ID[id]
+                  const isConfirmed = appMatch?.homeTeam && appMatch.homeTeam !== 'TBD'
+                                   && appMatch?.awayTeam && appMatch.awayTeam !== 'TBD'
+                  const resolved = isConfirmed
+                    ? {
+                        home: { team: { name: appMatch.homeTeam }, confirmed: true, position: '' },
+                        away: { team: { name: appMatch.awayTeam }, confirmed: true, position: '' }
+                      }
+                    : bracketByMatchId[id]
                   return (
                     <MatchCard key={id} matchId={id} home={m.home} away={m.away}
                       resolvedHome={resolved?.home} resolvedAway={resolved?.away}
