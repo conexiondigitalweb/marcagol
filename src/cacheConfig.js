@@ -1,5 +1,5 @@
 // Versión global de caché — incrementar con cada deploy que requiera limpiar localStorage
-export const CACHE_VERSION = '1'
+export const CACHE_VERSION = '2'
 
 // Todas las cache keys del proyecto — fuente de verdad única
 export const CACHE_KEYS = {
