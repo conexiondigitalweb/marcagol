@@ -245,3 +245,40 @@ PENDIENTES PRÓXIMOS DÍAS:
 ## ESTILO / DISEÑO
 - Logo: punto naranja ● + "marca" blanco + "gol" #38BDF8
 - Colores: fondo #0F172A, secundario #1E293B, acento #38BDF8, acción #F97316
+
+## PATRÓN: MARCADORES POR RONDA (implementado y probado en R32)
+
+COMPONENTE: MatchCard (local en Bracket.jsx)
+FUENTE DE DATOS: fetch a /api/football?endpoint=/fixtures&ids=fid1-fid2-...
+  con todos los fixtureIds de la ronda en un solo request al montar Bracket.jsx
+ESTADO: r32Scores / r16Scores / qfScores / sfScores (mismo patrón, distinto nombre)
+ESTRUCTURA: { [matchId]: { scoreHome, scoreAway, status, winnerHome, winnerAway } }
+
+SETS DE STATUS:
+  FT_STATUSES_SET = { 'FT', 'AET', 'PEN' }
+  LIVE_STATUSES_SET = { '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT' }
+
+RENDER POR ESCENARIO:
+  FT/AET/PEN → score "2 – 1" | ganador: text-sky-400 + "✓ Clasifica" | perdedor: opacity-40 + "Eliminado"
+  EN VIVO    → score parcial + badge rojo parpadeante "EN VIVO" en header de tarjeta
+  NS/null    → comportamiento original (solo "VS" entre equipos)
+
+PARA APLICAR EN NUEVA RONDA (ej: Octavos M89-M96):
+1. Agregar constante R16_FIXTURES con { matchId, fixtureId } de M89-M96
+   (poblar cuando API-Football los publique, típicamente 1-3 días antes)
+2. Agregar useState r16Scores + useEffect que fetcha con TTL 300s
+3. Pasar props scoreHome/scoreAway/status/winnerHome/winnerAway a MatchCard
+   en el bloque de render del tab R16
+4. MatchCard ya soporta estas props — no necesita cambios
+
+CUÁNDO POBLAR FIXTUREID POR RONDA:
+  Octavos (M89-M96):   1-3 jul 2026
+  Cuartos (M97-M100):  7-9 jul 2026
+  Semis   (M101-M102): 12-13 jul 2026
+  Final   (M104):      17-18 jul 2026
+
+COMANDO PARA POBLAR (cambiar round según ronda):
+  /fixtures?league=1&season=2026&round=Round%20of%2016
+  /fixtures?league=1&season=2026&round=Quarter-finals
+  /fixtures?league=1&season=2026&round=Semi-finals
+  /fixtures?league=1&season=2026&round=Final
