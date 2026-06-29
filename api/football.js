@@ -91,159 +91,6 @@ async function kvDel(key) {
   try { await kv.del(KV_PREFIX + key) } catch {}
 }
 
-// ── Cálculo de estadísticas del Mundial (extrae lógica para stale-while-revalidate) ──
-async function computeEstadisticas(apiKey, cacheKey, staleKey) {
-  const now = Date.now()
-  const upstream = await fetch(`${UPSTREAM}/fixtures?league=1&season=2026&status=FT`, {
-    headers: { 'x-apisports-key': apiKey },
-    signal: AbortSignal.timeout(15_000),
-  })
-  if (!upstream.ok) throw new Error(`Error upstream: ${upstream.status}`)
-
-  const data = await upstream.json()
-  const fixtures = data.response || []
-  const totalPartidos = fixtures.length
-
-  const empty = {
-    totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
-    partidosSinGoles: 0, autogoles: 0,
-    equipoMasGoleador: null, equipoMasGoleado: null,
-    marcadorMasRepetido: null,
-  }
-
-  if (totalPartidos === 0) {
-    memCache.set(cacheKey, { data: empty, ts: now, ttlMs: 60_000 })
-    kvSet(cacheKey, empty, 60)
-    return empty
-  }
-
-  let totalGoles = 0, partidosSinGoles = 0
-  const golesFavor  = {}
-  const golesContra = {}
-  const marcadores  = {}
-
-  for (const f of fixtures) {
-    const hg = f.goals?.home ?? 0
-    const ag = f.goals?.away ?? 0
-    totalGoles += hg + ag
-    if (hg === 0 && ag === 0) partidosSinGoles++
-
-    const score = `${hg}-${ag}`
-    marcadores[score] = (marcadores[score] || 0) + 1
-
-    const homeId   = f.teams?.home?.id
-    const homeName = f.teams?.home?.name
-    const awayId   = f.teams?.away?.id
-    const awayName = f.teams?.away?.name
-
-    if (homeId) {
-      if (!golesFavor[homeId])  golesFavor[homeId]  = { name: homeName, goles: 0 }
-      if (!golesContra[homeId]) golesContra[homeId] = { name: homeName, goles: 0 }
-      golesFavor[homeId].goles  += hg
-      golesContra[homeId].goles += ag
-    }
-    if (awayId) {
-      if (!golesFavor[awayId])  golesFavor[awayId]  = { name: awayName, goles: 0 }
-      if (!golesContra[awayId]) golesContra[awayId] = { name: awayName, goles: 0 }
-      golesFavor[awayId].goles  += ag
-      golesContra[awayId].goles += hg
-    }
-  }
-
-  const allMaxBy = (obj, key) => {
-    const vals = Object.values(obj).map(v => v[key])
-    if (!vals.length) return []
-    const max = Math.max(...vals)
-    return Object.entries(obj)
-      .filter(([, info]) => info[key] === max)
-      .map(([id, info]) => ({ id: Number(id), name: info.name, goles: info[key] }))
-  }
-
-  const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
-    !best || veces > best.veces ? { score, veces } : best, null)
-
-  const TWO_HOURS_MS = 2 * 60 * 60 * 1000
-  const estimatedEnd = (f) => {
-    const kickoff = new Date(f.fixture.date).getTime()
-    const isKnockout = ['AET', 'PEN'].includes(f.fixture?.status?.short)
-    return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
-  }
-
-  async function fetchInBatches(items, batchSize, delayMs, fetchFn) {
-    const results = []
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize)
-      const batchResults = await Promise.all(batch.map(fetchFn))
-      results.push(...batchResults)
-      if (i + batchSize < items.length) {
-        await new Promise(resolve => setTimeout(resolve, delayMs))
-      }
-    }
-    return results
-  }
-
-  let autogoles = 0
-  let tarjetasAmarillas = 0
-  let tarjetasRojas = 0
-
-  await fetchInBatches(fixtures, 10, 200, async (f) => {
-    const fid = f.fixture.id
-    const eventsKey = `/fixtures/events?fixture=${fid}`
-    const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
-    let eventsData = recentFT ? null : await kvGet(eventsKey)
-
-    if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
-      await kvDel(eventsKey)
-      eventsData = null
-    }
-
-    if (!eventsData) {
-      try {
-        const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
-          headers: { 'x-apisports-key': apiKey },
-          signal: AbortSignal.timeout(8_000),
-        })
-        if (r.ok) {
-          const fetched = await r.json()
-          if (fetched.response?.length > 0) {
-            kvSet(eventsKey, fetched, 300)
-            eventsData = fetched
-          }
-        }
-      } catch {}
-    }
-
-    if (eventsData?.response) {
-      for (const ev of eventsData.response) {
-        if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
-        if (ev.type === 'Card') {
-          if (ev.detail === 'Yellow Card') tarjetasAmarillas++
-          else if (ev.detail === 'Red Card' || ev.detail === 'Second Yellow Card') tarjetasRojas++
-        }
-      }
-    }
-  })
-
-  const result = {
-    totalPartidos,
-    totalGoles,
-    promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
-    partidosSinGoles,
-    autogoles,
-    tarjetasAmarillas,
-    tarjetasRojas,
-    masGoleador:         allMaxBy(golesFavor, 'goles'),
-    masGoleado:          allMaxBy(golesContra, 'goles'),
-    marcadorMasRepetido: maxMarcador,
-  }
-
-  // Guardar caché principal (900s) + stale backup (1h solo si los datos parecen válidos)
-  memCache.set(cacheKey, { data: result, ts: now, ttlMs: 900_000 })
-  kvSet(cacheKey, result, 900)
-  const datosValidos = result.totalGoles > 100 && result.totalPartidos >= 60 && result.tarjetasAmarillas > 50
-  if (staleKey && datosValidos) kvSet(staleKey, result, 3600)
-  return result
-}
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
@@ -307,31 +154,20 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── action=invalidar-estadisticas (TEMPORAL — remover tras uso) ─────────────
-  if (req.query.action === 'invalidar-estadisticas') {
-    await kvDel('estadisticas-mundial:2026:v5')
-    await kvDel('estadisticas-mundial:2026:v5-stale')
-    memCache.delete('estadisticas-mundial:2026:v5')
-    return res.status(200).json({ ok: true, message: 'Caché invalidado' })
-  }
-
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
+    // v5: lotes de 10 fixtures con 200ms de pausa entre lotes
     const cacheKey = 'estadisticas-mundial:2026:v5'
-    const staleKey = 'estadisticas-mundial:2026:v5-stale'
     const now = Date.now()
 
-    // L1: memCache
     const memHit = memCache.get(cacheKey)
     if (memHit && now - memHit.ts < memHit.ttlMs) {
       res.setHeader('X-Cache', 'HIT-MEM')
       return res.status(200).json(memHit.data)
     }
-
-    // L2: KV principal
     const kvHit = await kvGet(cacheKey)
     if (kvHit) {
-      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 300_000 })
+      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 900_000 })
       res.setHeader('X-Cache', 'HIT-KV')
       return res.status(200).json(kvHit)
     }
@@ -339,38 +175,154 @@ export default async function handler(req, res) {
     const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
     if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
 
-    // L3: stale KV — responde al instante con datos previos y recalcula en segundo plano
-    const staleHit = await kvGet(staleKey)
-    if (staleHit) {
-      res.setHeader('X-Cache', 'STALE')
-      res.status(200).json(staleHit)
-      // Fire-and-forget: actualiza caché sin bloquear la respuesta ya enviada
-      computeEstadisticas(apiKey, cacheKey, staleKey).catch(() => {})
-      return
-    }
-
-    // Sin ningún caché: calcular de forma síncrona con timeout 8s
-    // Si tarda más, devolver stale viejo (aunque sea de hace >1h) y continuar en background
-    const computePromise = computeEstadisticas(apiKey, cacheKey, staleKey)
     try {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT')), 8_000)
-      )
-      const result = await Promise.race([computePromise, timeout])
+      const upstream = await fetch(`${UPSTREAM}/fixtures?league=1&season=2026&status=FT`, {
+        headers: { 'x-apisports-key': apiKey },
+        signal: AbortSignal.timeout(15_000),
+      })
+      if (!upstream.ok) return res.status(upstream.status).json({ error: `Error upstream: ${upstream.status}` })
+
+      const data = await upstream.json()
+      const fixtures = data.response || []
+      const totalPartidos = fixtures.length
+
+      const empty = {
+        totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
+        partidosSinGoles: 0, autogoles: 0,
+        equipoMasGoleador: null, equipoMasGoleado: null,
+        marcadorMasRepetido: null,
+      }
+
+      if (totalPartidos === 0) {
+        memCache.set(cacheKey, { data: empty, ts: now, ttlMs: 60_000 })
+        kvSet(cacheKey, empty, 60)
+        return res.status(200).json(empty)
+      }
+
+      let totalGoles = 0, partidosSinGoles = 0
+      const golesFavor   = {}
+      const golesContra  = {}
+      const marcadores   = {}
+
+      for (const f of fixtures) {
+        const hg = f.goals?.home ?? 0
+        const ag = f.goals?.away ?? 0
+        totalGoles += hg + ag
+        if (hg === 0 && ag === 0) partidosSinGoles++
+
+        const score = `${hg}-${ag}`
+        marcadores[score] = (marcadores[score] || 0) + 1
+
+        const homeId   = f.teams?.home?.id
+        const homeName = f.teams?.home?.name
+        const awayId   = f.teams?.away?.id
+        const awayName = f.teams?.away?.name
+
+        if (homeId) {
+          if (!golesFavor[homeId])  golesFavor[homeId]  = { name: homeName, goles: 0 }
+          if (!golesContra[homeId]) golesContra[homeId] = { name: homeName, goles: 0 }
+          golesFavor[homeId].goles  += hg
+          golesContra[homeId].goles += ag
+        }
+        if (awayId) {
+          if (!golesFavor[awayId])  golesFavor[awayId]  = { name: awayName, goles: 0 }
+          if (!golesContra[awayId]) golesContra[awayId] = { name: awayName, goles: 0 }
+          golesFavor[awayId].goles  += ag
+          golesContra[awayId].goles += hg
+        }
+      }
+
+      const allMaxBy = (obj, key) => {
+        const vals = Object.values(obj).map(v => v[key])
+        if (!vals.length) return []
+        const max = Math.max(...vals)
+        return Object.entries(obj)
+          .filter(([, info]) => info[key] === max)
+          .map(([id, info]) => ({ id: Number(id), name: info.name, goles: info[key] }))
+      }
+
+      const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
+        !best || veces > best.veces ? { score, veces } : best, null)
+
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+      const estimatedEnd = (f) => {
+        const kickoff = new Date(f.fixture.date).getTime()
+        const isKnockout = ['AET', 'PEN'].includes(f.fixture?.status?.short)
+        return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
+      }
+
+      async function fetchInBatches(items, batchSize, delayMs, fetchFn) {
+        const results = []
+        for (let i = 0; i < items.length; i += batchSize) {
+          const batch = items.slice(i, i + batchSize)
+          const batchResults = await Promise.all(batch.map(fetchFn))
+          results.push(...batchResults)
+          if (i + batchSize < items.length) {
+            await new Promise(resolve => setTimeout(resolve, delayMs))
+          }
+        }
+        return results
+      }
+
+      let autogoles = 0
+      let tarjetasAmarillas = 0
+      let tarjetasRojas = 0
+
+      await fetchInBatches(fixtures, 10, 200, async (f) => {
+        const fid = f.fixture.id
+        const eventsKey = `/fixtures/events?fixture=${fid}`
+        const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
+        let eventsData = recentFT ? null : await kvGet(eventsKey)
+
+        if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
+          await kvDel(eventsKey)
+          eventsData = null
+        }
+
+        if (!eventsData) {
+          try {
+            const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
+              headers: { 'x-apisports-key': apiKey },
+              signal: AbortSignal.timeout(8_000),
+            })
+            if (r.ok) {
+              const fetched = await r.json()
+              if (fetched.response?.length > 0) {
+                kvSet(eventsKey, fetched, 300)
+                eventsData = fetched
+              }
+            }
+          } catch {}
+        }
+
+        if (eventsData?.response) {
+          for (const ev of eventsData.response) {
+            if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
+            if (ev.type === 'Card') {
+              if (ev.detail === 'Yellow Card') tarjetasAmarillas++
+              else if (ev.detail === 'Red Card' || ev.detail === 'Second Yellow Card') tarjetasRojas++
+            }
+          }
+        }
+      })
+
+      const result = {
+        totalPartidos,
+        totalGoles,
+        promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
+        partidosSinGoles,
+        autogoles,
+        tarjetasAmarillas,
+        tarjetasRojas,
+        masGoleador:         allMaxBy(golesFavor, 'goles'),
+        masGoleado:          allMaxBy(golesContra, 'goles'),
+        marcadorMasRepetido: maxMarcador,
+      }
+
+      memCache.set(cacheKey, { data: result, ts: now, ttlMs: 900_000 })
+      kvSet(cacheKey, result, 900)
       return res.status(200).json(result)
     } catch (err) {
-      if (err.message === 'TIMEOUT') {
-        // computePromise sigue corriendo en background — buscar stale de emergencia
-        const emergencyStale = await kvGet(staleKey)
-        if (emergencyStale) {
-          res.setHeader('X-Cache', 'STALE-EMERGENCY')
-          res.status(200).json(emergencyStale)
-          computePromise.catch(() => {}) // evitar unhandled rejection
-          return
-        }
-        computePromise.catch(() => {})
-        return res.status(503).json({ error: 'Cómputo en proceso, intenta en unos segundos' })
-      }
       return res.status(502).json({ error: err.message })
     }
   }
