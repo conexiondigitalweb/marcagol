@@ -16,14 +16,14 @@ import { useKnockoutWinners } from '../context/KnockoutContext'
 
 // Mapeo R32 match → slots de R16 (ganador home / ganador away)
 const R8_FEED = {
-  89: { home: 74, away: 77 },
+  89: { home: 76, away: 78 },
   90: { home: 73, away: 75 },
-  91: { home: 76, away: 78 },
-  92: { home: 79, away: 80 },
-  93: { home: 83, away: 84 },
-  94: { home: 81, away: 82 },
-  95: { home: 86, away: 88 },
-  96: { home: 85, away: 87 },
+  91: { home: 81, away: 82 },
+  92: { home: 83, away: 84 },
+  93: { home: 74, away: 77 },
+  94: { home: 79, away: 80 },
+  95: { home: 87, away: 86 },
+  96: { home: 85, away: 88 },
 }
 
 const ALL_TEAMS_MAP = Object.fromEntries(

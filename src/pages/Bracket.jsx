@@ -82,20 +82,20 @@ const R32_MATCHES = MATCHES
   .filter(m => m.group === 'R32')
   .map(m => ({ matchId: m.id, home: m.homeTeam, away: m.awayTeam }))
 const R8_MATCHES = [
-  { matchId: 89,  home: 'W74', away: 'W77' },
+  { matchId: 89,  home: 'W76', away: 'W78' },
   { matchId: 90,  home: 'W73', away: 'W75' },
-  { matchId: 91,  home: 'W76', away: 'W78' },
-  { matchId: 92,  home: 'W79', away: 'W80' },
-  { matchId: 93,  home: 'W83', away: 'W84' },
-  { matchId: 94,  home: 'W81', away: 'W82' },
-  { matchId: 95,  home: 'W86', away: 'W88' },
-  { matchId: 96,  home: 'W85', away: 'W87' },
+  { matchId: 91,  home: 'W81', away: 'W82' },
+  { matchId: 92,  home: 'W83', away: 'W84' },
+  { matchId: 93,  home: 'W74', away: 'W77' },
+  { matchId: 94,  home: 'W79', away: 'W80' },
+  { matchId: 95,  home: 'W87', away: 'W86' },
+  { matchId: 96,  home: 'W85', away: 'W88' },
 ]
 const QF_MATCHES = [
-  { matchId: 97,  home: 'W89', away: 'W90' },
-  { matchId: 98,  home: 'W91', away: 'W92' },
-  { matchId: 99,  home: 'W93', away: 'W94' },
-  { matchId: 100, home: 'W95', away: 'W96' },
+  { matchId: 97,  home: 'W89', away: 'W91' },
+  { matchId: 98,  home: 'W90', away: 'W92' },
+  { matchId: 99,  home: 'W93', away: 'W95' },
+  { matchId: 100, home: 'W94', away: 'W96' },
 ]
 const SF_MATCHES = [
   { matchId: 101, home: 'W97',  away: 'W98'  },
