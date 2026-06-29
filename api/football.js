@@ -306,6 +306,14 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── action=invalidar-estadisticas (TEMPORAL — remover tras uso) ─────────────
+  if (req.query.action === 'invalidar-estadisticas') {
+    await kvDel('estadisticas-mundial:2026:v5')
+    await kvDel('estadisticas-mundial:2026:v5-stale')
+    memCache.delete('estadisticas-mundial:2026:v5')
+    return res.status(200).json({ ok: true, message: 'Caché invalidado' })
+  }
+
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
     const cacheKey = 'estadisticas-mundial:2026:v5'
