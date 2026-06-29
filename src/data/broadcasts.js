@@ -84,7 +84,7 @@ const COLOMBIA_BROADCASTS = {
  */
 export function getBroadcasts(matchId) {
   if (matchId >= 73) {
-    return { channels: [CHANNELS.dsports], abiertosPorConfirmar: true }
+    return { channels: [CHANNELS.caracol, CHANNELS.rcn, CHANNELS.dsports], abiertosPorConfirmar: false }
   }
   const keys = COLOMBIA_BROADCASTS[matchId]
   if (!keys) {

@@ -119,7 +119,9 @@ function MatchHeader({ match, liveData }) {
       }}>
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-bold text-sky-400 uppercase tracking-widest">
-            Grupo {match.group} · Jornada {match.matchday} · Copa Mundial 2026
+            {match.matchday
+              ? `Grupo ${match.group} · Jornada ${match.matchday} · Copa Mundial 2026`
+              : `${{ R32: 'Dieciseisavos de Final', R16: 'Octavos de Final', QF: 'Cuartos de Final', SF: 'Semifinales', F: 'Gran Final' }[match.group] ?? match.group} · Copa Mundial 2026`}
           </span>
           {isLive && !['PEN'].includes(liveData.status) && (
             <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${['ET','BT'].includes(liveData.status) ? 'bg-orange-500/20 border border-orange-500/40' : 'bg-red-500/20 border border-red-500/40'}`}>
