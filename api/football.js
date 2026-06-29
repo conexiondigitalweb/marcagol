@@ -186,7 +186,7 @@ async function computeEstadisticas(apiKey, cacheKey, staleKey) {
   let tarjetasAmarillas = 0
   let tarjetasRojas = 0
 
-  await fetchInBatches(fixtures, 5, 300, async (f) => {
+  await fetchInBatches(fixtures, 10, 200, async (f) => {
     const fid = f.fixture.id
     const eventsKey = `/fixtures/events?fixture=${fid}`
     const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
@@ -237,9 +237,9 @@ async function computeEstadisticas(apiKey, cacheKey, staleKey) {
     marcadorMasRepetido: maxMarcador,
   }
 
-  // Guardar caché principal (300s) + stale backup (1h solo si los datos parecen válidos)
-  memCache.set(cacheKey, { data: result, ts: now, ttlMs: 300_000 })
-  kvSet(cacheKey, result, 300)
+  // Guardar caché principal (900s) + stale backup (1h solo si los datos parecen válidos)
+  memCache.set(cacheKey, { data: result, ts: now, ttlMs: 900_000 })
+  kvSet(cacheKey, result, 900)
   const datosValidos = result.totalGoles > 100 && result.totalPartidos >= 60 && result.tarjetasAmarillas > 50
   if (staleKey && datosValidos) kvSet(staleKey, result, 3600)
   return result
@@ -349,11 +349,28 @@ export default async function handler(req, res) {
       return
     }
 
-    // Sin ningún caché: calcular de forma síncrona (primera carga o stale expirado)
+    // Sin ningún caché: calcular de forma síncrona con timeout 8s
+    // Si tarda más, devolver stale viejo (aunque sea de hace >1h) y continuar en background
+    const computePromise = computeEstadisticas(apiKey, cacheKey, staleKey)
     try {
-      const result = await computeEstadisticas(apiKey, cacheKey, staleKey)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 8_000)
+      )
+      const result = await Promise.race([computePromise, timeout])
       return res.status(200).json(result)
     } catch (err) {
+      if (err.message === 'TIMEOUT') {
+        // computePromise sigue corriendo en background — buscar stale de emergencia
+        const emergencyStale = await kvGet(staleKey)
+        if (emergencyStale) {
+          res.setHeader('X-Cache', 'STALE-EMERGENCY')
+          res.status(200).json(emergencyStale)
+          computePromise.catch(() => {}) // evitar unhandled rejection
+          return
+        }
+        computePromise.catch(() => {})
+        return res.status(503).json({ error: 'Cómputo en proceso, intenta en unos segundos' })
+      }
       return res.status(502).json({ error: err.message })
     }
   }
