@@ -332,7 +332,8 @@ export default async function handler(req, res) {
     }
   }
 
-  const { endpoint, ...params } = req.query
+  const { endpoint, _nocache, ...params } = req.query
+  const bypassCache = !!_nocache
   if (!endpoint || typeof endpoint !== 'string' || !endpoint.startsWith('/')) {
     return res.status(400).json({ error: 'Falta el parámetro endpoint (ej: /fixtures)' })
   }
@@ -345,23 +346,27 @@ export default async function handler(req, res) {
   const now      = Date.now()
 
   // ── L1 HIT: memoria ───────────────────────────────────────────────────────
-  const memHit = memCache.get(cacheKey)
-  if (memHit && now - memHit.ts < memHit.ttlMs) {
-    const remainingSecs = Math.ceil((memHit.ttlMs - (now - memHit.ts)) / 1000)
-    res.setHeader('X-Cache', 'HIT-MEM')
-    res.setHeader('Cache-Control', `public, s-maxage=${remainingSecs}, stale-while-revalidate=5`)
-    return res.status(200).json(memHit.data)
+  if (!bypassCache) {
+    const memHit = memCache.get(cacheKey)
+    if (memHit && now - memHit.ts < memHit.ttlMs) {
+      const remainingSecs = Math.ceil((memHit.ttlMs - (now - memHit.ts)) / 1000)
+      res.setHeader('X-Cache', 'HIT-MEM')
+      res.setHeader('Cache-Control', `public, s-maxage=${remainingSecs}, stale-while-revalidate=5`)
+      return res.status(200).json(memHit.data)
+    }
   }
 
   // ── L2 HIT: KV ────────────────────────────────────────────────────────────
-  const kvHit = await kvGet(cacheKey)
-  if (kvHit) {
-    // Rellenar L1 con TTL corto (los datos vienen "calientes" desde KV)
-    const kvTtl = ttlSecondsFor(endpoint, params)   // aproximado, sin datos
-    memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: Math.min(kvTtl, 15) * 1000 })
-    res.setHeader('X-Cache', 'HIT-KV')
-    res.setHeader('Cache-Control', `public, s-maxage=${Math.min(kvTtl, 15)}, stale-while-revalidate=5`)
-    return res.status(200).json(kvHit)
+  if (!bypassCache) {
+    const kvHit = await kvGet(cacheKey)
+    if (kvHit) {
+      // Rellenar L1 con TTL corto (los datos vienen "calientes" desde KV)
+      const kvTtl = ttlSecondsFor(endpoint, params)   // aproximado, sin datos
+      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: Math.min(kvTtl, 15) * 1000 })
+      res.setHeader('X-Cache', 'HIT-KV')
+      res.setHeader('Cache-Control', `public, s-maxage=${Math.min(kvTtl, 15)}, stale-while-revalidate=5`)
+      return res.status(200).json(kvHit)
+    }
   }
 
   // ── MISS: llamar a API-Football ───────────────────────────────────────────

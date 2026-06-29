@@ -14,6 +14,7 @@ import Flag from '../components/ui/Flag'
 import { GROUPS } from '../data/groups'
 import { TEAM_IDS } from '../data/teamIds'
 import { esTeamName } from '../data/teamNames'
+import { resolveTeamCode } from '../data/teamLookup'
 
 const MD_CODE_ALIAS = { RSA: 'ZAF', HAI: 'HTI', PAR: 'PRY' }
 
@@ -99,8 +100,10 @@ function fmtETMinute(minute, extra, status) {
 
 // ─── Header del partido ───────────────────────────────────────────────────────
 function MatchHeader({ match, liveData }) {
-  const home = ALL_TEAMS[match.homeTeam]
-  const away = ALL_TEAMS[match.awayTeam]
+  const homeCode = resolveTeamCode(match.homeTeam, ALL_TEAMS) ?? match.homeTeam
+  const awayCode = resolveTeamCode(match.awayTeam, ALL_TEAMS) ?? match.awayTeam
+  const home = ALL_TEAMS[homeCode]
+  const away = ALL_TEAMS[awayCode]
   const venue = VENUES_BY_NAME[match.venue]
   const { time, tz } = toLocal(match.date, match.time)
   const isLive = liveData && ['1H','HT','2H','ET','PEN','LIVE'].includes(liveData.status)
@@ -1153,7 +1156,8 @@ export default function MatchDetail() {
 
   // ── Partido del Mundial ──────────────────────────────────────────────────────
   const wcStarted       = events.length > 0 || homeStats.length > 0
-  const homeTeamApiId   = TEAM_IDS[MD_CODE_ALIAS[homeCode] ?? homeCode] ?? null
+  const resolvedHomeCode = resolveTeamCode(homeCode, ALL_TEAMS) ?? homeCode
+  const homeTeamApiId   = TEAM_IDS[MD_CODE_ALIAS[resolvedHomeCode] ?? resolvedHomeCode] ?? null
   const wcStatsMap      = buildStatsMap(events)
   const visibleWcEvents = isFinished
     ? events.filter(e => ALWAYS_SHOW_TYPES.has(e.type))

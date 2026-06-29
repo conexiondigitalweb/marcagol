@@ -10,7 +10,7 @@ export async function getKnockoutWinners(r32Matches) {
 
   await Promise.allSettled(pending.map(async match => {
     try {
-      const res = await fetch(`/api/football?endpoint=/fixtures&id=${match.fixtureId}`)
+      const res = await fetch(`/api/football?endpoint=/fixtures&id=${match.fixtureId}&_nocache=${Date.now()}`)
       if (!res.ok) return
       const data = await res.json()
       const fixture = data?.response?.[0]
