@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Fragment } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Flag from '../components/ui/Flag'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -6,7 +6,7 @@ import { GROUPS } from '../data/groups'
 import { MATCHES } from '../data/matches'
 import { useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
-import { getKnockoutWinners } from '../utils/knockoutResults'
+import { useKnockoutWinners } from '../context/KnockoutContext'
 
 // ─── Constantes de layout desktop ────────────────────────────────────────────
 // Árbol con posicionamiento absoluto: cada slot se posiciona en su centro exacto.
@@ -480,24 +480,8 @@ const _LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'LIVE'])
 
 export default function Bracket() {
   const [tab, setTab] = useState('d32')
-  const [knockoutWinners, setKnockoutWinners] = useState({})
+  const knockoutWinners = useKnockoutWinners()
   const { matches: liveMatches } = useLiveMatches()
-
-  // Polling ganadores R32 cada 60s para llenar slots de Octavos
-  useEffect(() => {
-    const r32Fixtures = MATCHES
-      .filter(m => m.group === 'R32' && m.fixtureId)
-      .map(m => ({ matchId: m.id, fixtureId: m.fixtureId }))
-    if (!r32Fixtures.length) return
-    let cancelled = false
-    async function poll() {
-      const w = await getKnockoutWinners(r32Fixtures)
-      if (!cancelled) setKnockoutWinners(prev => ({ ...prev, ...w }))
-    }
-    poll()
-    const timer = setInterval(poll, 60_000)
-    return () => { cancelled = true; clearInterval(timer) }
-  }, [])
 
   const standingsInterval = useMemo(() => {
     const hasLive = liveMatches?.some(m => _LIVE_STATUSES.has(m.fixture?.status?.short))

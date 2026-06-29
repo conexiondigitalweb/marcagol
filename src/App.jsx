@@ -1,4 +1,5 @@
 import { Component, lazy, Suspense } from 'react'
+import { KnockoutProvider } from './context/KnockoutContext'
 import { Routes, Route } from 'react-router-dom'
 import Header        from './components/layout/Header'
 import Footer        from './components/layout/Footer'
@@ -58,6 +59,7 @@ class ErrorBoundary extends Component {
 export default function App() {
   return (
     <ErrorBoundary>
+    <KnockoutProvider>
     <div className="min-h-screen bg-slate-950 flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-7xl animate-fade-in">
@@ -91,6 +93,7 @@ export default function App() {
       <UpdatePrompt />
     </div>
     <Analytics />
+    </KnockoutProvider>
     </ErrorBoundary>
   )
 }

@@ -1001,8 +1001,8 @@ export default function MatchDetail() {
     return () => clearInterval(interval)
   }, [fixtureId, isExternal, fixtureData?.status, forceFixtureRefetch])
 
-  const homeCode   = matchData?.homeTeam || ''
-  const awayCode   = matchData?.awayTeam || ''
+  const homeCode = resolveTeamCode(matchData?.homeTeam || '', ALL_TEAMS) ?? (matchData?.homeTeam || '')
+  const awayCode = resolveTeamCode(matchData?.awayTeam || '', ALL_TEAMS) ?? (matchData?.awayTeam || '')
   const matchDate  = matchData?.date || ''
   const group      = matchData?.group || ''
 
@@ -1156,8 +1156,7 @@ export default function MatchDetail() {
 
   // ── Partido del Mundial ──────────────────────────────────────────────────────
   const wcStarted       = events.length > 0 || homeStats.length > 0
-  const resolvedHomeCode = resolveTeamCode(homeCode, ALL_TEAMS) ?? homeCode
-  const homeTeamApiId   = TEAM_IDS[MD_CODE_ALIAS[resolvedHomeCode] ?? resolvedHomeCode] ?? null
+  const homeTeamApiId = TEAM_IDS[MD_CODE_ALIAS[homeCode] ?? homeCode] ?? null
   const wcStatsMap      = buildStatsMap(events)
   const visibleWcEvents = isFinished
     ? events.filter(e => ALWAYS_SHOW_TYPES.has(e.type))

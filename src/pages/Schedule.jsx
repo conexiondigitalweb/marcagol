@@ -12,6 +12,19 @@ import { StatusBadge } from '../components/ui/Badge'
 import { useLiveScoresMap, useStandings, useLiveMatches } from '../hooks/useLiveData'
 import { projectBracket } from '../utils/bracketProjector'
 import { esTeamName } from '../data/teamNames'
+import { useKnockoutWinners } from '../context/KnockoutContext'
+
+// Mapeo R32 match → slots de R16 (ganador home / ganador away)
+const R8_FEED = {
+  89: { home: 74, away: 77 },
+  90: { home: 73, away: 75 },
+  91: { home: 76, away: 78 },
+  92: { home: 79, away: 80 },
+  93: { home: 83, away: 84 },
+  94: { home: 81, away: 82 },
+  95: { home: 86, away: 88 },
+  96: { home: 85, away: 87 },
+}
 
 const ALL_TEAMS_MAP = Object.fromEntries(
   GROUPS.flatMap(g => g.teams.map(t => [t.code, t]))
@@ -102,14 +115,24 @@ function VenuePhoto({ venueName }) {
 }
 
 function MatchRow({ match, liveData, projectedMatch }) {
+  const knockoutWinners = useKnockoutWinners()
   const homeFromGroups = resolveTeamByName(match.homeTeam)
   const awayFromGroups = resolveTeamByName(match.awayTeam)
 
-  // Para R32: fallback a proyección de standings si el equipo real aún es TBD
-  const projHome = !homeFromGroups && projectedMatch?.home?.team
-    ? getKnockoutTeamData(projectedMatch.home.team) : null
-  const projAway = !awayFromGroups && projectedMatch?.away?.team
-    ? getKnockoutTeamData(projectedMatch.away.team) : null
+  // Para R32: fallback a proyección de standings
+  // Para R16: usar ganador real de R32 (via KnockoutContext)
+  const r16Feed = R8_FEED[match.id]
+  const r16HomeWinner = r16Feed ? knockoutWinners[r16Feed.home] : null
+  const r16AwayWinner = r16Feed ? knockoutWinners[r16Feed.away] : null
+
+  const projHome = !homeFromGroups && (
+    projectedMatch?.home?.team ? getKnockoutTeamData(projectedMatch.home.team) :
+    r16HomeWinner?.team        ? getKnockoutTeamData(r16HomeWinner.team) : null
+  )
+  const projAway = !awayFromGroups && (
+    projectedMatch?.away?.team ? getKnockoutTeamData(projectedMatch.away.team) :
+    r16AwayWinner?.team        ? getKnockoutTeamData(r16AwayWinner.team) : null
+  )
 
   const home = homeFromGroups ?? projHome
   const away = awayFromGroups ?? projAway
