@@ -91,6 +91,159 @@ async function kvDel(key) {
   try { await kv.del(KV_PREFIX + key) } catch {}
 }
 
+// ── Cálculo de estadísticas del Mundial (extrae lógica para stale-while-revalidate) ──
+async function computeEstadisticas(apiKey, cacheKey, staleKey) {
+  const now = Date.now()
+  const upstream = await fetch(`${UPSTREAM}/fixtures?league=1&season=2026&status=FT`, {
+    headers: { 'x-apisports-key': apiKey },
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!upstream.ok) throw new Error(`Error upstream: ${upstream.status}`)
+
+  const data = await upstream.json()
+  const fixtures = data.response || []
+  const totalPartidos = fixtures.length
+
+  const empty = {
+    totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
+    partidosSinGoles: 0, autogoles: 0,
+    equipoMasGoleador: null, equipoMasGoleado: null,
+    marcadorMasRepetido: null,
+  }
+
+  if (totalPartidos === 0) {
+    memCache.set(cacheKey, { data: empty, ts: now, ttlMs: 60_000 })
+    kvSet(cacheKey, empty, 60)
+    return empty
+  }
+
+  let totalGoles = 0, partidosSinGoles = 0
+  const golesFavor  = {}
+  const golesContra = {}
+  const marcadores  = {}
+
+  for (const f of fixtures) {
+    const hg = f.goals?.home ?? 0
+    const ag = f.goals?.away ?? 0
+    totalGoles += hg + ag
+    if (hg === 0 && ag === 0) partidosSinGoles++
+
+    const score = `${hg}-${ag}`
+    marcadores[score] = (marcadores[score] || 0) + 1
+
+    const homeId   = f.teams?.home?.id
+    const homeName = f.teams?.home?.name
+    const awayId   = f.teams?.away?.id
+    const awayName = f.teams?.away?.name
+
+    if (homeId) {
+      if (!golesFavor[homeId])  golesFavor[homeId]  = { name: homeName, goles: 0 }
+      if (!golesContra[homeId]) golesContra[homeId] = { name: homeName, goles: 0 }
+      golesFavor[homeId].goles  += hg
+      golesContra[homeId].goles += ag
+    }
+    if (awayId) {
+      if (!golesFavor[awayId])  golesFavor[awayId]  = { name: awayName, goles: 0 }
+      if (!golesContra[awayId]) golesContra[awayId] = { name: awayName, goles: 0 }
+      golesFavor[awayId].goles  += ag
+      golesContra[awayId].goles += hg
+    }
+  }
+
+  const allMaxBy = (obj, key) => {
+    const vals = Object.values(obj).map(v => v[key])
+    if (!vals.length) return []
+    const max = Math.max(...vals)
+    return Object.entries(obj)
+      .filter(([, info]) => info[key] === max)
+      .map(([id, info]) => ({ id: Number(id), name: info.name, goles: info[key] }))
+  }
+
+  const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
+    !best || veces > best.veces ? { score, veces } : best, null)
+
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+  const estimatedEnd = (f) => {
+    const kickoff = new Date(f.fixture.date).getTime()
+    const isKnockout = ['AET', 'PEN'].includes(f.fixture?.status?.short)
+    return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
+  }
+
+  async function fetchInBatches(items, batchSize, delayMs, fetchFn) {
+    const results = []
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batch = items.slice(i, i + batchSize)
+      const batchResults = await Promise.all(batch.map(fetchFn))
+      results.push(...batchResults)
+      if (i + batchSize < items.length) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+    return results
+  }
+
+  let autogoles = 0
+  let tarjetasAmarillas = 0
+  let tarjetasRojas = 0
+
+  await fetchInBatches(fixtures, 5, 300, async (f) => {
+    const fid = f.fixture.id
+    const eventsKey = `/fixtures/events?fixture=${fid}`
+    const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
+    let eventsData = recentFT ? null : await kvGet(eventsKey)
+
+    if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
+      await kvDel(eventsKey)
+      eventsData = null
+    }
+
+    if (!eventsData) {
+      try {
+        const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
+          headers: { 'x-apisports-key': apiKey },
+          signal: AbortSignal.timeout(8_000),
+        })
+        if (r.ok) {
+          const fetched = await r.json()
+          if (fetched.response?.length > 0) {
+            kvSet(eventsKey, fetched, 300)
+            eventsData = fetched
+          }
+        }
+      } catch {}
+    }
+
+    if (eventsData?.response) {
+      for (const ev of eventsData.response) {
+        if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
+        if (ev.type === 'Card') {
+          if (ev.detail === 'Yellow Card') tarjetasAmarillas++
+          else if (ev.detail === 'Red Card' || ev.detail === 'Second Yellow Card') tarjetasRojas++
+        }
+      }
+    }
+  })
+
+  const result = {
+    totalPartidos,
+    totalGoles,
+    promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
+    partidosSinGoles,
+    autogoles,
+    tarjetasAmarillas,
+    tarjetasRojas,
+    masGoleador:         allMaxBy(golesFavor, 'goles'),
+    masGoleado:          allMaxBy(golesContra, 'goles'),
+    marcadorMasRepetido: maxMarcador,
+  }
+
+  // Guardar caché principal (300s) + stale backup (1h)
+  memCache.set(cacheKey, { data: result, ts: now, ttlMs: 300_000 })
+  kvSet(cacheKey, result, 300)
+  if (staleKey) kvSet(staleKey, result, 3600)
+  return result
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -155,15 +308,18 @@ export default async function handler(req, res) {
 
   // ── action=estadisticas-mundial ────────────────────────────────────────────
   if (req.query.action === 'estadisticas-mundial') {
-    // v5: lotes de 5 fixtures para evitar rate limiting en Promise.all paralelo
     const cacheKey = 'estadisticas-mundial:2026:v5'
+    const staleKey = 'estadisticas-mundial:2026:v5-stale'
     const now = Date.now()
 
+    // L1: memCache
     const memHit = memCache.get(cacheKey)
     if (memHit && now - memHit.ts < memHit.ttlMs) {
       res.setHeader('X-Cache', 'HIT-MEM')
       return res.status(200).json(memHit.data)
     }
+
+    // L2: KV principal
     const kvHit = await kvGet(cacheKey)
     if (kvHit) {
       memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 300_000 })
@@ -174,158 +330,19 @@ export default async function handler(req, res) {
     const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
     if (!apiKey) return res.status(503).json({ error: 'API no configurada' })
 
+    // L3: stale KV — responde al instante con datos previos y recalcula en segundo plano
+    const staleHit = await kvGet(staleKey)
+    if (staleHit) {
+      res.setHeader('X-Cache', 'STALE')
+      res.status(200).json(staleHit)
+      // Fire-and-forget: actualiza caché sin bloquear la respuesta ya enviada
+      computeEstadisticas(apiKey, cacheKey, staleKey).catch(() => {})
+      return
+    }
+
+    // Sin ningún caché: calcular de forma síncrona (primera carga o stale expirado)
     try {
-      const upstream = await fetch(`${UPSTREAM}/fixtures?league=1&season=2026&status=FT`, {
-        headers: { 'x-apisports-key': apiKey },
-        signal: AbortSignal.timeout(15_000),
-      })
-      if (!upstream.ok) return res.status(upstream.status).json({ error: `Error upstream: ${upstream.status}` })
-
-      const data = await upstream.json()
-      const fixtures = data.response || []
-      const totalPartidos = fixtures.length
-
-      const empty = {
-        totalPartidos: 0, totalGoles: 0, promedioPorPartido: '0.00',
-        partidosSinGoles: 0, autogoles: 0,
-        equipoMasGoleador: null, equipoMasGoleado: null,
-        marcadorMasRepetido: null,
-      }
-
-      if (totalPartidos === 0) {
-        memCache.set(cacheKey, { data: empty, ts: now, ttlMs: 60_000 })
-        kvSet(cacheKey, empty, 60)
-        return res.status(200).json(empty)
-      }
-
-      let totalGoles = 0, partidosSinGoles = 0
-      const golesFavor   = {}
-      const golesContra  = {}
-      const marcadores   = {}
-
-      for (const f of fixtures) {
-        const hg = f.goals?.home ?? 0
-        const ag = f.goals?.away ?? 0
-        totalGoles += hg + ag
-        if (hg === 0 && ag === 0) partidosSinGoles++
-
-        const score = `${hg}-${ag}`
-        marcadores[score] = (marcadores[score] || 0) + 1
-
-        const homeId   = f.teams?.home?.id
-        const homeName = f.teams?.home?.name
-        const awayId   = f.teams?.away?.id
-        const awayName = f.teams?.away?.name
-
-        if (homeId) {
-          if (!golesFavor[homeId])  golesFavor[homeId]  = { name: homeName, goles: 0 }
-          if (!golesContra[homeId]) golesContra[homeId] = { name: homeName, goles: 0 }
-          golesFavor[homeId].goles  += hg
-          golesContra[homeId].goles += ag
-        }
-        if (awayId) {
-          if (!golesFavor[awayId])  golesFavor[awayId]  = { name: awayName, goles: 0 }
-          if (!golesContra[awayId]) golesContra[awayId] = { name: awayName, goles: 0 }
-          golesFavor[awayId].goles  += ag
-          golesContra[awayId].goles += hg
-        }
-      }
-
-      const allMaxBy = (obj, key) => {
-        const vals = Object.values(obj).map(v => v[key])
-        if (!vals.length) return []
-        const max = Math.max(...vals)
-        return Object.entries(obj)
-          .filter(([, info]) => info[key] === max)
-          .map(([id, info]) => ({ id: Number(id), name: info.name, goles: info[key] }))
-      }
-
-      const maxMarcador = Object.entries(marcadores).reduce((best, [score, veces]) =>
-        !best || veces > best.veces ? { score, veces } : best, null)
-
-      // Autogoles + tarjetas: consultar eventos de cada fixture
-      // Bypass KV si el partido terminó hace <2h (eventos pueden estar incompletos)
-      const TWO_HOURS_MS = 2 * 60 * 60 * 1000
-      // Grupos: kickoff + 105min (90 + ~15 descuentos)
-      // Eliminatorios (AET/PEN): kickoff + 150min (90 + 30 ET + 15 penales + descuentos)
-      const estimatedEnd = (f) => {
-        const kickoff = new Date(f.fixture.date).getTime()
-        const isKnockout = ['AET', 'PEN'].includes(f.fixture?.status?.short)
-        return kickoff + (isKnockout ? 150 : 105) * 60 * 1000
-      }
-
-      // Procesa fixtures en lotes para no saturar el rate limit de API-Football
-      async function fetchInBatches(items, batchSize, delayMs, fetchFn) {
-        const results = []
-        for (let i = 0; i < items.length; i += batchSize) {
-          const batch = items.slice(i, i + batchSize)
-          const batchResults = await Promise.all(batch.map(fetchFn))
-          results.push(...batchResults)
-          if (i + batchSize < items.length) {
-            await new Promise(resolve => setTimeout(resolve, delayMs))
-          }
-        }
-        return results
-      }
-
-      let autogoles = 0
-      let tarjetasAmarillas = 0
-      let tarjetasRojas = 0
-
-      await fetchInBatches(fixtures, 5, 300, async (f) => {
-        const fid = f.fixture.id
-        const eventsKey = `/fixtures/events?fixture=${fid}`
-        const recentFT = (now - estimatedEnd(f)) < TWO_HOURS_MS
-        let eventsData = recentFT ? null : await kvGet(eventsKey)
-
-        // Caché sospechoso para partido FT antiguo: <10 eventos (capturado en vivo incompleto)
-        if (!recentFT && eventsData && (eventsData.response?.length ?? 0) < 10) {
-          await kvDel(eventsKey)
-          eventsData = null
-        }
-
-        if (!eventsData) {
-          try {
-            const r = await fetch(`${UPSTREAM}/fixtures/events?fixture=${fid}`, {
-              headers: { 'x-apisports-key': apiKey },
-              signal: AbortSignal.timeout(8_000),
-            })
-            if (r.ok) {
-              const fetched = await r.json()
-              if (fetched.response?.length > 0) {
-                kvSet(eventsKey, fetched, 300)
-                eventsData = fetched
-              }
-            }
-          } catch {}
-        }
-
-        if (eventsData?.response) {
-          for (const ev of eventsData.response) {
-            if (ev.type === 'Goal' && ev.detail === 'Own Goal') autogoles++
-            if (ev.type === 'Card') {
-              if (ev.detail === 'Yellow Card') tarjetasAmarillas++
-              else if (ev.detail === 'Red Card' || ev.detail === 'Second Yellow Card') tarjetasRojas++
-            }
-          }
-        }
-      })
-
-      const result = {
-        totalPartidos,
-        totalGoles,
-        promedioPorPartido: (totalGoles / totalPartidos).toFixed(2),
-        partidosSinGoles,
-        autogoles,
-        tarjetasAmarillas,
-        tarjetasRojas,
-        masGoleador:         allMaxBy(golesFavor, 'goles'),
-        masGoleado:          allMaxBy(golesContra, 'goles'),
-        marcadorMasRepetido: maxMarcador,
-      }
-
-      memCache.set(cacheKey, { data: result, ts: now, ttlMs: 300_000 })
-      kvSet(cacheKey, result, 300)
+      const result = await computeEstadisticas(apiKey, cacheKey, staleKey)
       return res.status(200).json(result)
     } catch (err) {
       return res.status(502).json({ error: err.message })
