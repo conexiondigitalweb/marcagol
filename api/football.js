@@ -237,10 +237,11 @@ async function computeEstadisticas(apiKey, cacheKey, staleKey) {
     marcadorMasRepetido: maxMarcador,
   }
 
-  // Guardar caché principal (300s) + stale backup (1h)
+  // Guardar caché principal (300s) + stale backup (1h solo si los datos parecen válidos)
   memCache.set(cacheKey, { data: result, ts: now, ttlMs: 300_000 })
   kvSet(cacheKey, result, 300)
-  if (staleKey) kvSet(staleKey, result, 3600)
+  const datosValidos = result.totalGoles > 100 && result.totalPartidos >= 60 && result.tarjetasAmarillas > 50
+  if (staleKey && datosValidos) kvSet(staleKey, result, 3600)
   return result
 }
 
