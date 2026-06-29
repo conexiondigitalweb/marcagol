@@ -1,4 +1,4 @@
-import { useState, useMemo, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Flag from '../components/ui/Flag'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -118,24 +118,47 @@ const MATCH_BY_ID = Object.fromEntries(MATCHES.map(m => [m.id, m]))
 
 const D32_IDS = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88]
 
+// fixtureIds de R32 con ID de API conocido — para fetch de scores
+const R32_FIXTURES = MATCHES
+  .filter(m => m.group === 'R32' && m.fixtureId)
+  .map(m => ({ matchId: m.id, fixtureId: m.fixtureId }))
+
+const FT_STATUSES_SET  = new Set(['FT', 'AET', 'PEN'])
+const LIVE_STATUSES_SET = new Set(['1H', '2H', 'HT', 'ET', 'BT'])
+
 // ─── MatchCard — tarjeta cara a cara (lista de R32) ─────────────────────────
-function MatchCard({ matchId, home, away, resolvedHome, resolvedAway }) {
+function MatchCard({ matchId, home, away, resolvedHome, resolvedAway,
+                     scoreHome, scoreAway, status, winnerHome, winnerAway }) {
   const navigate    = useNavigate()
   const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
   const isClickable = !!appMatch?.fixtureId
+  const isFinished  = FT_STATUSES_SET.has(status)
+  const isLive      = LIVE_STATUSES_SET.has(status)
+  const hasScore    = isFinished || isLive
 
-  function TeamSide({ staticLabel, resolved }) {
+  function TeamSide({ staticLabel, resolved, isWinner, isLoser }) {
     const info = resolved?.team ? getTeamInfo(resolved.team) : null
-    const dotCls = !info ? 'bg-slate-700' : 'bg-green-500'
-    const dotLabel = !info ? 'Por definir' : 'Confirmado'
+    const dotCls   = !info ? 'bg-slate-700'
+                   : isFinished && isWinner  ? 'bg-green-500'
+                   : isFinished && isLoser   ? 'bg-slate-600'
+                   : 'bg-green-500'
+    const dotLabel = !info ? 'Por definir'
+                   : isFinished && isWinner  ? '✓ Clasifica'
+                   : isFinished && isLoser   ? 'Eliminado'
+                   : 'Confirmado'
     return (
-      <div className="flex flex-col items-center gap-1 flex-1 min-w-0 px-2">
+      <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 px-2 transition-opacity ${isFinished && isLoser ? 'opacity-40' : ''}`}>
         <div className="w-9 h-6 rounded overflow-hidden flex items-center justify-center bg-slate-700/60">
           {info?.iso2
             ? <Flag iso2={info.iso2} size="sm" className="w-full h-full object-cover" />
             : <span className="text-slate-600 text-xs">?</span>}
         </div>
-        <span className={`text-sm font-black tracking-wide ${info ? 'text-slate-100' : 'text-slate-600'}`}>
+        <span className={`text-sm font-black tracking-wide ${
+          !info              ? 'text-slate-600'
+          : isFinished && isWinner ? 'text-sky-400'
+          : isFinished && isLoser  ? 'text-slate-500'
+          : 'text-slate-100'
+        }`}>
           {info ? info.code : 'TBD'}
         </span>
         <span className="flex items-center gap-1 text-[9px] text-slate-500">
@@ -173,13 +196,21 @@ function MatchCard({ matchId, home, away, resolvedHome, resolvedAway }) {
             </>
           ) : null}
         </div>
+        {isLive && (
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-500/20 border border-red-500/40 text-[9px] font-bold text-red-400 animate-pulse flex-shrink-0 self-center">
+            EN VIVO
+          </span>
+        )}
       </div>
       <div className="flex items-center py-4 px-2">
-        <TeamSide staticLabel={home} resolved={resolvedHome} />
-        <div className="flex-shrink-0 px-1">
-          <span className="text-lg font-black text-slate-600">vs</span>
+        <TeamSide staticLabel={home} resolved={resolvedHome} isWinner={winnerHome} isLoser={winnerHome === false} />
+        <div className="flex-shrink-0 px-1 text-center min-w-[3rem]">
+          {hasScore
+            ? <span className="text-lg font-black text-white tabular-nums">{scoreHome ?? 0} – {scoreAway ?? 0}</span>
+            : <span className="text-lg font-black text-slate-600">vs</span>
+          }
         </div>
-        <TeamSide staticLabel={away} resolved={resolvedAway} />
+        <TeamSide staticLabel={away} resolved={resolvedAway} isWinner={winnerAway} isLoser={winnerAway === false} />
       </div>
     </div>
   )
@@ -480,8 +511,33 @@ const _LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'LIVE'])
 
 export default function Bracket() {
   const [tab, setTab] = useState('d32')
+  const [r32Scores, setR32Scores] = useState({})
   const knockoutWinners = useKnockoutWinners()
   const { matches: liveMatches } = useLiveMatches()
+
+  // Fetch scores de los partidos R32 con fixtureId conocido (una sola vez al montar)
+  useEffect(() => {
+    if (!R32_FIXTURES.length) return
+    const ids = R32_FIXTURES.map(m => m.fixtureId).join('-')
+    fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
+      .then(r => r.json())
+      .then(data => {
+        const map = {}
+        for (const f of (data.response || [])) {
+          const entry = R32_FIXTURES.find(m => m.fixtureId === f.fixture.id)
+          if (!entry) continue
+          map[entry.matchId] = {
+            scoreHome:  f.goals?.home ?? null,
+            scoreAway:  f.goals?.away ?? null,
+            status:     f.fixture?.status?.short ?? null,
+            winnerHome: f.teams?.home?.winner ?? null,
+            winnerAway: f.teams?.away?.winner ?? null,
+          }
+        }
+        setR32Scores(map)
+      })
+      .catch(() => {})
+  }, [])
 
   const standingsInterval = useMemo(() => {
     const hasLive = liveMatches?.some(m => _LIVE_STATUSES.has(m.fixture?.status?.short))
@@ -612,6 +668,11 @@ export default function Bracket() {
                   return (
                     <MatchCard key={id} matchId={id} home={m.home} away={m.away}
                       resolvedHome={resolved?.home} resolvedAway={resolved?.away}
+                      scoreHome={r32Scores[id]?.scoreHome ?? null}
+                      scoreAway={r32Scores[id]?.scoreAway ?? null}
+                      status={r32Scores[id]?.status ?? null}
+                      winnerHome={r32Scores[id]?.winnerHome ?? null}
+                      winnerAway={r32Scores[id]?.winnerAway ?? null}
                     />
                   )
                 })}
