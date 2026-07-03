@@ -49,9 +49,9 @@ export default function UpdatePrompt() {
           <span className="text-xl flex-shrink-0">🔄</span>
           <div className="min-w-0">
             <p className="text-white font-semibold text-sm leading-tight">
-              Actualizando a la versión más reciente...
+              Nueva versión disponible — toca para actualizar
             </p>
-            <p className="text-slate-400 text-xs mt-0.5">Toca para actualizar ahora</p>
+            <p className="text-slate-400 text-xs mt-0.5">Recargando en {countdown}s...</p>
           </div>
         </div>
         <span

@@ -12,11 +12,6 @@ import './index.css'
 // que PredictionsProvider y demás contextos lean sus keys síncronamente.
 runCacheInvalidation(CACHE_VERSION)
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    window.location.reload()
-  })
-}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
