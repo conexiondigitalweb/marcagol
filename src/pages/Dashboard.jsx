@@ -13,6 +13,19 @@ import { startLivePolling } from '../services/liveData'
 import { usePredictions } from '../context/PredictionsContext'
 import { useLiveScoresMap, useStandings } from '../hooks/useLiveData'
 import { esTeamName } from '../data/teamNames'
+import { useKnockoutWinners } from '../context/KnockoutContext'
+
+// Mapeo R32 matchId → slots R16 (mismo que Schedule.jsx)
+const R8_FEED_HOME = {
+  89: { home: 73, away: 76 },
+  90: { home: 75, away: 78 },
+  91: { home: 81, away: 82 },
+  92: { home: 83, away: 84 },
+  93: { home: 74, away: 77 },
+  94: { home: 79, away: 80 },
+  95: { home: 85, away: 88 },
+  96: { home: 86, away: 87 },
+}
 
 const WORLD_CUP_START = '2026-06-11T19:00:00+00:00'
 
@@ -120,9 +133,10 @@ function toLocalTime(date, timeCol) {
   } catch { return { time: timeCol?.slice(0, 5) ?? '--:--', label: 'COL' } }
 }
 
-function MatchCard({ match, liveData, compact = false }) {
-  const home       = resolveTeam(match.homeTeam)
-  const away       = resolveTeam(match.awayTeam)
+function MatchCard({ match, liveData, compact = false, knockoutHome = null, knockoutAway = null }) {
+  const home       = resolveTeam(match.homeTeam) ?? knockoutHome
+  const away       = resolveTeam(match.awayTeam) ?? knockoutAway
+  const isProjected = !resolveTeam(match.homeTeam) && !!knockoutHome
   const result     = getResult(match.id)
   const isFinished = !!result
   const isLive     = !isFinished && !!liveData
@@ -174,6 +188,8 @@ function MatchCard({ match, liveData, compact = false }) {
           </span>
         ) : isFinished ? (
           <span className="badge-finished">Finalizado</span>
+        ) : isProjected ? (
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(234,179,8,0.15)', color: '#FBBF24' }}>🟡 Proyectado</span>
         ) : (
           <StatusBadge status={match.status} />
         )}
@@ -342,11 +358,12 @@ export default function Dashboard() {
     return () => clearInterval(id)
   }, [])
 
-  const upcoming       = getUpcomingMatches(6)
-  const hasApiLive     = apiLiveMatches.length > 0
-  const liveScoresMap  = useLiveScoresMap(MATCHES)
+  const upcoming         = getUpcomingMatches(6)
+  const hasApiLive       = apiLiveMatches.length > 0
+  const liveScoresMap    = useLiveScoresMap(MATCHES)
   const { totalPoints, predictedCount } = usePredictions()
   const { standings: apiStandings } = useStandings(60_000)
+  const knockoutWinners  = useKnockoutWinners()
 
   // Próximo partido sin predecir para el bloque de predicciones
   const nextUnpredicted = useMemo(() => {
@@ -636,14 +653,21 @@ export default function Dashboard() {
           <div className="card p-10 text-center text-slate-500">No hay partidos próximos</div>
         ) : (
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {upcoming.map(m => (
-              <Link key={m.id} to={`/partido/${m.id}`} className="space-y-1 block group">
-                <p className="text-xs text-slate-500 px-1 uppercase tracking-wider">
-                  {capitalizeFirst(formatDayOfWeek(m.date))}
-                </p>
-                <MatchCard match={m} liveData={liveScoresMap[m.id]} />
-              </Link>
-            ))}
+            {upcoming.map(m => {
+              const feed = R8_FEED_HOME[m.id]
+              const kHome = feed ? knockoutWinners[feed.home] : null
+              const kAway = feed ? knockoutWinners[feed.away] : null
+              const knockoutHome = kHome?.team ? resolveTeam(kHome.team.name) ?? { name: esTeamName(kHome.team), iso2: '', code: '' } : null
+              const knockoutAway = kAway?.team ? resolveTeam(kAway.team.name) ?? { name: esTeamName(kAway.team), iso2: '', code: '' } : null
+              return (
+                <Link key={m.id} to={`/partido/${m.id}`} className="space-y-1 block group">
+                  <p className="text-xs text-slate-500 px-1 uppercase tracking-wider">
+                    {capitalizeFirst(formatDayOfWeek(m.date))}
+                  </p>
+                  <MatchCard match={m} liveData={liveScoresMap[m.id]} knockoutHome={knockoutHome} knockoutAway={knockoutAway} />
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>
