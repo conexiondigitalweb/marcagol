@@ -136,7 +136,7 @@ function toLocalTime(date, timeCol) {
 function MatchCard({ match, liveData, compact = false, knockoutHome = null, knockoutAway = null }) {
   const home       = resolveTeam(match.homeTeam) ?? knockoutHome
   const away       = resolveTeam(match.awayTeam) ?? knockoutAway
-  const isProjected = !resolveTeam(match.homeTeam) && !!knockoutHome
+  const isProjected = !resolveTeam(match.homeTeam) && !!knockoutHome && !!knockoutAway
   const result     = getResult(match.id)
   const isFinished = !!result
   const isLive     = !isFinished && !!liveData
@@ -189,7 +189,7 @@ function MatchCard({ match, liveData, compact = false, knockoutHome = null, knoc
         ) : isFinished ? (
           <span className="badge-finished">Finalizado</span>
         ) : isProjected ? (
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(234,179,8,0.15)', color: '#FBBF24' }}>🟡 Proyectado</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: 'rgba(34,197,94,0.15)', color: '#4ADE80' }}>● Confirmado</span>
         ) : (
           <StatusBadge status={match.status} />
         )}
@@ -644,7 +644,13 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h2 className="section-title">Próximos Partidos</h2>
-            <p className="section-subtitle">Fase de grupos · Mundial 2026</p>
+            <p className="section-subtitle">
+              {(() => {
+                const PHASE = { R32: 'Dieciseisavos de Final', R16: 'Octavos de Final', QF: 'Cuartos de Final', SF: 'Semifinales', F: 'Gran Final' }
+                const firstGroup = upcoming[0]?.group
+                return `${PHASE[firstGroup] ?? 'Fase de grupos'} · Mundial 2026`
+              })()}
+            </p>
           </div>
           <Link to="/calendario" className="btn-outline text-sm">Ver calendario →</Link>
         </div>
