@@ -105,7 +105,8 @@ function MatchHeader({ match, liveData }) {
   const home = ALL_TEAMS[homeCode]
   const away = ALL_TEAMS[awayCode]
   const venue = VENUES_BY_NAME[match.venue]
-  const { time, tz } = toLocal(match.date, match.time)
+  const time = match.timeCol?.slice(0, 5) ?? '--:--'
+  const tz   = 'COL'
   const isLive = liveData && ['1H','HT','2H','ET','PEN','LIVE'].includes(liveData.status)
   const isFinished = liveData && ['FT','AET','PEN'].includes(liveData.status)
 
