@@ -358,9 +358,14 @@ export default function Dashboard() {
     return () => clearInterval(id)
   }, [])
 
-  const upcoming         = getUpcomingMatches(6)
   const hasApiLive       = apiLiveMatches.length > 0
   const liveScoresMap    = useLiveScoresMap(MATCHES)
+  const upcoming         = getUpcomingMatches(6).filter(m => {
+    if (getResult(m.id)) return false          // FT en localStorage
+    if (liveScoresMap[m.id]) return false      // en vivo según API
+    const kickoffMs = new Date(`${m.date}T${m.timeCol}:00-05:00`).getTime()
+    return Date.now() < kickoffMs + 2 * 60 * 60 * 1000  // excluir si pasaron más de 2h del kickoff
+  })
   const { totalPoints, predictedCount } = usePredictions()
   const { standings: apiStandings } = useStandings(60_000)
   const knockoutWinners  = useKnockoutWinners()
