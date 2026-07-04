@@ -9,13 +9,13 @@ export function KnockoutProvider({ children }) {
   const [knockoutWinners, setKnockoutWinners] = useState({})
 
   useEffect(() => {
-    const r32Fixtures = MATCHES
-      .filter(m => m.group === 'R32' && m.fixtureId)
+    const allFixtures = MATCHES
+      .filter(m => (m.group === 'R32' || m.group === 'R16') && m.fixtureId)
       .map(m => ({ matchId: m.id, fixtureId: m.fixtureId }))
-    if (!r32Fixtures.length) return
+    if (!allFixtures.length) return
     let cancelled = false
     async function poll() {
-      const w = await getKnockoutWinners(r32Fixtures)
+      const w = await getKnockoutWinners(allFixtures)
       if (!cancelled) setKnockoutWinners(prev => ({ ...prev, ...w }))
     }
     poll()
