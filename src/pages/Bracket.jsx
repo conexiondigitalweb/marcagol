@@ -123,6 +123,11 @@ const R32_FIXTURES = MATCHES
   .filter(m => m.group === 'R32' && m.fixtureId)
   .map(m => ({ matchId: m.id, fixtureId: m.fixtureId }))
 
+// fixtureIds de R16 (Octavos M89-M96) con ID de API conocido
+const R16_FIXTURES = MATCHES
+  .filter(m => m.group === 'R16' && m.fixtureId)
+  .map(m => ({ matchId: m.id, fixtureId: m.fixtureId }))
+
 const FT_STATUSES_SET  = new Set(['FT', 'AET', 'PEN'])
 const LIVE_STATUSES_SET = new Set(['1H', '2H', 'HT', 'ET', 'BT'])
 
@@ -217,22 +222,25 @@ function MatchCard({ matchId, home, away, resolvedHome, resolvedAway,
 }
 
 // ─── BracketSlot — slot compacto para el árbol desktop ───────────────────────
-function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
+function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false,
+                       scoreHome, scoreAway, status, winnerHome, winnerAway }) {
   const navigate    = useNavigate()
   const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
   const isClickable = !!appMatch?.fixtureId
+  const isFinished  = FT_STATUSES_SET.has(status)
+  const isLive      = LIVE_STATUSES_SET.has(status)
+  const hasScore    = isFinished || isLive
 
-  function TeamRow({ staticLabel, resolved }) {
+  function TeamRow({ staticLabel, resolved, isWinner, isLoser }) {
     if (resolved?.team) {
       const info   = getTeamInfo(resolved.team)
-      const dotCls = 'bg-green-500'
       return (
-        <div className="flex items-center gap-1.5 px-2 py-2 border-t border-slate-700 min-w-0">
+        <div className={`flex items-center gap-1.5 px-2 py-2 border-t border-slate-700 min-w-0 transition-opacity ${isLoser ? 'opacity-40' : ''}`}>
           {info.iso2
             ? <Flag iso2={info.iso2} size="xs" className="flex-shrink-0" />
             : <span className="w-5 h-3.5 bg-slate-600 rounded-sm flex-shrink-0" />}
-          <span className="text-[11px] font-bold text-slate-100 flex-1 truncate">{info.code}</span>
-          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
+          <span className={`text-[11px] font-bold flex-1 truncate ${isWinner ? 'text-sky-400' : isLoser ? 'text-slate-500' : 'text-slate-100'}`}>{info.code}</span>
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isFinished && isWinner ? 'bg-green-500' : isFinished && isLoser ? 'bg-slate-600' : 'bg-green-500'}`} />
         </div>
       )
     }
@@ -255,19 +263,34 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
     >
       <div className="flex items-center justify-between gap-1 px-2 pt-[3px] pb-[2px] bg-slate-700/30">
         <span className="text-[9px] font-mono text-slate-500 flex-shrink-0">#{matchId}</span>
-        {appMatch && (
-          <span className="text-[9px] text-slate-600 truncate">
-            {fmtDate(appMatch.date)} · {appMatch.timeCol}
-          </span>
-        )}
+        <div className="flex items-center gap-1 min-w-0">
+          {appMatch && (
+            <span className="text-[9px] text-slate-600 truncate">
+              {fmtDate(appMatch.date)} · {appMatch.timeCol}
+            </span>
+          )}
+          {isLive && (
+            <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+          )}
+        </div>
       </div>
       {appMatch?.venue && (
         <div className="px-2 pb-[2px] text-[8px] text-slate-600/80 truncate leading-tight">
           {appMatch.venue}
         </div>
       )}
-      <TeamRow staticLabel={home} resolved={resolvedHome} />
-      <TeamRow staticLabel={away} resolved={resolvedAway} />
+      <TeamRow staticLabel={home} resolved={resolvedHome} isWinner={winnerHome === true} isLoser={winnerHome === false} />
+      <TeamRow staticLabel={away} resolved={resolvedAway} isWinner={winnerAway === true} isLoser={winnerAway === false} />
+      {hasScore && (
+        <div className="flex items-center justify-center py-1 border-t border-slate-700/60 bg-slate-700/20">
+          <span className="text-xs font-black text-white tabular-nums">
+            {scoreHome ?? 0} – {scoreAway ?? 0}
+          </span>
+          {isFinished && status !== 'FT' && (
+            <span className="ml-1.5 text-[9px] text-slate-400 font-mono">{status}</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -281,7 +304,7 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
 //   Final       → center = avg(sf[0].center,    sf[1].center)
 //
 // Conectores: 4 líneas absolutas por par (arm arriba, arm abajo, vertical, output).
-function DesktopFinalTree({ bracketByMatchId }) {
+function DesktopFinalTree({ bracketByMatchId, r16Scores }) {
   const half = SLOT_H / 2
 
   // Posiciones absolutas de cada slot (top = center - half)
@@ -309,12 +332,16 @@ function DesktopFinalTree({ bracketByMatchId }) {
       <div className="flex-shrink-0 relative" style={{ width: COL_W, height: TREE_H }}>
         {slots.map(({ id, center }) => {
           const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
+          const sc = r16Scores?.[id]
           if (!m) return null
           return (
             <div key={id} className="absolute" style={{ top: center - half, left: 0, right: 0 }}>
               <BracketSlot matchId={id} home={m.home} away={m.away}
                 resolvedHome={resolved?.home} resolvedAway={resolved?.away}
                 isHighlight={id === 104}
+                scoreHome={sc?.scoreHome ?? null} scoreAway={sc?.scoreAway ?? null}
+                status={sc?.status ?? null}
+                winnerHome={sc?.winnerHome ?? null} winnerAway={sc?.winnerAway ?? null}
               />
             </div>
           )
@@ -397,20 +424,24 @@ function DesktopFinalTree({ bracketByMatchId }) {
 }
 
 // ─── TreeSlot — slot compacto árbol móvil ────────────────────────────────────
-function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false }) {
+function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight = false,
+                    scoreHome, scoreAway, status, winnerHome, winnerAway }) {
   const navigate    = useNavigate()
   const appMatch    = matchId ? MATCH_BY_ID[matchId] : null
   const isClickable = !!appMatch?.fixtureId
+  const isFinished  = FT_STATUSES_SET.has(status)
+  const isLive      = LIVE_STATUSES_SET.has(status)
+  const hasScore    = isFinished || isLive
 
-  function TRow({ resolved }) {
+  function TRow({ resolved, isWinner, isLoser }) {
     const info   = resolved?.team ? getTeamInfo(resolved.team) : null
-    const dotCls = !info ? 'bg-slate-700' : resolved.confirmed ? 'bg-green-500' : 'bg-yellow-400'
+    const dotCls = !info ? 'bg-slate-700' : isFinished && isWinner ? 'bg-green-500' : isFinished && isLoser ? 'bg-slate-600' : 'bg-green-500'
     return (
-      <div className="flex items-center gap-0.5 px-1 py-[3px] border-t border-slate-700/40">
+      <div className={`flex items-center gap-0.5 px-1 py-[3px] border-t border-slate-700/40 transition-opacity ${isLoser ? 'opacity-40' : ''}`}>
         {info?.iso2
           ? <Flag iso2={info.iso2} size="xs" className="flex-shrink-0 !w-4 !h-2.5" />
           : <span className="w-4 h-2.5 bg-slate-700/60 rounded-sm flex-shrink-0" />}
-        <span className={`text-[9px] font-bold flex-1 truncate leading-none ${info ? 'text-slate-100' : 'text-slate-600'}`}>
+        <span className={`text-[9px] font-bold flex-1 truncate leading-none ${info ? (isWinner ? 'text-sky-400' : isLoser ? 'text-slate-500' : 'text-slate-100') : 'text-slate-600'}`}>
           {info ? info.code : 'TBD'}
         </span>
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotCls}`} />
@@ -426,11 +457,24 @@ function TreeSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighlight
       } ${isClickable ? 'cursor-pointer' : ''}`}
       onClick={() => isClickable && navigate(`/partido/${appMatch.fixtureId}`)}
     >
-      <div className="text-[8px] text-slate-500 text-center px-1 py-[2px] bg-slate-700/30 truncate leading-tight">
-        {appMatch ? fmtDate(appMatch.date) : `#${matchId}`}
+      <div className="flex items-center justify-between px-1 py-[2px] bg-slate-700/30">
+        <span className="text-[8px] text-slate-500 truncate leading-tight">
+          {appMatch ? fmtDate(appMatch.date) : `#${matchId}`}
+        </span>
+        {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />}
       </div>
-      <TRow resolved={resolvedHome} />
-      <TRow resolved={resolvedAway} />
+      <TRow resolved={resolvedHome} isWinner={winnerHome === true} isLoser={winnerHome === false} />
+      <TRow resolved={resolvedAway} isWinner={winnerAway === true} isLoser={winnerAway === false} />
+      {hasScore && (
+        <div className="flex items-center justify-center py-[2px] border-t border-slate-700/60 bg-slate-700/20">
+          <span className="text-[9px] font-black text-white tabular-nums">
+            {scoreHome ?? 0} – {scoreAway ?? 0}
+          </span>
+          {isFinished && status !== 'FT' && (
+            <span className="ml-1 text-[8px] text-slate-400 font-mono">{status}</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -451,7 +495,7 @@ function MobTreeConnectors({ count }) {
 }
 
 // ─── Árbol móvil Fase Final (horizontal-scroll) ───────────────────────────────
-function MobileFinalTree({ bracketByMatchId }) {
+function MobileFinalTree({ bracketByMatchId, r16Scores }) {
   const COLS = [
     { label: 'Octavos', sub: '4–7 jul',   ids: [89,90,91,92,93,94,95,96], connCount: 4 },
     { label: 'Cuartos', sub: '9–11 jul',  ids: [97,98,99,100],            connCount: 2 },
@@ -481,11 +525,15 @@ function MobileFinalTree({ bracketByMatchId }) {
             <div className="flex-shrink-0 flex flex-col justify-around" style={{ width: MOB_SLOT_W, height: MOB_TREE_H }}>
               {col.ids.map(id => {
                 const m = ALL_BY_ID[id], resolved = bracketByMatchId[id]
+                const sc = r16Scores?.[id]
                 if (!m) return null
                 return (
                   <TreeSlot key={id} matchId={id} home={m.home} away={m.away}
                     resolvedHome={resolved?.home} resolvedAway={resolved?.away}
                     isHighlight={id === 104}
+                    scoreHome={sc?.scoreHome ?? null} scoreAway={sc?.scoreAway ?? null}
+                    status={sc?.status ?? null}
+                    winnerHome={sc?.winnerHome ?? null} winnerAway={sc?.winnerAway ?? null}
                   />
                 )
               })}
@@ -510,8 +558,10 @@ function MobileFinalTree({ bracketByMatchId }) {
 const _LIVE_STATUSES = new Set(['1H', '2H', 'HT', 'ET', 'BT', 'PEN', 'LIVE'])
 
 export default function Bracket() {
-  const [tab, setTab] = useState('d32')
+  const todayCol = new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const [tab, setTab] = useState(() => todayCol > '2026-07-03' ? 'final' : 'd32')
   const [r32Scores, setR32Scores] = useState({})
+  const [r16Scores, setR16Scores] = useState({})
   const knockoutWinners = useKnockoutWinners()
   const { matches: liveMatches } = useLiveMatches()
 
@@ -535,6 +585,30 @@ export default function Bracket() {
           }
         }
         setR32Scores(map)
+      })
+      .catch(() => {})
+  }, [])
+
+  // Fetch scores de los partidos R16 (Octavos M89-M96)
+  useEffect(() => {
+    if (!R16_FIXTURES.length) return
+    const ids = R16_FIXTURES.map(m => m.fixtureId).join('-')
+    fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
+      .then(r => r.json())
+      .then(data => {
+        const map = {}
+        for (const f of (data.response || [])) {
+          const entry = R16_FIXTURES.find(m => m.fixtureId === f.fixture.id)
+          if (!entry) continue
+          map[entry.matchId] = {
+            scoreHome:  f.goals?.home ?? null,
+            scoreAway:  f.goals?.away ?? null,
+            status:     f.fixture?.status?.short ?? null,
+            winnerHome: f.teams?.home?.winner ?? null,
+            winnerAway: f.teams?.away?.winner ?? null,
+          }
+        }
+        setR16Scores(map)
       })
       .catch(() => {})
   }, [])
@@ -582,6 +656,20 @@ export default function Bracket() {
       const awayW  = awayId ? knockoutWinners[+awayId] : null
       if (homeW || awayW) {
         base[m8.matchId] = { home: homeW ?? null, away: awayW ?? null }
+      }
+    }
+    // Llenar Cuartos (M97-M100) con ganadores reales de Octavos
+    const QF_FEED = [
+      { matchId: 97,  home: 89, away: 90 },
+      { matchId: 98,  home: 91, away: 92 },
+      { matchId: 99,  home: 93, away: 94 },
+      { matchId: 100, home: 95, away: 96 },
+    ]
+    for (const qf of QF_FEED) {
+      const homeW = knockoutWinners[qf.home]
+      const awayW = knockoutWinners[qf.away]
+      if (homeW || awayW) {
+        base[qf.matchId] = { home: homeW ?? null, away: awayW ?? null }
       }
     }
     return base
@@ -690,11 +778,11 @@ export default function Bracket() {
             <>
               {/* Desktop: árbol horizontal con alturas fijas */}
               <div className="hidden md:block">
-                <DesktopFinalTree bracketByMatchId={bracketByMatchId} />
+                <DesktopFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} />
               </div>
               {/* Móvil: árbol horizontal compacto con scroll */}
               <div className="md:hidden">
-                <MobileFinalTree bracketByMatchId={bracketByMatchId} />
+                <MobileFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} />
               </div>
             </>
           )}
