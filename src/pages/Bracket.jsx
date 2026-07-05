@@ -708,11 +708,18 @@ export default function Bracket() {
   // terminaron (FT) — evita renders intermedios con datos parciales
   // durante el polling de 60s de KnockoutContext.
   const knockoutReady = useMemo(() => {
-    // Verificar que los partidos R16 ya jugados tienen ganador
-    // M89 (FT) y M90 (FT) deben estar en knockoutWinners
-    const finishedR16 = [89, 90] // actualizar con los que ya terminaron
+    // Si aún no hay ningún score de R16, no estamos listos
+    if (Object.keys(r16Scores).length === 0) return false
+    // Para cada partido R16 que ya tiene score FT/AET/PEN,
+    // verificar que knockoutWinners tiene el ganador
+    const finishedR16 = Object.entries(r16Scores)
+      .filter(([, s]) => FT_STATUSES_SET.has(s.status))
+      .map(([id]) => Number(id))
+    // Si no hay ningún R16 terminado aún, mostrar el árbol igual
+    if (finishedR16.length === 0) return true
+    // Todos los terminados deben tener ganador en knockoutWinners
     return finishedR16.every(id => knockoutWinners[id] != null)
-  }, [knockoutWinners])
+  }, [knockoutWinners, r16Scores])
 
   const bracketByMatchId = useMemo(() => {
     const base = {}
