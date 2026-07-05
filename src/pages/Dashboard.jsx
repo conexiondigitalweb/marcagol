@@ -311,8 +311,13 @@ export default function Dashboard() {
 
   // Estadísticas dinámicas del Mundial — polling 60s
   useEffect(() => {
-    function fetchStats() {
-      fetch('/api/football?action=estadisticas-mundial')
+    const FORCE_REFRESH_KEY = 'wc2026_stats_forced_v1'
+
+    function fetchStats(force = false) {
+      const url = force
+        ? '/api/football?action=estadisticas-mundial&force=1'
+        : '/api/football?action=estadisticas-mundial'
+      fetch(url)
         .then(r => r.json())
         .then(d => {
           setStatsWC(d)
@@ -323,8 +328,17 @@ export default function Dashboard() {
         })
         .catch(() => setStatsLoading(false))
     }
-    fetchStats()
-    const id = setInterval(fetchStats, 60_000)
+
+    // Primera visita de la sesión: forzar bypass de caché para que el Home
+    // no arranque con estadísticas rezagadas (Redis TTL 900s).
+    if (!sessionStorage.getItem(FORCE_REFRESH_KEY)) {
+      sessionStorage.setItem(FORCE_REFRESH_KEY, '1')
+      fetchStats(true)
+    } else {
+      fetchStats(false)
+    }
+
+    const id = setInterval(() => fetchStats(false), 60_000)
     return () => clearInterval(id)
   }, [])
 

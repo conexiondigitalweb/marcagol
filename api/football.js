@@ -159,17 +159,20 @@ export default async function handler(req, res) {
     // v5: lotes de 10 fixtures con 200ms de pausa entre lotes
     const cacheKey = 'estadisticas-mundial:2026:v5'
     const now = Date.now()
+    const forceRefresh = !!req.query.force
 
-    const memHit = memCache.get(cacheKey)
-    if (memHit && now - memHit.ts < memHit.ttlMs) {
-      res.setHeader('X-Cache', 'HIT-MEM')
-      return res.status(200).json(memHit.data)
-    }
-    const kvHit = await kvGet(cacheKey)
-    if (kvHit) {
-      memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 900_000 })
-      res.setHeader('X-Cache', 'HIT-KV')
-      return res.status(200).json(kvHit)
+    if (!forceRefresh) {
+      const memHit = memCache.get(cacheKey)
+      if (memHit && now - memHit.ts < memHit.ttlMs) {
+        res.setHeader('X-Cache', 'HIT-MEM')
+        return res.status(200).json(memHit.data)
+      }
+      const kvHit = await kvGet(cacheKey)
+      if (kvHit) {
+        memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: 900_000 })
+        res.setHeader('X-Cache', 'HIT-KV')
+        return res.status(200).json(kvHit)
+      }
     }
 
     const apiKey = process.env.API_FOOTBALL_KEY || process.env.VITE_API_FOOTBALL_KEY
