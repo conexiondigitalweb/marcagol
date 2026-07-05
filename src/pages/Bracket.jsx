@@ -304,8 +304,8 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
 //   Final       → center = avg(sf[0].center,    sf[1].center)
 //
 // Conectores: 4 líneas absolutas por par (arm arriba, arm abajo, vertical, output).
-function DesktopFinalTree({ bracketByMatchId, r16Scores, knockoutReady }) {
-  if (!knockoutReady) {
+function DesktopFinalTree({ bracketByMatchId, r16Scores, knockoutReady, bracketTimeout }) {
+  if (!knockoutReady && !bracketTimeout) {
     return <div className="text-center py-8 text-slate-400">Cargando bracket...</div>
   }
 
@@ -499,8 +499,8 @@ function MobTreeConnectors({ count }) {
 }
 
 // ─── Árbol móvil Fase Final (horizontal-scroll) ───────────────────────────────
-function MobileFinalTree({ bracketByMatchId, r16Scores, knockoutReady }) {
-  if (!knockoutReady) {
+function MobileFinalTree({ bracketByMatchId, r16Scores, knockoutReady, bracketTimeout }) {
+  if (!knockoutReady && !bracketTimeout) {
     return <div className="text-center py-8 text-slate-400">Cargando bracket...</div>
   }
 
@@ -570,8 +570,16 @@ export default function Bracket() {
   const [tab, setTab] = useState(() => todayCol > '2026-07-03' ? 'final' : 'd32')
   const [r32Scores, setR32Scores] = useState({})
   const [r16Scores, setR16Scores] = useState({})
+  const [bracketTimeout, setBracketTimeout] = useState(false)
   const knockoutWinners = useKnockoutWinners()
   const { matches: liveMatches } = useLiveMatches()
+
+  // Seguro: si a los 5s el bracket aún no tiene knockoutReady, mostrar
+  // el árbol igual con lo que haya disponible en vez de bloquear la vista.
+  useEffect(() => {
+    const t = setTimeout(() => setBracketTimeout(true), 5000)
+    return () => clearTimeout(t)
+  }, [])
 
   // Fetch scores de los partidos R32 con fixtureId conocido.
   // Fetch único al montar; solo arranca un intervalo de 30s si hay
@@ -858,11 +866,11 @@ export default function Bracket() {
             <>
               {/* Desktop: árbol horizontal con alturas fijas */}
               <div className="hidden md:block">
-                <DesktopFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} />
+                <DesktopFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} bracketTimeout={bracketTimeout} />
               </div>
               {/* Móvil: árbol horizontal compacto con scroll */}
               <div className="md:hidden">
-                <MobileFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} />
+                <MobileFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} bracketTimeout={bracketTimeout} />
               </div>
             </>
           )}
