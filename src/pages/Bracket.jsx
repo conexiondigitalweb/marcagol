@@ -304,7 +304,11 @@ function BracketSlot({ matchId, home, away, resolvedHome, resolvedAway, isHighli
 //   Final       → center = avg(sf[0].center,    sf[1].center)
 //
 // Conectores: 4 líneas absolutas por par (arm arriba, arm abajo, vertical, output).
-function DesktopFinalTree({ bracketByMatchId, r16Scores }) {
+function DesktopFinalTree({ bracketByMatchId, r16Scores, knockoutReady }) {
+  if (!knockoutReady) {
+    return <div className="text-center py-8 text-slate-400">Cargando bracket...</div>
+  }
+
   const half = SLOT_H / 2
 
   // Posiciones absolutas de cada slot (top = center - half)
@@ -495,7 +499,11 @@ function MobTreeConnectors({ count }) {
 }
 
 // ─── Árbol móvil Fase Final (horizontal-scroll) ───────────────────────────────
-function MobileFinalTree({ bracketByMatchId, r16Scores }) {
+function MobileFinalTree({ bracketByMatchId, r16Scores, knockoutReady }) {
+  if (!knockoutReady) {
+    return <div className="text-center py-8 text-slate-400">Cargando bracket...</div>
+  }
+
   const COLS = [
     { label: 'Octavos', sub: '4–7 jul',   ids: [89,90,91,92,93,94,95,96], connCount: 4 },
     { label: 'Cuartos', sub: '9–11 jul',  ids: [97,98,99,100],            connCount: 2 },
@@ -695,6 +703,17 @@ export default function Bracket() {
     try { return projectBracket(formattedStandings) } catch { return null }
   }, [formattedStandings])
 
+  // Los renders del árbol de Fase Final solo deben mostrarse cuando
+  // knockoutWinners ya tiene el ganador de los partidos R16 que
+  // terminaron (FT) — evita renders intermedios con datos parciales
+  // durante el polling de 60s de KnockoutContext.
+  const knockoutReady = useMemo(() => {
+    // Verificar que los partidos R16 ya jugados tienen ganador
+    // M89 (FT) y M90 (FT) deben estar en knockoutWinners
+    const finishedR16 = [89, 90] // actualizar con los que ya terminaron
+    return finishedR16.every(id => knockoutWinners[id] != null)
+  }, [knockoutWinners])
+
   const bracketByMatchId = useMemo(() => {
     const base = {}
     if (bracketData?.matches) {
@@ -727,7 +746,7 @@ export default function Bracket() {
       }
     }
     return base
-  }, [bracketData, knockoutWinners])
+  }, [bracketData, knockoutWinners, r16Scores])
 
   const allGroupsComplete = formattedStandings.length === 12 &&
     formattedStandings.every(g => (g.standings[0][2]?.all?.played ?? 0) >= 3)
@@ -832,11 +851,11 @@ export default function Bracket() {
             <>
               {/* Desktop: árbol horizontal con alturas fijas */}
               <div className="hidden md:block">
-                <DesktopFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} />
+                <DesktopFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} />
               </div>
               {/* Móvil: árbol horizontal compacto con scroll */}
               <div className="md:hidden">
-                <MobileFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} />
+                <MobileFinalTree bracketByMatchId={bracketByMatchId} r16Scores={r16Scores} knockoutReady={knockoutReady} />
               </div>
             </>
           )}
