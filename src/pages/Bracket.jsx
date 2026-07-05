@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, Fragment } from 'react'
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Flag from '../components/ui/Flag'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -130,20 +130,6 @@ const R16_FIXTURES = MATCHES
 
 const FT_STATUSES_SET  = new Set(['FT', 'AET', 'PEN'])
 const LIVE_STATUSES_SET = new Set(['1H', '2H', 'HT', 'ET', 'BT'])
-
-// Determina si vale la pena seguir haciendo polling de un set de fixtures:
-// true si alguno sigue en vivo, o su kickoff ya pasó pero no tiene score FT aún.
-function needsMorePolling(fixturesList, scoresMap) {
-  return fixturesList.some(({ matchId }) => {
-    const status = scoresMap[matchId]?.status ?? null
-    if (FT_STATUSES_SET.has(status)) return false
-    if (LIVE_STATUSES_SET.has(status)) return true
-    const appMatch = MATCH_BY_ID[matchId]
-    if (!appMatch) return false
-    const kickoffMs = new Date(`${appMatch.date}T${appMatch.timeCol}:00-05:00`).getTime()
-    return Date.now() >= kickoffMs
-  })
-}
 
 // ─── MatchCard — tarjeta cara a cara (lista de R32) ─────────────────────────
 function MatchCard({ matchId, home, away, resolvedHome, resolvedAway,
@@ -580,89 +566,105 @@ export default function Bracket() {
   const { matches: liveMatches } = useLiveMatches()
 
   // Fetch scores de los partidos R32 con fixtureId conocido.
-  // Fetch inicial al montar + refresco cada 60s mientras haya partidos
-  // en vivo o con kickoff ya pasado sin score FT. Se detiene solo cuando
-  // todos los partidos visibles ya son FT/AET/PEN.
+  // Fetch único al montar; solo arranca un intervalo de 30s si hay
+  // partidos en vivo. intervalId vive en un ref (no en el closure del
+  // efecto) para evitar duplicados si el componente remonta.
+  const r32IntervalRef = useRef(null)
   useEffect(() => {
     if (!R32_FIXTURES.length) return
     let cancelled = false
-    let intervalId = null
 
-    function fetchScores() {
-      const ids = R32_FIXTURES.map(m => m.fixtureId).join('-')
-      fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
-        .then(r => r.json())
-        .then(data => {
-          if (cancelled) return
-          const map = {}
-          for (const f of (data.response || [])) {
-            const entry = R32_FIXTURES.find(m => m.fixtureId === f.fixture.id)
-            if (!entry) continue
-            map[entry.matchId] = {
-              scoreHome:  f.goals?.home ?? null,
-              scoreAway:  f.goals?.away ?? null,
-              status:     f.fixture?.status?.short ?? null,
-              winnerHome: f.teams?.home?.winner ?? null,
-              winnerAway: f.teams?.away?.winner ?? null,
-            }
+    async function fetchR32() {
+      try {
+        const ids = R32_FIXTURES.map(m => m.fixtureId).join('-')
+        const res = await fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
+        const data = await res.json()
+        if (cancelled) return
+        const map = {}
+        for (const f of (data.response || [])) {
+          const entry = R32_FIXTURES.find(m => m.fixtureId === f.fixture.id)
+          if (!entry) continue
+          map[entry.matchId] = {
+            scoreHome: f.goals?.home ?? null,
+            scoreAway: f.goals?.away ?? null,
+            status: f.fixture?.status?.short ?? null,
+            winnerHome: f.teams?.home?.winner ?? null,
+            winnerAway: f.teams?.away?.winner ?? null,
           }
-          setR32Scores(map)
+        }
+        setR32Scores(map)
 
-          const needsPolling = needsMorePolling(R32_FIXTURES, map)
-          if (needsPolling && !intervalId) {
-            intervalId = setInterval(fetchScores, 60_000)
-          } else if (!needsPolling && intervalId) {
-            clearInterval(intervalId)
-            intervalId = null
-          }
-        })
-        .catch(() => {})
+        // Solo arrancar polling si hay partidos live
+        const hasLive = Object.values(map).some(s =>
+          LIVE_STATUSES_SET.has(s.status)
+        )
+        if (hasLive && !r32IntervalRef.current) {
+          r32IntervalRef.current = setInterval(fetchR32, 30_000)
+        } else if (!hasLive && r32IntervalRef.current) {
+          clearInterval(r32IntervalRef.current)
+          r32IntervalRef.current = null
+        }
+      } catch {}
     }
 
-    fetchScores()
-    return () => { cancelled = true; if (intervalId) clearInterval(intervalId) }
+    fetchR32()
+    return () => {
+      cancelled = true
+      if (r32IntervalRef.current) {
+        clearInterval(r32IntervalRef.current)
+        r32IntervalRef.current = null
+      }
+    }
   }, [])
 
   // Fetch scores de los partidos R16 (Octavos M89-M96).
-  // Mismo patrón: fetch inicial + refresco cada 60s solo si hace falta.
+  // Mismo patrón que R32, con su propio ref de intervalo.
+  const r16IntervalRef = useRef(null)
   useEffect(() => {
     if (!R16_FIXTURES.length) return
     let cancelled = false
-    let intervalId = null
 
-    function fetchScores() {
-      const ids = R16_FIXTURES.map(m => m.fixtureId).join('-')
-      fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
-        .then(r => r.json())
-        .then(data => {
-          if (cancelled) return
-          const map = {}
-          for (const f of (data.response || [])) {
-            const entry = R16_FIXTURES.find(m => m.fixtureId === f.fixture.id)
-            if (!entry) continue
-            map[entry.matchId] = {
-              scoreHome:  f.goals?.home ?? null,
-              scoreAway:  f.goals?.away ?? null,
-              status:     f.fixture?.status?.short ?? null,
-              winnerHome: f.teams?.home?.winner ?? null,
-              winnerAway: f.teams?.away?.winner ?? null,
-            }
+    async function fetchR16() {
+      try {
+        const ids = R16_FIXTURES.map(m => m.fixtureId).join('-')
+        const res = await fetch(`/api/football?endpoint=/fixtures&ids=${ids}`)
+        const data = await res.json()
+        if (cancelled) return
+        const map = {}
+        for (const f of (data.response || [])) {
+          const entry = R16_FIXTURES.find(m => m.fixtureId === f.fixture.id)
+          if (!entry) continue
+          map[entry.matchId] = {
+            scoreHome: f.goals?.home ?? null,
+            scoreAway: f.goals?.away ?? null,
+            status: f.fixture?.status?.short ?? null,
+            winnerHome: f.teams?.home?.winner ?? null,
+            winnerAway: f.teams?.away?.winner ?? null,
           }
-          setR16Scores(map)
+        }
+        setR16Scores(map)
 
-          const needsPolling = needsMorePolling(R16_FIXTURES, map)
-          if (needsPolling && !intervalId) {
-            intervalId = setInterval(fetchScores, 60_000)
-          } else if (!needsPolling && intervalId) {
-            clearInterval(intervalId)
-            intervalId = null
-          }
-        })
-        .catch(() => {})
+        // Solo arrancar polling si hay partidos live
+        const hasLive = Object.values(map).some(s =>
+          LIVE_STATUSES_SET.has(s.status)
+        )
+        if (hasLive && !r16IntervalRef.current) {
+          r16IntervalRef.current = setInterval(fetchR16, 30_000)
+        } else if (!hasLive && r16IntervalRef.current) {
+          clearInterval(r16IntervalRef.current)
+          r16IntervalRef.current = null
+        }
+      } catch {}
     }
 
-    fetchScores()
-    return () => { cancelled = true; if (intervalId) clearInterval(intervalId) }
+    fetchR16()
+    return () => {
+      cancelled = true
+      if (r16IntervalRef.current) {
+        clearInterval(r16IntervalRef.current)
+        r16IntervalRef.current = null
+      }
+    }
   }, [])
 
   const standingsInterval = useMemo(() => {
