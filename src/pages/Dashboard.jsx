@@ -289,6 +289,7 @@ export default function Dashboard() {
   const [statsWC, setStatsWC]               = useState(null)
   const [statsLoading, setStatsLoading]     = useState(true)
   const [refreshKey, setRefreshKey]         = useState(0)
+  const [apiLimited, setApiLimited]         = useState(false)
 
   // Countdown ticker
   useEffect(() => {
@@ -349,7 +350,10 @@ export default function Dashboard() {
       try {
         const hoyCol = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
         const res = await fetch(`/api/football?endpoint=/fixtures&date=${hoyCol}&league=1&season=2026`)
-        if (!res.ok) return
+        if (!res.ok) { setApiLimited(true); return }
+        // El proxy marca x-api-status: 'limited' cuando el endpoint crítico
+        // devolvió results:0 (cuota agotada / error upstream silencioso).
+        setApiLimited(res.headers.get('x-api-status') === 'limited')
         const json = await res.json()
         const fMap = await getFixtureMap()
         const inv = {}
@@ -365,7 +369,9 @@ export default function Dashboard() {
           }
         }
         if (changed) setRefreshKey(k => k + 1)
-      } catch {}
+      } catch {
+        setApiLimited(true)
+      }
     }
     fetchPartidos()
     const id = setInterval(fetchPartidos, 60_000)
@@ -422,6 +428,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-10 animate-slide-up">
+
+      {/* ── Banner de mantenimiento (datos de API limitados) ────────────── */}
+      {apiLimited && (
+        <div
+          className="rounded-xl px-4 py-3 text-sm text-center text-slate-400"
+          style={{ background: '#1E293B' }}
+        >
+          ⚽ Actualizando datos del torneo · La información se restaurará en breve
+        </div>
+      )}
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section

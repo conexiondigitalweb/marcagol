@@ -22,6 +22,16 @@ const ALLOWED_ENDPOINTS = new Set([
   '/teams/statistics',
 ])
 
+// Endpoints críticos para el estado del torneo — si vuelven vacíos
+// (results: 0), el frontend debe poder mostrar un aviso de mantenimiento.
+const CRITICAL_ENDPOINTS = new Set(['/fixtures', '/players/topscorers'])
+
+function markLimitedIfEmpty(res, endpoint, data) {
+  if (CRITICAL_ENDPOINTS.has(endpoint) && data?.results === 0) {
+    res.setHeader('x-api-status', 'limited')
+  }
+}
+
 // ── L1: caché en memoria (por instancia, sub-segundo) ────────────────────────
 const memCache  = new Map()
 let lastLiveTs  = 0
@@ -350,6 +360,7 @@ export default async function handler(req, res) {
       const remainingSecs = Math.ceil((memHit.ttlMs - (now - memHit.ts)) / 1000)
       res.setHeader('X-Cache', 'HIT-MEM')
       res.setHeader('Cache-Control', `public, s-maxage=${remainingSecs}, stale-while-revalidate=5`)
+      markLimitedIfEmpty(res, endpoint, memHit.data)
       return res.status(200).json(memHit.data)
     }
   }
@@ -363,6 +374,7 @@ export default async function handler(req, res) {
       memCache.set(cacheKey, { data: kvHit, ts: now, ttlMs: Math.min(kvTtl, 15) * 1000 })
       res.setHeader('X-Cache', 'HIT-KV')
       res.setHeader('Cache-Control', `public, s-maxage=${Math.min(kvTtl, 15)}, stale-while-revalidate=5`)
+      markLimitedIfEmpty(res, endpoint, kvHit)
       return res.status(200).json(kvHit)
     }
   }
@@ -379,6 +391,7 @@ export default async function handler(req, res) {
       signal:  AbortSignal.timeout(10_000),
     })
     if (!upstream.ok) {
+      if (CRITICAL_ENDPOINTS.has(endpoint)) res.setHeader('x-api-status', 'limited')
       return res.status(upstream.status).json({ error: `Error upstream: ${upstream.status}` })
     }
     const data = await upstream.json()
@@ -405,8 +418,10 @@ export default async function handler(req, res) {
         ? `public, s-maxage=${ttlSeconds}, stale-while-revalidate=5`
         : 'no-store'
     )
+    markLimitedIfEmpty(res, endpoint, data)
     return res.status(200).json(data)
   } catch (err) {
+    if (CRITICAL_ENDPOINTS.has(endpoint)) res.setHeader('x-api-status', 'limited')
     return res.status(502).json({ error: err.message })
   }
 }
